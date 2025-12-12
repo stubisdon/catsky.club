@@ -7,7 +7,7 @@
    cp /path/to/your/audio.mp3 public/audio/knock-knock.mp3
    ```
 
-2. **Video is using YouTube:** The video is currently set to use the YouTube video at `https://www.youtube.com/watch?v=8wU8k2kDaTo`. No local video file needed!
+2. **Configure your experience:** Edit `src/App.tsx` to set up your timeline events and audio file path.
 
 That's it! The audio file will be automatically loaded when the site runs.
 
@@ -19,10 +19,10 @@ That's it! The audio file will be automatically loaded when the site runs.
 - **Size:** Keep under 5MB for fast loading
 - **Behavior:** Plays automatically when the site loads (may require user interaction on some browsers due to autoplay policies)
 
-### Video (YouTube)
-- **Current:** Using YouTube video `https://www.youtube.com/watch?v=8wU8k2kDaTo`
-- **Behavior:** Plays fullscreen when user clicks anywhere on the intro screen
-- **To change:** Edit `YOUTUBE_VIDEO_ID` in `pages/index.tsx` (extract the video ID from the YouTube URL)
+### Experience Configuration
+- **Location:** `src/App.tsx` - Edit the `EXPERIENCE_DATA` constant
+- **Audio File:** Set in `metadata.audioFile` (default: `/audio/knock-knock.mp3`)
+- **Timeline:** Configure text, input, and choice events in the `timeline` array
 
 ## Testing
 
@@ -36,10 +36,10 @@ After adding your files:
 2. **Visit:** `http://localhost:3000`
 
 3. **You should:**
-   - See "knock knock 🐾" in the center
-   - Hear audio playing (if autoplay is allowed)
-   - Click anywhere to trigger the video
-   - Video should go fullscreen
+   - See a "play" button in the center
+   - Click play to start the experience
+   - Hear audio playing and see text events appear
+   - Interact with input fields and choices as they appear
 
 ## Troubleshooting
 
@@ -48,16 +48,11 @@ After adding your files:
 - Check browser console for errors.
 - Verify file path: `/audio/knock-knock.mp3`
 
-### Video not playing?
+### Timeline events not appearing?
 - Check browser console for errors.
-- Verify YouTube video ID is correct in `pages/index.tsx`.
-- Ensure YouTube video is publicly accessible (not private/unlisted).
-- Check internet connection (YouTube video requires connection).
-
-### Fullscreen not working?
-- Some browsers require user interaction before allowing fullscreen.
-- Mobile browsers may handle fullscreen differently.
-- The video will still play even if fullscreen fails.
+- Verify timeline events have correct timestamps in `src/App.tsx`.
+- Ensure audio file is loading correctly.
+- Check that experience data is properly formatted.
 
 ## File Structure
 

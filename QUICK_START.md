@@ -8,12 +8,8 @@
 cd /Users/stub/coding/ghost-headless-frontend-starter
 npm install
 
-# Create .env.local file
-cat > .env.local << EOF
-GHOST_API_URL=https://catsky.club/ghost/api/content
-GHOST_CONTENT_API_KEY=0667d8e2c878c297cac36ec6c7
-NEXT_PUBLIC_SITE_URL=https://catsky.club
-EOF
+# Add your audio file (optional)
+# cp /path/to/your/audio.mp3 public/audio/knock-knock.mp3
 ```
 
 ### Step 2: Test Locally (1 min)
@@ -22,7 +18,7 @@ EOF
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) - you should see your Ghost posts!
+Open [http://localhost:3000](http://localhost:3000) - you should see the interactive experience!
 
 ### Step 3: Deploy to Server
 
@@ -36,10 +32,7 @@ cd ghost-frontend
 npm install --production
 npm run build
 
-# Set environment
-echo "GHOST_API_URL=https://catsky.club/ghost/api/content" > .env.production
-echo "GHOST_CONTENT_API_KEY=0667d8e2c878c297cac36ec6c7" >> .env.production
-echo "NEXT_PUBLIC_SITE_URL=https://catsky.club" >> .env.production
+# No environment variables needed for basic setup
 
 # Run with PM2
 npm install -g pm2
@@ -58,21 +51,23 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for full nginx setup.
 
 ## ✅ What You Have Now
 
-- ✅ Minimalistic Next.js frontend
-- ✅ Homepage with post listing
-- ✅ Single post pages
+- ✅ Minimalistic React + Vite frontend
+- ✅ Interactive experience with JSON-based timeline
+- ✅ Audio-synced text and interaction events
+- ✅ Timeline debugging tools
 - ✅ Responsive design
-- ✅ SEO optimized
 - ✅ Ready to deploy
 
 ## 🎨 Customize
 
-Edit `styles/globals.css` to change colors, fonts, and layout.
+Edit `src/index.css` to change colors, fonts, and layout.
+Edit `src/App.tsx` to configure your experience timeline.
 
 ## 📚 Next Steps
 
 1. Test locally: `npm run dev`
-2. Customize design in `styles/globals.css`
-3. Deploy following [DEPLOYMENT.md](./DEPLOYMENT.md)
-4. Enjoy your new minimalistic frontend! 🎉
+2. Customize experience in `src/App.tsx`
+3. Customize design in `src/index.css`
+4. Deploy following [DEPLOYMENT.md](./DEPLOYMENT.md)
+5. Enjoy your new interactive experience! 🎉
 

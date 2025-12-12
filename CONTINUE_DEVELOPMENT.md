@@ -59,11 +59,9 @@ Everything is saved locally on your machine and backed up on GitHub. Here's how 
 
 ## Important Files to Remember
 
-### Environment Variables (`.env.local`)
-Make sure you have:
-- `GHOST_API_URL`
-- `GHOST_CONTENT_API_KEY`
-- `NEXT_PUBLIC_SITE_URL`
+### Experience Configuration
+- Edit `src/App.tsx` to modify the experience timeline
+- Or use `experience-example.json` as a template
 
 ### Media Files
 - `public/audio/knock-knock.mp3` - Your audio file
@@ -104,7 +102,7 @@ npm run dev
 - **Project Location:** `/Users/stub/coding/ghost-headless-frontend-starter`
 - **GitHub Repo:** https://github.com/stubisdon/ghost-headless-frontend
 - **Dev Server:** http://localhost:3000
-- **Main File:** `pages/index.tsx` (the immersive experience)
+- **Main File:** `src/App.tsx` (the immersive experience)
 
 ## Troubleshooting
 

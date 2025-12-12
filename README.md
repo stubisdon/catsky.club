@@ -1,16 +1,16 @@
 # Ghost Headless Frontend - Immersive Black Screen Experience
 
-An immersive, minimalistic black screen frontend for Ghost CMS built with Next.js and TypeScript.
+An immersive, minimalistic black screen frontend for Ghost CMS built with React, Vite, and TypeScript.
 
 ## Features
 
 - ✅ **Immersive Black Screen Design** - Black background with white monospace font
-- ✅ **Auto-play Audio** - Background audio plays on load
-- ✅ **YouTube Video Integration** - Fullscreen video experience
-- ✅ **Interactive Form Flow** - Name → Contact → Message progression
+- ✅ **Interactive Experience Format** - JSON-based timeline with text, input, and choice events
+- ✅ **Audio-Synced Timeline** - Text and interactions synced to audio playback
+- ✅ **Timeline Debugging Tools** - Visual timeline with markers and seek functionality
 - ✅ **Mobile Optimized** - Touch-friendly interactions
 - ✅ **TypeScript** - Type-safe development
-- ✅ **Next.js 14** - Server-side rendering and static generation
+- ✅ **React + Vite** - Fast development and build
 
 ## Quick Start
 
@@ -20,25 +20,9 @@ An immersive, minimalistic black screen frontend for Ghost CMS built with Next.j
 npm install
 ```
 
-### 2. Configure Environment
+### 2. Configure Experience
 
-Copy the example environment file and add your Ghost API credentials:
-
-```bash
-cp .env.local.example .env.local
-```
-
-Edit `.env.local`:
-```env
-GHOST_API_URL=https://catsky.club/ghost/api/content
-GHOST_CONTENT_API_KEY=your-content-api-key-here
-NEXT_PUBLIC_SITE_URL=https://catsky.club
-```
-
-**Get your API key:**
-1. Go to Ghost Admin → Settings → Integrations
-2. Create a new Custom Integration
-3. Copy the **Content API Key**
+Edit the experience data in `src/App.tsx` or create a JSON file following the format in `experience-example.json`.
 
 ### 3. Add Media Files
 
@@ -47,7 +31,7 @@ NEXT_PUBLIC_SITE_URL=https://catsky.club
 cp /path/to/your/audio.mp3 public/audio/knock-knock.mp3
 ```
 
-The video is currently set to use YouTube video `https://www.youtube.com/watch?v=8wU8k2kDaTo`. To change it, edit `YOUTUBE_VIDEO_ID` in `pages/index.tsx`.
+The experience is configured in `src/App.tsx` with the `EXPERIENCE_DATA` constant. You can also use `experience-example.json` as a template.
 
 ### 4. Run Development Server
 
@@ -59,56 +43,46 @@ Visit [http://localhost:3000](http://localhost:3000) to see your site.
 
 ## User Experience Flow
 
-1. **Intro Screen**: Black screen with "knock knock 🐾" and auto-play audio
-2. **Click Anywhere**: YouTube video plays fullscreen
-3. **After Video**: "who are you?" input field appears
-4. **Enter Name**: Shows "hello, [name]" + contact field
-5. **Enter Contact**: Final message screen with submission
+1. **Play Button**: Black screen with centered play button
+2. **Audio Experience**: Audio plays with text events appearing at specific timestamps
+3. **Interactive Inputs**: User can enter text when prompted
+4. **Choice Selections**: User can choose from options when presented
+5. **Ending**: Experience concludes with an ending screen based on user choices
 
 ## Project Structure
 
 ```
 ghost-headless-frontend-starter/
-├── components/          # React components
-│   ├── Header.tsx      # Site header (not used in immersive mode)
-│   └── Footer.tsx      # Site footer (not used in immersive mode)
-├── lib/
-│   └── ghost-api.ts    # Ghost Content API client
-├── pages/
-│   ├── _app.tsx        # Next.js app wrapper
-│   ├── index.tsx       # Main immersive experience
-│   ├── api/
-│   │   └── submit.ts   # Form submission endpoint
-│   └── posts/
-│       └── [slug].tsx  # Single post page (optional)
-├── styles/
-│   └── globals.css     # Global styles (black screen design)
+├── src/
+│   ├── App.tsx          # Main application component
+│   ├── main.tsx         # React entry point
+│   ├── index.css        # Global styles (black screen design)
+│   └── types/
+│       └── experience.ts # Experience format type definitions
 ├── public/
-│   └── audio/          # Audio files directory
-├── types/
-│   └── youtube.d.ts    # YouTube API type definitions
-├── next.config.js      # Next.js configuration
-├── tsconfig.json       # TypeScript configuration
-└── package.json        # Dependencies
+│   └── audio/           # Audio files directory
+├── experience-example.json # Example experience configuration
+├── experience-schema.json  # JSON schema for experience format
+├── server.js            # Express server for API endpoints
+├── vite.config.ts       # Vite configuration
+├── tsconfig.json        # TypeScript configuration
+└── package.json         # Dependencies
 ```
 
 ## Customization
 
-### Change YouTube Video
+### Experience Configuration
 
-Edit `pages/index.tsx`:
-```typescript
-const YOUTUBE_VIDEO_ID = 'your-video-id-here'
-```
+Edit the `EXPERIENCE_DATA` constant in `src/App.tsx` or load from a JSON file. See `experience-example.json` for the format.
 
 ### Colors & Typography
 
-Edit `styles/globals.css`:
+Edit `src/index.css`:
 ```css
 :root {
   --color-bg: #000000;      /* Background color */
   --color-text: #ffffff;    /* Text color */
-  --font-mono: 'Courier New', Courier, monospace;
+  --font-mono: 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace;
 }
 ```
 
@@ -118,10 +92,7 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions to Dig
 
 ## API Endpoints
 
-- `GET /ghost/api/content/posts/` - Get all posts
-- `GET /ghost/api/content/posts/slug/{slug}/` - Get single post
-- `GET /ghost/api/content/settings/` - Get site settings
-- `POST /api/submit` - Submit contact form
+- `POST /api/submit` - Submit form data (configured in `server.js`)
 
 ## Troubleshooting
 
@@ -130,16 +101,11 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions to Dig
 - Check browser console for errors.
 - Verify file path: `/audio/knock-knock.mp3`
 
-### Video not playing?
+### Timeline not working?
 - Check browser console for errors.
-- Verify YouTube video ID is correct in `pages/index.tsx`.
-- Ensure YouTube video is publicly accessible.
-- Check internet connection (YouTube video requires connection).
-
-### Fullscreen not working?
-- Some browsers require user interaction before allowing fullscreen.
-- Mobile browsers may handle fullscreen differently.
-- The video will still play even if fullscreen fails.
+- Verify audio file is loading correctly.
+- Ensure timeline events have correct timestamps.
+- Check that `EXPERIENCE_DATA` in `src/App.tsx` is properly formatted.
 
 ## License
 
@@ -149,5 +115,5 @@ MIT
 
 For issues or questions:
 1. Check the [DEPLOYMENT.md](./DEPLOYMENT.md) guide
-2. Review Ghost API documentation
-3. Check Next.js documentation
+2. Review the [EXPERIENCE_FORMAT.md](./EXPERIENCE_FORMAT.md) for experience configuration
+3. Check [README_REACT.md](./README_REACT.md) for React-specific details

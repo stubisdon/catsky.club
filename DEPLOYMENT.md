@@ -1,6 +1,6 @@
 # Deployment Guide: Ghost Headless Frontend
 
-This guide will help you deploy your Next.js frontend to your DigitalOcean server alongside your existing Ghost installation.
+This guide will help you deploy your React + Vite frontend to your DigitalOcean server.
 
 ## Prerequisites
 
@@ -13,25 +13,17 @@ This guide will help you deploy your Next.js frontend to your DigitalOcean serve
 
 ## Step 1: Prepare Your Local Environment
 
-1. **Copy your API key to environment file:**
+1. **Test locally first:**
    ```bash
    cd /Users/stub/coding/ghost-headless-frontend-starter
-   cp .env.local.example .env.local
-   ```
-
-2. **Edit `.env.local` and add your API key:**
-   ```bash
-   GHOST_API_URL=https://catsky.club/ghost/api/content
-   GHOST_CONTENT_API_KEY=0667d8e2c878c297cac36ec6c7
-   NEXT_PUBLIC_SITE_URL=https://catsky.club
-   ```
-
-3. **Test locally first:**
-   ```bash
    npm install
    npm run dev
    ```
    Visit `http://localhost:3000` to verify everything works.
+
+2. **Configure your experience:**
+   - Edit `src/App.tsx` to customize the experience timeline
+   - Add your audio file to `public/audio/knock-knock.mp3`
 
 ---
 
@@ -93,30 +85,24 @@ npm install --production
 
 ---
 
-## Step 4: Set Up Environment Variables
+## Step 4: Build the Application
 
 ```bash
-# Create .env.production file
-cat > .env.production << EOF
-GHOST_API_URL=https://catsky.club/ghost/api/content
-GHOST_CONTENT_API_KEY=0667d8e2c878c297cac36ec6c7
-NEXT_PUBLIC_SITE_URL=https://catsky.club
-NODE_ENV=production
-EOF
+# Build the React + Vite app
+npm run build
 ```
+
+The built files will be in the `dist` directory.
 
 ---
 
-## Step 5: Build and Run with PM2
+## Step 5: Run with PM2
 
 ```bash
 # Install PM2 globally
 npm install -g pm2
 
-# Build the Next.js app
-npm run build
-
-# Start with PM2
+# Start the server with PM2
 pm2 start npm --name "ghost-frontend" -- start
 
 # Save PM2 configuration
@@ -140,9 +126,9 @@ Your frontend should now be running on `http://localhost:3000` (internal).
 ## Step 6: Configure Nginx Reverse Proxy
 
 We need to configure nginx to:
-- Serve your Next.js frontend at the root (`/`)
-- Proxy Ghost admin and API to `/ghost/`
-- Handle members and webhooks
+- Serve your React frontend at the root (`/`)
+- Proxy API requests to the Express server
+- Handle static files from the `dist` directory
 
 ### Create Nginx Configuration
 
@@ -162,7 +148,7 @@ server {
     
     # For now, allow HTTP (remove after SSL setup)
     
-    # Frontend (Next.js)
+    # Frontend (React + Vite)
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
@@ -325,7 +311,7 @@ pm2 status
 
 ## Next Steps
 
-- Customize the design in `styles/globals.css`
+- Customize the design in `src/index.css`
 - Add more pages/components as needed
 - Set up automated deployments (GitHub Actions, etc.)
 - Configure CDN for static assets (optional)
