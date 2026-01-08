@@ -7,7 +7,7 @@ This guide will help you deploy your React + Vite frontend to your DigitalOcean 
 - ✅ Ghost is running on your DigitalOcean server
 - ✅ Ghost Content API is working (you've tested it)
 - ✅ You have SSH access to your server
-- ✅ Node.js 18+ installed on server (or we'll install it)
+- ✅ Node.js 18+ installed on server (Node.js 20 LTS recommended)
 
 ---
 
@@ -43,8 +43,9 @@ This guide will help you deploy your React + Vite frontend to your DigitalOcean 
    ```bash
    ssh root@YOUR_SERVER_IP
    cd /opt
-   git clone YOUR_REPO_URL ghost-frontend
-   cd ghost-frontend
+   git clone YOUR_REPO_URL catsky-club
+   cd catsky-club
+   chmod +x deploy.sh  # Make deployment script executable
    ```
 
 ### Option B: Deploy via SCP (Quick)
@@ -56,13 +57,14 @@ This guide will help you deploy your React + Vite frontend to your DigitalOcean 
 
 2. **Copy to server:**
    ```bash
-   scp -r . root@YOUR_SERVER_IP:/opt/ghost-frontend
+   scp -r . root@YOUR_SERVER_IP:/opt/catsky-club
    ```
 
 3. **SSH into server:**
    ```bash
    ssh root@YOUR_SERVER_IP
-   cd /opt/ghost-frontend
+   cd /opt/catsky-club
+   chmod +x deploy.sh  # Make deployment script executable
    ```
 
 ---
@@ -70,8 +72,8 @@ This guide will help you deploy your React + Vite frontend to your DigitalOcean 
 ## Step 3: Install Dependencies on Server
 
 ```bash
-# Install Node.js 18+ if not already installed
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+# Install Node.js 20 (LTS) if not already installed
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
 # Verify installation
@@ -79,7 +81,7 @@ node --version
 npm --version
 
 # Install project dependencies
-cd /opt/ghost-frontend
+cd /opt/catsky-club
 npm install --production
 ```
 
@@ -103,7 +105,8 @@ The built files will be in the `dist` directory.
 npm install -g pm2
 
 # Start the server with PM2
-pm2 start npm --name "ghost-frontend" -- start
+# The server runs on port 3001 by default (configurable via PORT env var)
+pm2 start npm --name "catsky-club" -- start
 
 # Save PM2 configuration
 pm2 save
@@ -116,10 +119,10 @@ pm2 startup
 **Verify it's running:**
 ```bash
 pm2 status
-pm2 logs ghost-frontend
+pm2 logs catsky-club
 ```
 
-Your frontend should now be running on `http://localhost:3000` (internal).
+Your frontend should now be running on `http://localhost:3001` (internal).
 
 ---
 
@@ -132,6 +135,13 @@ We need to configure nginx to:
 
 ### Create Nginx Configuration
 
+**Option 1: Copy the example config (recommended)**
+```bash
+sudo cp /opt/catsky-club/nginx.conf.example /etc/nginx/sites-available/catsky.club
+sudo nano /etc/nginx/sites-available/catsky.club  # Review and adjust if needed
+```
+
+**Option 2: Create manually**
 ```bash
 sudo nano /etc/nginx/sites-available/catsky.club
 ```
@@ -148,9 +158,9 @@ server {
     
     # For now, allow HTTP (remove after SSL setup)
     
-    # Frontend (React + Vite)
+    # Frontend (React + Vite - served by Express on port 3001)
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -159,6 +169,21 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        
+        # Increase timeouts for long-running requests
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+    
+    # API endpoints
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
     
     # Ghost Admin Panel
@@ -255,8 +280,10 @@ ghost restart
 
 ### Frontend not loading
 ```bash
-pm2 logs ghost-frontend
-pm2 restart ghost-frontend
+pm2 logs catsky-club
+pm2 restart catsky-club
+# Check if dist directory exists and has files
+ls -la dist/
 ```
 
 ### Nginx errors
@@ -273,15 +300,24 @@ ghost doctor
 
 ### Port conflicts
 ```bash
-# Check what's using port 3000
-sudo lsof -i :3000
+# Check what's using port 3001
+sudo lsof -i :3001
 ```
 
 ---
 
 ## Updating Your Frontend
 
-When you make changes:
+When you make changes, you can use the deployment script:
+
+```bash
+# On server
+cd /opt/ghost-frontend  # or wherever you deployed
+git pull  # if using git
+./deploy.sh
+```
+
+Or manually:
 
 ```bash
 # On server
@@ -289,7 +325,7 @@ cd /opt/ghost-frontend
 git pull  # if using git
 npm install
 npm run build
-pm2 restart ghost-frontend
+pm2 restart catsky-club
 ```
 
 ---
@@ -298,7 +334,7 @@ pm2 restart ghost-frontend
 
 ```bash
 # View logs
-pm2 logs ghost-frontend
+pm2 logs catsky-club
 
 # Monitor resources
 pm2 monit

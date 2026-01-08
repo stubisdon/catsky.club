@@ -12,12 +12,12 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
-# Check Node.js version (Vite requires Node 18+)
+# Check Node.js version (Vite requires Node 18+, but 20+ is recommended)
 NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
 if [ "$NODE_VERSION" -lt 18 ]; then
-    echo "❌ Error: Node.js 18+ is required. Current version: $(node -v)"
-    echo "📦 To install Node.js 18:"
-    echo "   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -"
+    echo "❌ Error: Node.js 18+ is required (20+ recommended). Current version: $(node -v)"
+    echo "📦 To install Node.js 20 (LTS):"
+    echo "   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -"
     echo "   sudo apt-get install -y nodejs"
     exit 1
 fi
