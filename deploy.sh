@@ -51,9 +51,9 @@ fi
 
 # Restart the application with PM2
 echo "🔄 Restarting application with PM2..."
-if [ -f "ecosystem.config.js" ]; then
+if [ -f "ecosystem.config.cjs" ]; then
     pm2 delete catsky-club 2>/dev/null || true
-    pm2 start ecosystem.config.js
+    pm2 start ecosystem.config.cjs
 else
     pm2 delete catsky-club 2>/dev/null || true
     pm2 start server.js --name "catsky-club" --env PORT=3001

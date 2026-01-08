@@ -1,5 +1,5 @@
 // PM2 Ecosystem Configuration
-// Use with: pm2 start ecosystem.config.js
+// Use with: pm2 start ecosystem.config.cjs
 
 module.exports = {
   apps: [{
