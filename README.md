@@ -60,7 +60,8 @@ catsky.club/
 │   └── types/
 │       └── experience.ts # Experience format type definitions
 ├── public/
-│   └── audio/           # Audio files directory
+│   ├── audio/           # Audio files directory
+│   └── docs/            # Documentation files
 ├── experience-example.json # Example experience configuration
 ├── experience-schema.json  # JSON schema for experience format
 ├── server.js            # Express server for API endpoints
@@ -86,9 +87,27 @@ Edit `src/index.css`:
 }
 ```
 
+## Documentation
+
+All documentation is available in the `docs/` folder and can be viewed in a readable format by visiting `/#docs` in your browser when running the development server.
+
+**View Documentation:** Navigate to `http://localhost:3000/#docs` to see all documentation in a formatted viewer.
+
+### Documentation Files
+
+- [Business Strategy](./public/docs/BUSINESS_STRATEGY.md) - Business strategy and phase model
+- [Brand Guidelines](./public/docs/BRAND_GUIDELINES.md) - Brand colors and design system
+- [Continue Development](./public/docs/CONTINUE_DEVELOPMENT.md) - How to resume development
+- [Deployment](./public/docs/DEPLOYMENT.md) - Deployment instructions
+- [Experience Format](./public/docs/EXPERIENCE_FORMAT.md) - Experience configuration format
+- [Quick Start](./public/docs/QUICK_START.md) - Quick start guide
+- [React Documentation](./public/docs/README_REACT.md) - React-specific details
+- [Setup Media](./public/docs/SETUP_MEDIA.md) - Media setup instructions
+- [UX/UI Documentation](./public/docs/UX_UI_DOCUMENTATION.md) - UX/UI guidelines
+
 ## Deployment
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete deployment instructions to DigitalOcean.
+See [DEPLOYMENT.md](./public/docs/DEPLOYMENT.md) for complete deployment instructions to DigitalOcean.
 
 ## API Endpoints
 
@@ -114,6 +133,7 @@ MIT
 ## Support
 
 For issues or questions:
-1. Check the [DEPLOYMENT.md](./DEPLOYMENT.md) guide
-2. Review the [EXPERIENCE_FORMAT.md](./EXPERIENCE_FORMAT.md) for experience configuration
-3. Check [README_REACT.md](./README_REACT.md) for React-specific details
+1. Check the [Deployment guide](./public/docs/DEPLOYMENT.md)
+2. Review the [Experience Format](./public/docs/EXPERIENCE_FORMAT.md) for experience configuration
+3. Check [React Documentation](./public/docs/README_REACT.md) for React-specific details
+4. Visit `/#docs` in your browser for the interactive documentation viewer
