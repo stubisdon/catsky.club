@@ -1,14 +1,14 @@
 // PM2 Ecosystem Configuration
 // Use with: pm2 start ecosystem.config.js
 
-export default {
+module.exports = {
   apps: [{
     name: 'catsky-club',
-    script: 'npm',
-    args: 'start',
+    script: 'server.js',
     cwd: process.cwd(),
     instances: 1,
     exec_mode: 'fork',
+    interpreter: 'node',
     env: {
       NODE_ENV: 'production',
       PORT: 3001
