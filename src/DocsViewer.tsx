@@ -9,15 +9,19 @@ interface DocFile {
 }
 
 const DOC_FILES: DocFile[] = [
-  { name: 'BUSINESS_STRATEGY.md', path: '/docs/BUSINESS_STRATEGY.md', title: 'Business Strategy' },
-  { name: 'BRAND_GUIDELINES.md', path: '/docs/BRAND_GUIDELINES.md', title: 'Brand Guidelines' },
-  { name: 'CONTINUE_DEVELOPMENT.md', path: '/docs/CONTINUE_DEVELOPMENT.md', title: 'Continue Development' },
-  { name: 'DEPLOYMENT.md', path: '/docs/DEPLOYMENT.md', title: 'Deployment' },
-  { name: 'EXPERIENCE_FORMAT.md', path: '/docs/EXPERIENCE_FORMAT.md', title: 'Experience Format' },
-  { name: 'QUICK_START.md', path: '/docs/QUICK_START.md', title: 'Quick Start' },
-  { name: 'README_REACT.md', path: '/docs/README_REACT.md', title: 'React Documentation' },
-  { name: 'SETUP_MEDIA.md', path: '/docs/SETUP_MEDIA.md', title: 'Setup Media' },
-  { name: 'UX_UI_DOCUMENTATION.md', path: '/docs/UX_UI_DOCUMENTATION.md', title: 'UX/UI Documentation' },
+  // Business documentation
+  { name: 'strategy.md', path: '/docs/biz/strategy.md', title: 'Business Strategy' },
+  { name: 'branding.md', path: '/docs/biz/branding.md', title: 'Brand Guidelines' },
+  { name: 'mission.md', path: '/docs/biz/mission.md', title: 'Mission' },
+  { name: 'todo.md', path: '/docs/biz/todo.md', title: 'Todo' },
+  // Technical documentation
+  { name: 'CONTINUE_DEVELOPMENT.md', path: '/docs/tech/CONTINUE_DEVELOPMENT.md', title: 'Continue Development' },
+  { name: 'DEPLOYMENT.md', path: '/docs/tech/DEPLOYMENT.md', title: 'Deployment' },
+  { name: 'EXPERIENCE_FORMAT.md', path: '/docs/tech/EXPERIENCE_FORMAT.md', title: 'Experience Format' },
+  { name: 'QUICK_START.md', path: '/docs/tech/QUICK_START.md', title: 'Quick Start' },
+  { name: 'README_REACT.md', path: '/docs/tech/README_REACT.md', title: 'React Documentation' },
+  { name: 'SETUP_MEDIA.md', path: '/docs/tech/SETUP_MEDIA.md', title: 'Setup Media' },
+  { name: 'UX_UI_DOCUMENTATION.md', path: '/docs/tech/UX_UI_DOCUMENTATION.md', title: 'UX/UI Documentation' },
 ]
 
 export default function DocsViewer() {
