@@ -1,0 +1,52 @@
+#!/bin/bash
+# Deployment script for Catsky Club
+# Run this on your DigitalOcean server after cloning/pulling the repository
+
+set -e  # Exit on error
+
+echo "🚀 Starting deployment for Catsky Club..."
+
+# Check if we're in the right directory
+if [ ! -f "package.json" ]; then
+    echo "❌ Error: package.json not found. Are you in the project root?"
+    exit 1
+fi
+
+# Install/update dependencies
+echo "📦 Installing dependencies..."
+npm install --production
+
+# Build the application
+echo "🔨 Building application..."
+npm run build
+
+# Check if build was successful
+if [ ! -d "dist" ]; then
+    echo "❌ Error: Build failed - dist directory not found"
+    exit 1
+fi
+
+echo "✅ Build completed successfully!"
+
+# Check if PM2 is installed
+if ! command -v pm2 &> /dev/null; then
+    echo "📦 Installing PM2..."
+    npm install -g pm2
+fi
+
+# Restart the application with PM2
+echo "🔄 Restarting application with PM2..."
+if [ -f "ecosystem.config.js" ]; then
+    pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
+else
+    pm2 restart catsky-club || pm2 start npm --name "catsky-club" -- start
+fi
+
+# Save PM2 configuration
+pm2 save
+
+echo "✅ Deployment complete!"
+echo ""
+echo "📊 Check status with: pm2 status"
+echo "📋 View logs with: pm2 logs catsky-club"
+echo "🌐 Your app should be running on http://localhost:3001"
