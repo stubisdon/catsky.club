@@ -16,9 +16,16 @@ const PORT = process.env.PORT || 3001
 app.use(cors())
 app.use(express.json())
 
-// Serve static files from dist (after build) or public
-app.use(express.static(path.join(__dirname, 'dist')))
-app.use(express.static(path.join(__dirname, 'public')))
+// Serve static files from dist (production build) and public (additional assets)
+// Order matters: dist first (built assets), then public (audio, docs, etc.)
+app.use(express.static(path.join(__dirname, 'dist'), { 
+  maxAge: '1y', // Cache static assets for 1 year
+  etag: true 
+}))
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1y',
+  etag: true
+}))
 
 // API endpoint for form submissions
 app.post('/api/submit', (req, res) => {

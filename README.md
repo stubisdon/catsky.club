@@ -110,7 +110,20 @@ All documentation is available in the `public/docs/` folder, organized into `biz
 
 ## Deployment
 
-See [DEPLOYMENT.md](./public/docs/tech/DEPLOYMENT.md) for complete deployment instructions to DigitalOcean.
+**Quick Start:** See [DEPLOYMENT.md](./DEPLOYMENT.md) for a quick deployment guide.
+
+**Detailed Guide:** See [public/docs/tech/DEPLOYMENT.md](./public/docs/tech/DEPLOYMENT.md) for complete deployment instructions to DigitalOcean.
+
+The project includes:
+- `deploy.sh` - Automated deployment script
+- `ecosystem.config.js` - PM2 configuration
+- `nginx.conf.example` - Nginx reverse proxy configuration template
+
+**Deploy to catsky.club:**
+1. Clone/push code to your server
+2. Run `./deploy.sh` on the server
+3. Configure nginx using `nginx.conf.example` as a template
+4. Your app will run on port 3001, with Ghost on port 2368
 
 ## API Endpoints
 
