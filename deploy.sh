@@ -24,6 +24,11 @@ fi
 
 # Install/update dependencies (including devDependencies needed for build)
 echo "📦 Installing dependencies..."
+# Remove node_modules if it exists to ensure clean install with devDependencies
+if [ -d "node_modules" ]; then
+    echo "🧹 Cleaning existing node_modules for fresh install..."
+    rm -rf node_modules
+fi
 npm install
 
 # Build the application
