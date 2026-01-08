@@ -12,9 +12,19 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
-# Install/update dependencies
+# Check Node.js version (Vite requires Node 18+)
+NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+if [ "$NODE_VERSION" -lt 18 ]; then
+    echo "❌ Error: Node.js 18+ is required. Current version: $(node -v)"
+    echo "📦 To install Node.js 18:"
+    echo "   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -"
+    echo "   sudo apt-get install -y nodejs"
+    exit 1
+fi
+
+# Install/update dependencies (including devDependencies needed for build)
 echo "📦 Installing dependencies..."
-npm install --production
+npm install
 
 # Build the application
 echo "🔨 Building application..."

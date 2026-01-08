@@ -33,11 +33,23 @@ cd /opt/catsky-club
 chmod +x deploy.sh
 ```
 
-### 2. Install Node.js (if needed)
+### 2. Install Node.js 18+ (Required)
+
+**Important:** This project requires Node.js 18 or higher. Check your version:
+
+```bash
+node -v
+```
+
+If you have Node.js 16 or lower, install Node.js 18:
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
+
+# Verify installation
+node -v  # Should show v18.x.x or higher
+npm -v
 ```
 
 ### 3. Run Deployment Script
