@@ -12,6 +12,19 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
+# Pull latest changes from git (if this is a git repo)
+if [ -d ".git" ]; then
+    echo "📥 Pulling latest changes from git..."
+    git pull || echo "⚠️  Warning: git pull failed (this is okay if not using git)"
+fi
+
+# Set Ghost Portal environment variables for build
+# These are required for the Ghost Portal embed in index.html
+export VITE_GHOST_URL="${VITE_GHOST_URL:-https://catsky.club}"
+export VITE_GHOST_CONTENT_API_KEY="${VITE_GHOST_CONTENT_API_KEY:-f6dd5a28bd25bdc6e849457dd2}"
+
+echo "🔑 Using Ghost URL: $VITE_GHOST_URL"
+
 # Check Node.js version (Vite requires Node 18+, but 20+ is recommended)
 NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
 if [ "$NODE_VERSION" -lt 18 ]; then

@@ -1,174 +1,106 @@
-Business Strategy - catsky.club
+# business strategy – catsky.club (revised)
 
-Core Emotional Theme (Foundational Artifact)
+## 1. core reframing: what “fan” means here
 
-This strategy is anchored in a single emotional reality:
+catsky.club uses the word *fan* in its original sense, not the content economy sense.
 
-By choosing a career in art, I protect what makes me feel alive, while accepting higher financial risk.
-By staying in IT, I would likely earn more money, while accepting a dulling of aliveness.
+a fan is not a consumer.
+a fan is someone who chooses proximity to an artist’s unfolding trajectory.
 
-This is not a hypothetical dilemma. It is an ongoing, lived tradeoff.
+we distinguish four levels of relationship:
 
-Core tension:
-I am caught between optimizing my life for money and protecting the parts of me that feel alive.
+• listener – consumes finished work  
+• audience member – follows, attends, recognizes  
+• fan – emotionally resonant, follows the arc  
+• superfan – seeks closeness, tolerates uncertainty  
 
-Emotional theme definition:
-Catsky documents the conscious choice between a safer, higher-income path that dulls aliveness and a riskier artistic path that preserves aliveness at the cost of financial certainty, without pretending this tension is resolved.
+catsky.club is designed **only** for fans and superfans.
+listeners and casual audience members are intentionally not optimized for.
 
-Decision filter:
-For any creative or business decision:
-	•	Which path am I choosing in this moment?
-	•	What am I gaining?
-	•	What risk or loss am I explicitly accepting as the price?
+---
 
-If the cost cannot be named honestly, the decision does not belong in Catsky.
+## 2. phase model (clarified)
 
-⸻
+### phase 1. artist first, proximity first
 
-1. Your Background Is an Advantage, with One Caveat
+**goal:**  
+convert a small number of fans into superfans who choose ongoing proximity.
 
-You have three rare overlaps:
-	•	B2B SaaS + AI gives you system thinking and monetization discipline
-	•	Creative agency + video ads gives you production speed and narrative instincts
-	•	Metal band leader gives you lived experience of audience, grind, and creative identity
+**explicit non goals:**  
+• mass audience growth  
+• platform building  
+• content volume  
+• optimization for scale  
 
-The Caveat
+this phase prioritizes **signal quality over speed**, even at the cost of short term revenue.
 
-Your B2B reflex will push you to over-abstract too early. Artist businesses fail when they try to productize before emotional pull exists.
+---
 
-Rule to Internalize
+### phase 1 target economics (unchanged, reframed)
 
-Art creates gravity. Tech only amplifies it.
+• ~200 paying members  
+• $15–$20/month  
+• income comes from depth, not reach  
 
-⸻
+these members are not customers.
+they are witnesses.
 
-2. The Correct Phase Model for catsky
+---
 
-Phase 1. Artist-First, Zero Platform Ambition
+## 3. what catsky.club is in phase 1
 
-Goal: Replace a meaningful chunk of income with fans
+catsky.club is:
 
-What catsky.club is here:
-	•	Your personal fan operating system
-	•	Single artist
-	•	Opinionated
-	•	Slightly weird
-	•	Clearly about you
+• a personal fan operating system  
+• a single artist space  
+• opinionated and small  
+• designed for proximity, not performance  
 
-What you build:
-	•	Landing page
-	•	One immersive story tied to one release
-	•	Memberships first, donations second
-	•	Email as the primary retention channel
+it is **not**:
 
-Success metric:
-	•	200 paying members at $15–20/month
-	•	Not traffic, not polish, not AI
+• a platform  
+• a community product  
+• a content subscription  
+• a creator funnel  
 
-If this fails, stop. No tech company should be built.
+---
 
-⸻
+## 4. correct relationship ladder (operating assumption)
 
-Phase 2. Internal Tooling, Not a Product
+### listener
+monetization: streaming, incidental tickets  
+no direct asks.
 
-Goal: Reduce your own creative and operational load
+### audience member
+monetization: merch, shows, occasional support  
+$5–$15 sporadic asks acceptable.
 
-What you build:
-	•	Storytelling templates
-	•	Content pipelines
-	•	Semi-automated editing
-	•	Internal AI helpers
+### fan
+monetization: repeat support, recurring presence  
+$5–$15/month feels natural.
 
-Important:
-This is not a startup. This is leverage.
+### superfan
+monetization: paid proximity  
+$20/month is appropriate when framed as closeness, not utility.
 
-Success metric:
-	•	You can produce 2–3x content with the same energy
-	•	Retention improves without more effort
+catsky.club intentionally targets **superfan territory**.
 
-Still no platform, no other artists.
+---
 
-⸻
+## 5. long term note (unchanged, scoped)
 
-Phase 3. Quiet Replication with 2–3 Trusted Artists
+future phases may include:
+• tooling  
+• additional artists  
+• deeper collaboration  
 
-Goal: Test transferability
+these are **phase 2+ decisions**.
+phase 1 rules are intentionally restrictive to prevent drift.
 
-What changes:
-	•	You invite a few artists with existing audiences
-	•	You manually onboard them
-	•	You watch where they struggle
+---
 
-What you are validating:
-	•	Is the value you get coming from tech or from you
-	•	Can someone else replicate results with guidance and tooling
+## north star
 
-Success metric:
-	•	At least one other artist hits meaningful recurring revenue
-	•	Without you being their main driver
-
-This phase determines everything.
-
-⸻
-
-Phase 4. Only Now Does a Tech Company Exist
-
-Goal: Formalize what already works
-
-Now catsky becomes:
-	•	A creator infrastructure company
-	•	Focused on deep fans, not mass creators
-	•	Priced on value created, not features
-
-Likely customer:
-	•	Serious independent artists
-	•	Not influencers
-	•	Not hobbyists
-
-⸻
-
-3. Where Your AI Ideas Actually Fit
-
-The AI vlog and collaborative editing idea is strong, but:
-	•	It is not your wedge
-	•	It is not your MVP
-	•	It is a retention and leverage tool
-
-Best use early:
-	•	Backstage experience for fans
-	•	Co-creation signaling
-	•	Making fans feel invested, not productive
-
-Best use later:
-	•	Internal creator tooling
-	•	Then possibly a separate product line
-
-Do not let it become the center too early.
-
-⸻
-
-4. Hard Truth Checkpoints
-
-You Should Stop or Pivot If:
-	•	You cannot convert attention into paid support
-	•	You feel drained instead of energized by fan interaction
-	•	The story matters less than the tech in your mind
-
-You Should Double Down If:
-	•	A small group of fans becomes emotionally invested
-	•	People talk about you, not the platform
-	•	Content creation starts compounding instead of resetting
-
-⸻
-
-5. Honest Conclusion
-
-Your plan is viable because you are willing to start small and personal.
-
-It is not viable if:
-	•	You treat this like a startup from day one
-	•	You chase platform narratives before proving fan economics
-	•	You hide behind tech instead of stepping forward as the artist
-
-The strongest signal you can produce is not an MVP.
-It is people paying you every month because they care.
+if someone stays through quiet periods
+and still feels closer rather than disappointed,
+the system is working.

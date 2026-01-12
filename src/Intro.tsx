@@ -313,6 +313,13 @@ export default function Intro() {
   const handleChoiceSelect = (option: ChoiceEvent['options'][0]) => {
     setUserData(prev => ({ ...prev, choice: option.value }))
     setSelectedBranch(option.value)
+
+    // Activation: user completed the experience by making a choice
+    try {
+      window.localStorage.setItem('catsky_activated', '1')
+    } catch {
+      // ignore
+    }
     
     // Pause audio when choice is made
     if (audioRef.current) {
@@ -321,6 +328,11 @@ export default function Intro() {
     if (timeUpdateIntervalRef.current) {
       clearInterval(timeUpdateIntervalRef.current)
     }
+  }
+
+  const handleFollowClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    navigateTo('/follow')
   }
 
   // Track audio timecode and update events
@@ -618,6 +630,33 @@ export default function Intro() {
                 </form>
               </div>
             </div>
+          )}
+
+          {/* Next step (subtle): follow */}
+          {selectedBranch && (
+            <a
+              href="/follow"
+              onClick={handleFollowClick}
+              style={{
+                position: 'fixed',
+                bottom: '1rem',
+                right: '1rem',
+                color: 'rgba(255, 255, 255, 0.5)',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                letterSpacing: '0.05em',
+                transition: 'color 0.3s ease',
+                zIndex: 20,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 1)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
+              }}
+            >
+              follow →
+            </a>
           )}
 
           {/* Timeline */}

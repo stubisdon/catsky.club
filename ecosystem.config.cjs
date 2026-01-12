@@ -11,7 +11,9 @@ module.exports = {
     interpreter: 'node',
     env: {
       NODE_ENV: 'production',
-      PORT: 3001
+      PORT: 3001,
+      VITE_GHOST_URL: 'https://catsky.club',
+      VITE_GHOST_CONTENT_API_KEY: 'f6dd5a28bd25bdc6e849457dd2'
     },
     error_file: './logs/pm2-error.log',
     out_file: './logs/pm2-out.log',
