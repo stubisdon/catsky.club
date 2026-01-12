@@ -27,6 +27,20 @@ async function checkGhostMember(): Promise<boolean> {
   return false
 }
 
+async function waitForPortal(maxWait = 5000): Promise<boolean> {
+  const start = Date.now()
+  while (Date.now() - start < maxWait) {
+    const portal: any = (window as any).Portal
+    if (portal) {
+      if (typeof portal === 'function' || (portal && typeof portal.open === 'function')) {
+        return true
+      }
+    }
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  return false
+}
+
 function openPortalSignup(): boolean {
   const portal: any = (window as any).Portal
   try {
@@ -66,8 +80,19 @@ export default function Follow() {
 
   const handleFollow = useCallback(async () => {
     setPortalMissing(false)
+    setChecking(true)
+    
+    // Wait for Portal to load (it might still be loading)
+    const portalReady = await waitForPortal(3000)
+    if (!portalReady) {
+      setChecking(false)
+      setPortalMissing(true)
+      return
+    }
+    
     const opened = openPortalSignup()
     setPortalOpened(opened)
+    setChecking(false)
     if (!opened) {
       setPortalMissing(true)
       return

@@ -22,6 +22,20 @@ async function checkGhostMember(): Promise<boolean> {
   return false
 }
 
+async function waitForPortal(maxWait = 5000): Promise<boolean> {
+  const start = Date.now()
+  while (Date.now() - start < maxWait) {
+    const portal: any = (window as any).Portal
+    if (portal) {
+      if (typeof portal === 'function' || (portal && typeof portal.open === 'function')) {
+        return true
+      }
+    }
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  return false
+}
+
 function openPortalPaid(): boolean {
   const portal: any = (window as any).Portal
   try {
@@ -149,8 +163,13 @@ export default function Join() {
             <button
               type="button"
               disabled={!canJoin}
-              onClick={() => {
+              onClick={async () => {
                 setPortalMissing(false)
+                const portalReady = await waitForPortal(3000)
+                if (!portalReady) {
+                  setPortalMissing(true)
+                  return
+                }
                 const opened = openPortalPaid()
                 if (!opened) setPortalMissing(true)
               }}
