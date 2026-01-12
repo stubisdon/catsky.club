@@ -7,12 +7,28 @@
     <title>Catsky Club</title>
     <!-- Ghost Portal (Members + Paid subscriptions) -->
     <!-- Required env vars (Vite): VITE_GHOST_URL, VITE_GHOST_CONTENT_API_KEY -->
-    <script
-      defer
-      src="%VITE_GHOST_URL%/ghost/portal/v2/portal.min.js"
-      data-ghost="%VITE_GHOST_URL%"
-      data-key="%VITE_GHOST_CONTENT_API_KEY%"
-    ></script>
+    <script>
+      // Load Ghost Portal script dynamically to handle path issues
+      (function() {
+        var ghostUrl = '%VITE_GHOST_URL%';
+        var apiKey = '%VITE_GHOST_CONTENT_API_KEY%';
+        var script = document.createElement('script');
+        script.defer = true;
+        script.src = ghostUrl + '/ghost/portal/v2/portal.min.js';
+        script.setAttribute('data-ghost', ghostUrl);
+        script.setAttribute('data-key', apiKey);
+        script.onerror = function() {
+          // Fallback: try without /ghost/ prefix
+          var fallback = document.createElement('script');
+          fallback.defer = true;
+          fallback.src = ghostUrl + '/portal/v2/portal.min.js';
+          fallback.setAttribute('data-ghost', ghostUrl);
+          fallback.setAttribute('data-key', apiKey);
+          document.head.appendChild(fallback);
+        };
+        document.head.appendChild(script);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
