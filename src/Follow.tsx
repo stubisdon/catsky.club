@@ -30,31 +30,63 @@ async function checkGhostMember(): Promise<boolean> {
 async function waitForPortal(maxWait = 5000): Promise<boolean> {
   const start = Date.now()
   while (Date.now() - start < maxWait) {
+    // Check multiple possible Portal API formats
     const portal: any = (window as any).Portal
+    const portalFunc: any = (window as any).portal
+    
     if (portal) {
       if (typeof portal === 'function' || (portal && typeof portal.open === 'function')) {
         return true
       }
     }
+    
+    if (portalFunc && typeof portalFunc === 'function') {
+      return true
+    }
+    
     await new Promise(resolve => setTimeout(resolve, 100))
   }
+  
+  // Debug: log what's actually available
+  console.log('Portal check failed. Available:', {
+    Portal: (window as any).Portal,
+    portal: (window as any).portal,
+    windowKeys: Object.keys(window).filter(k => k.toLowerCase().includes('portal'))
+  })
+  
   return false
 }
 
 function openPortalSignup(): boolean {
   const portal: any = (window as any).Portal
+  const portalFunc: any = (window as any).portal
+  
   try {
+    // Try Portal as function
     if (typeof portal === 'function') {
-      // Different Ghost versions accept different option shapes; try the most common ones.
       portal('open', { page: 'signup' })
       return true
     }
+    
+    // Try portal (lowercase) as function
+    if (typeof portalFunc === 'function') {
+      portalFunc('open', { page: 'signup' })
+      return true
+    }
+    
+    // Try Portal.open method
     if (portal && typeof portal.open === 'function') {
       portal.open({ page: 'signup' })
       return true
     }
-  } catch {
-    // ignore
+    
+    // Try portal.open method (lowercase)
+    if (portalFunc && typeof portalFunc.open === 'function') {
+      portalFunc.open({ page: 'signup' })
+      return true
+    }
+  } catch (err) {
+    console.error('Portal open error:', err)
   }
   return false
 }
@@ -157,7 +189,7 @@ export default function Follow() {
             if you want, you can follow quietly. no pressure.
           </p>
           <p style={{ marginBottom: 0 }}>
-            this is the free tier — just a way to stay connected.
+            this is the free tier, just a way to stay connected.
           </p>
         </div>
 
@@ -228,8 +260,8 @@ export default function Follow() {
             )}
 
             {portalMissing && (
-              <div style={{ marginTop: '1rem', opacity: 0.7 }}>
-                portal is not available yet. make sure Ghost Portal is enabled and the embed key is set.
+              <div style={{ marginTop: '1rem', opacity: 0.7, fontSize: '0.9rem' }}>
+                portal is not available. check browser console for details. make sure Ghost Portal is enabled in Ghost admin and the script is loading.
               </div>
             )}
           </div>
