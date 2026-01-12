@@ -14,11 +14,18 @@ export default function Mission() {
         padding: '2rem',
         textAlign: 'left',
         lineHeight: '1.8',
-        letterSpacing: '0.05em'
+        letterSpacing: '0.05em',
+        maxHeight: '100vh',
+        overflowY: 'auto',
+        userSelect: 'text',
+        WebkitUserSelect: 'text',
+        MozUserSelect: 'text',
+        msUserSelect: 'text',
       }}>
         <div style={{ 
           marginBottom: '3rem',
-          fontSize: 'clamp(1rem, 2vw, 1.2rem)'
+          fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
+          lineHeight: '1.9'
         }}>
           <p style={{ marginBottom: '1.5rem' }}>
             this is for the ones who feel slightly out of sync with the world.
