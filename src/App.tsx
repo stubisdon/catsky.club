@@ -35,6 +35,10 @@ export default function App() {
           lineHeight: 1.8,
           maxHeight: '100vh',
           overflowY: 'auto',
+          userSelect: 'text',
+          WebkitUserSelect: 'text',
+          MozUserSelect: 'text',
+          msUserSelect: 'text',
         }}
       >
         <div style={{ marginBottom: '2.5rem' }}>
@@ -49,20 +53,8 @@ export default function App() {
             catsky
           </h1>
           <div style={{ opacity: 0.9, fontSize: 'clamp(1rem, 2vw, 1.25rem)' }}>
-            catsky.club is a small place to connect — through music, presence, and honesty.
+            catsky.club is a small place to connect through music, presence, and honesty.
           </div>
-        </div>
-
-        <div style={{ marginBottom: '2.5rem', opacity: 0.95 }}>
-          <p style={{ marginBottom: '1.25rem' }}>
-            this is for the ones who feel slightly out of sync with the world.
-          </p>
-          <p style={{ marginBottom: '1.25rem' }}>
-            not broken. not lost. just not fully aligned with the noise around them.
-          </p>
-          <p style={{ marginBottom: 0 }}>
-            if you are here, you are allowed to slow down.
-          </p>
         </div>
 
         <div
