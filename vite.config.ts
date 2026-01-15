@@ -9,9 +9,17 @@ export default defineConfig({
     {
       name: 'html-env-replace',
       transformIndexHtml(html) {
-        return html
-          .replace(/%VITE_GHOST_URL%/g, process.env.VITE_GHOST_URL || 'https://catsky.club')
-          .replace(/%VITE_GHOST_CONTENT_API_KEY%/g, process.env.VITE_GHOST_CONTENT_API_KEY || '')
+        const ghostUrl = process.env.VITE_GHOST_URL || 'https://catsky.club'
+        const contentApiKey = process.env.VITE_GHOST_CONTENT_API_KEY || ''
+        
+        // Ensure we always have valid string values
+        const safeGhostUrl = String(ghostUrl).trim()
+        const safeApiKey = String(contentApiKey).trim()
+        
+        let result = html.replace(/%VITE_GHOST_URL%/g, safeGhostUrl)
+        result = result.replace(/%VITE_GHOST_CONTENT_API_KEY%/g, safeApiKey)
+        
+        return result
       },
     },
   ],
