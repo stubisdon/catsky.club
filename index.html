@@ -7,9 +7,9 @@
     <title>Catsky Club</title>
     <!-- Ghost Portal (Members + Paid subscriptions) -->
     <!-- Required env vars (Vite): VITE_GHOST_URL, VITE_GHOST_CONTENT_API_KEY -->
-    <!-- Portal loads from Ghost's own endpoint when on same domain -->
+    <!-- Portal loads from CDN in Ghost 6.0+ -->
     <script
-      src="%VITE_GHOST_URL%/portal.min.js"
+      src="https://cdn.jsdelivr.net/ghost/portal@latest/umd/portal.min.js"
       data-ghost="%VITE_GHOST_URL%"
       data-key="%VITE_GHOST_CONTENT_API_KEY%"
     ></script>
