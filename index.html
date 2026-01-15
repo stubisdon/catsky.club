@@ -5,6 +5,85 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Catsky Club</title>
+    <!-- Workaround for Portal bug with undefined firstpromoter_account - MUST load before Portal -->
+    <script>
+      // Patch fetch and Response.json() to ensure firstpromoter_account is always a string
+      // This must run before Portal script loads
+      (function() {
+        // Store original methods
+        const originalFetch = window.fetch;
+        const originalJson = Response.prototype.json;
+        
+        // Patch Response.prototype.json to fix data when called
+        Response.prototype.json = function() {
+          const url = this.url || '';
+          if (url.includes('/ghost/api/content/settings/')) {
+            return originalJson.call(this).then(data => {
+              // Fix undefined firstpromoter_account
+              if (data && data.settings) {
+                if (data.settings.firstpromoter_account === undefined || data.settings.firstpromoter_account === null) {
+                  data.settings.firstpromoter_account = '';
+                }
+              }
+              return data;
+            });
+          }
+          return originalJson.call(this);
+        };
+        
+        // Patch fetch to intercept settings API calls
+        window.fetch = function(...args) {
+          const url = args[0];
+          const isSettingsApi = typeof url === 'string' && url.includes('/ghost/api/content/settings/');
+          
+          const promise = originalFetch.apply(this, args);
+          
+          if (isSettingsApi) {
+            return promise.then(async response => {
+              if (!response.ok) return response;
+              
+              try {
+                // Read and fix the response
+                const text = await response.clone().text();
+                const data = JSON.parse(text);
+                
+                // Fix undefined firstpromoter_account
+                if (data && data.settings) {
+                  if (data.settings.firstpromoter_account === undefined || data.settings.firstpromoter_account === null) {
+                    data.settings.firstpromoter_account = '';
+                  }
+                }
+                
+                // Create a new Response with the fixed data
+                const fixedText = JSON.stringify(data);
+                const fixedResponse = new Response(fixedText, {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: {
+                    ...Object.fromEntries(response.headers.entries()),
+                    'Content-Type': 'application/json'
+                  }
+                });
+                
+                // Preserve the url property for our Response.json patch
+                Object.defineProperty(fixedResponse, 'url', {
+                  value: response.url,
+                  writable: false
+                });
+                
+                return fixedResponse;
+              } catch (e) {
+                // If parsing fails, return original response
+                console.warn('Portal workaround: Failed to patch response', e);
+                return response;
+              }
+            });
+          }
+          
+          return promise;
+        };
+      })();
+    </script>
     <!-- Ghost Portal (Members + Paid subscriptions) -->
     <!-- Required env vars (Vite): VITE_GHOST_URL, VITE_GHOST_CONTENT_API_KEY -->
     <!-- Portal loads from CDN in Ghost 6.0+ -->
@@ -14,47 +93,6 @@
       data-key="%VITE_GHOST_CONTENT_API_KEY%"
       defer
     ></script>
-    <!-- Workaround for Portal bug with undefined firstpromoter_account -->
-    <script>
-      // Patch fetch to ensure firstpromoter_account is always a string (not undefined)
-      (function() {
-        const originalFetch = window.fetch;
-        window.fetch = function(...args) {
-          const promise = originalFetch.apply(this, args);
-          const url = args[0];
-          
-          if (typeof url === 'string' && url.includes('/ghost/api/content/settings/')) {
-            return promise.then(response => {
-              if (!response.ok) return response;
-              
-              // Clone response to read it without consuming the original
-              const clonedResponse = response.clone();
-              
-              return clonedResponse.json().then(data => {
-                // Fix undefined firstpromoter_account
-                if (data && data.settings) {
-                  if (data.settings.firstpromoter_account === undefined || data.settings.firstpromoter_account === null) {
-                    data.settings.firstpromoter_account = '';
-                  }
-                }
-                
-                // Return a new Response with the fixed data
-                return new Response(JSON.stringify(data), {
-                  status: response.status,
-                  statusText: response.statusText,
-                  headers: response.headers
-                });
-              }).catch(() => {
-                // If JSON parsing fails, return original response
-                return response;
-              });
-            });
-          }
-          
-          return promise;
-        };
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>
