@@ -157,7 +157,7 @@ export default function Follow() {
 
   const nextLink = useMemo(() => {
     const activated = isActivated()
-    if (!activated) return { href: '/intro', label: 'complete the experience →' }
+    if (!activated) return { href: '/watch', label: 'complete the experience →' }
     return { href: '/join', label: 'continue →' }
   }, [memberState])
 

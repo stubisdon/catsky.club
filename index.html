@@ -7,66 +7,12 @@
     <title>Catsky Club</title>
     <!-- Ghost Portal (Members + Paid subscriptions) -->
     <!-- Required env vars (Vite): VITE_GHOST_URL, VITE_GHOST_CONTENT_API_KEY -->
+    <!-- Portal loads from Ghost's own endpoint when on same domain -->
     <script
-      src="https://unpkg.com/@tryghost/portal@~2.0.0/umd/portal.min.js"
+      src="%VITE_GHOST_URL%/portal.min.js"
+      data-ghost="%VITE_GHOST_URL%"
+      data-key="%VITE_GHOST_CONTENT_API_KEY%"
     ></script>
-    <script>
-      // Initialize Portal after script loads
-      (function() {
-        var ghostUrl = '%VITE_GHOST_URL%';
-        var apiKey = '%VITE_GHOST_CONTENT_API_KEY%';
-        
-        function initPortal() {
-          // Debug: log what's available
-          console.log('Portal init check:', {
-            Portal: window.Portal,
-            portal: window.portal,
-            windowKeys: Object.keys(window).filter(function(k) { 
-              return k.toLowerCase().includes('portal'); 
-            })
-          });
-          
-          // Check various possible Portal exports
-          var Portal = window.Portal || window.portal || (window.ghost && window.ghost.Portal);
-          
-          if (!Portal) {
-            console.warn('Portal not found on window object');
-            return;
-          }
-          
-          // Try to initialize Portal
-          try {
-            if (typeof Portal === 'function') {
-              Portal.init({ url: ghostUrl, key: apiKey });
-            } else if (Portal && typeof Portal.init === 'function') {
-              Portal.init({ url: ghostUrl, key: apiKey });
-            } else if (Portal && typeof Portal.default === 'function') {
-              Portal.default.init({ url: ghostUrl, key: apiKey });
-            }
-          } catch (e) {
-            console.error('Portal init error:', e);
-          }
-        }
-        
-        // Wait for Portal script to load
-        var checkInterval = setInterval(function() {
-          if (window.Portal || window.portal) {
-            clearInterval(checkInterval);
-            initPortal();
-          }
-        }, 100);
-        
-        // Give up after 5 seconds
-        setTimeout(function() {
-          clearInterval(checkInterval);
-          if (!window.Portal && !window.portal) {
-            console.warn('Portal script did not load after 5 seconds');
-          } else {
-            initPortal();
-          }
-        }, 5000);
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

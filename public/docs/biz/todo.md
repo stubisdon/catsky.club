@@ -16,10 +16,10 @@ purpose: operational checklist for phase 1 (artist validation). update weekly. m
 
 ### week 1 – artist identity lock
 
-- [ ] lock artist name for q1
-- [ ] lock musical direction for 3 months
-- [ ] lock emotional theme
-- [ ] write 1-page internal manifesto
+- [x] lock artist name for q1
+- [x] lock musical direction for 3 months
+- [x] lock emotional theme
+- [x] write 1-page internal manifesto
   - what i am choosing
   - what i am giving up
   - what catsky is and is not
@@ -30,10 +30,10 @@ notes / blockers:
 
 ### week 2 – offer definition
 
-- [ ] define one paid membership
-- [ ] define one free tier
-- [ ] set price (10–20 usd per month)
-- [ ] write one-paragraph offer description
+- [x] define one paid membership
+- [x] define one free tier
+- [x] set price (10–20 usd per month)
+- [x] write one-paragraph offer description
   - reads honestly out loud
   - no promises of transformation
 
@@ -43,7 +43,7 @@ notes / blockers:
 
 ### week 3 – catsky.club v1
 
-- [ ] landing page (clear, minimal)
+- [x] landing page (clear, minimal)
 - [ ] email capture
 - [ ] recurring payments
 - [ ] gated private content page

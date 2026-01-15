@@ -22,74 +22,15 @@ async function checkGhostMember(): Promise<boolean> {
   return false
 }
 
-async function waitForPortal(maxWait = 5000): Promise<boolean> {
-  const start = Date.now()
-  while (Date.now() - start < maxWait) {
-    // Check multiple possible Portal API formats
-    const portal: any = (window as any).Portal
-    const portalFunc: any = (window as any).portal
-    
-    if (portal) {
-      if (typeof portal === 'function' || (portal && typeof portal.open === 'function')) {
-        return true
-      }
-    }
-    
-    if (portalFunc && typeof portalFunc === 'function') {
-      return true
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, 100))
-  }
-  
-  // Debug: log what's actually available
-  console.log('Portal check failed. Available:', {
-    Portal: (window as any).Portal,
-    portal: (window as any).portal,
-    windowKeys: Object.keys(window).filter(k => k.toLowerCase().includes('portal'))
-  })
-  
-  return false
-}
-
-function openPortalPaid(): boolean {
-  const portal: any = (window as any).Portal
-  const portalFunc: any = (window as any).portal
-  
-  try {
-    // Try Portal as function
-    if (typeof portal === 'function') {
-      portal('open')
-      return true
-    }
-    
-    // Try portal (lowercase) as function
-    if (typeof portalFunc === 'function') {
-      portalFunc('open')
-      return true
-    }
-    
-    // Try Portal.open method
-    if (portal && typeof portal.open === 'function') {
-      portal.open()
-      return true
-    }
-    
-    // Try portal.open method (lowercase)
-    if (portalFunc && typeof portalFunc.open === 'function') {
-      portalFunc.open()
-      return true
-    }
-  } catch (err) {
-    console.error('Portal open error:', err)
-  }
-  return false
+function openPortalPaid(): void {
+  // Ghost Portal uses hash navigation to open the account/subscription page
+  // This will trigger Portal to open if the script is loaded
+  window.location.hash = '#/portal/account'
 }
 
 export default function Join() {
   const [activated, setActivated] = useState<boolean>(() => isActivated())
   const [isMember, setIsMember] = useState<boolean | null>(null)
-  const [portalMissing, setPortalMissing] = useState(false)
 
   const refresh = useCallback(async () => {
     setActivated(isActivated())
@@ -127,40 +68,47 @@ export default function Join() {
             textTransform: 'lowercase',
           }}
         >
-          join
+          join close
         </h1>
 
         {!activated ? (
           <div style={{ opacity: 0.9, marginBottom: '2rem' }}>
-            <p style={{ marginBottom: '1rem' }}>
-              this page unlocks after you finish the experience.
+            <p style={{ marginBottom: '1.5rem' }}>
+              access to unreleased songs, music videos, and drafts.
             </p>
-            <a
-              href="/intro"
-              onClick={(e) => {
-                e.preventDefault()
-                navigateTo('/intro')
+            <button
+              type="button"
+              onClick={() => {
+                openPortalPaid()
               }}
               style={{
-                color: 'var(--color-text)',
-                textDecoration: 'none',
-                fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-                letterSpacing: '0.1em',
+                background: 'transparent',
                 border: '2px solid var(--color-text)',
+                color: 'var(--color-text)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'clamp(1rem, 2vw, 1.2rem)',
                 padding: '0.9rem 1.5rem',
-                display: 'inline-block',
-                transition: 'all 0.3s ease',
                 cursor: 'pointer',
+                letterSpacing: '0.1em',
+                transition: 'all 0.3s ease',
                 textTransform: 'lowercase',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--color-text)'
+                e.currentTarget.style.color = 'var(--color-bg)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = 'var(--color-text)'
               }}
             >
               enter →
-            </a>
+            </button>
           </div>
         ) : isMember === false ? (
           <div style={{ opacity: 0.9, marginBottom: '2rem' }}>
             <p style={{ marginBottom: '1rem' }}>
-              one more step: follow first (free). then you can decide if paid proximity is for you.
+              one more step: sign up for letters (free). then you can decide if close is for you.
             </p>
             <a
               href="/follow"
@@ -186,25 +134,19 @@ export default function Join() {
           </div>
         ) : (
           <div style={{ marginBottom: '2rem' }}>
-            <div style={{ opacity: 0.9, marginBottom: '1rem' }}>
-              paid is for superfans who want proximity, not output.
-            </div>
-            <div style={{ opacity: 0.7, marginBottom: '1.5rem' }}>
-              price is shown inside checkout. no discounts. no urgency.
+            <div style={{ opacity: 0.9, marginBottom: '2rem' }}>
+              <p style={{ marginBottom: '1.5rem' }}>
+                access to unreleased songs, music videos, and drafts.
+              </p>
             </div>
 
             <button
               type="button"
               disabled={!canJoin}
-              onClick={async () => {
-                setPortalMissing(false)
-                const portalReady = await waitForPortal(3000)
-                if (!portalReady) {
-                  setPortalMissing(true)
-                  return
+              onClick={() => {
+                if (canJoin) {
+                  openPortalPaid()
                 }
-                const opened = openPortalPaid()
-                if (!opened) setPortalMissing(true)
               }}
               style={{
                 background: 'transparent',
@@ -219,15 +161,22 @@ export default function Join() {
                 textTransform: 'lowercase',
                 opacity: canJoin ? 1 : 0.5,
               }}
+              onMouseEnter={(e) => {
+                if (canJoin) {
+                  e.currentTarget.style.background = 'var(--color-text)'
+                  e.currentTarget.style.color = 'var(--color-bg)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (canJoin) {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color = 'var(--color-text)'
+                }
+              }}
             >
-              {canJoin ? 'open checkout' : 'checking…'}
+              {canJoin ? 'enter credit card information' : 'checking…'}
             </button>
 
-            {portalMissing && (
-              <div style={{ marginTop: '1rem', opacity: 0.7, fontSize: '0.9rem' }}>
-                portal is not available. check browser console for details. make sure Ghost Portal is enabled in Ghost admin and the script is loading.
-              </div>
-            )}
           </div>
         )}
 

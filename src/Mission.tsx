@@ -27,77 +27,47 @@ export default function Mission() {
           fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)',
           lineHeight: '1.9'
         }}>
-          <p style={{ marginBottom: '1.5rem' }}>
-            this is for the ones who feel slightly out of sync with the world.
-          </p>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p>in a world of whispers</p>
+            <p>stories intertwine</p>
+            <p>built the space of presence</p>
+            <p>where your voice meets mine</p>
+          </div>
           
-          <p style={{ marginBottom: '1.5rem' }}>
-            not broken. not lost. just not fully aligned with the noise around them.
-          </p>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p>tapestry of moments</p>
+            <p>meeting of the minds</p>
+            <p>poetry and purpose</p>
+            <p>move in its own time</p>
+          </div>
           
-          <p style={{ marginBottom: '1.5rem' }}>
-            catsky is the artist.
-          </p>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p>in a world of borders</p>
+            <p>in a world of names</p>
+            <p>we belong together</p>
+            <p>air is still the same</p>
+          </div>
           
-          <p style={{ marginBottom: '1.5rem' }}>
-            catsky.club is the place to connect.
-          </p>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p>planet is not ours</p>
+            <p>to conquer or command</p>
+            <p>but share it with the feathers,</p>
+            <p>fur, and with the land</p>
+          </div>
           
-          <p style={{ marginBottom: '1.5rem' }}>
-            it exists for people who sense more than they can easily explain. not broken. not lost. just not fully aligned with the noise around them.
-          </p>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p>with roots in the dark</p>
+            <p>with wings overhead</p>
+            <p>with oceans that feel</p>
+            <p>with forests that spread</p>
+          </div>
           
-          <p style={{ marginBottom: '1.5rem' }}>
-            this is not about fixing yourself.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            it's about finding similar souls.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            we believe depth still matters. slowness still matters. honesty still matters. even when everything else is optimized, accelerated, and flattened into metrics.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            catsky.club is a place to breathe without performing. to feel without packaging the feeling. to stay with an emotion long enough for it to reveal something true.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            there is beauty in uncertainty. strength in sensitivity. clarity that comes only after you stop rushing toward answers.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            this space is intentionally small. intentionally imperfect. intentionally human.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            here, music is not content. it is a companion. a mirror. sometimes a question without a solution.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            this is for nights when you are awake longer than planned. for walks without destinations. for moments when you realize you've changed but can't pinpoint when.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            catsky.club does not promise transformation.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            it offers presence.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            if you are here, you are allowed to slow down.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            you are allowed to feel deeply.
-          </p>
-          
-          <p style={{ marginBottom: '1.5rem' }}>
-            you are allowed to not know what comes next.
-          </p>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p>listen for the other song</p>
+            <p>the non-human call</p>
+            <p>see, we've been related</p>
+            <p>all along</p>
+          </div>
         </div>
         
         <a 

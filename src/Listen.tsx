@@ -1,4 +1,3 @@
-import { useCallback } from 'react'
 import './index.css'
 
 // Internal navigation helper - ensures all navigation stays within the app
@@ -7,28 +6,13 @@ const navigateTo = (path: string) => {
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
-export default function App() {
-  const handleListenClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
-    navigateTo('/listen')
-  }, [])
-
-  const handleWatchClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
-    navigateTo('/watch')
-  }, [])
-
-  const handleConnectClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
-    navigateTo('/follow')
-  }, [])
-
+export default function Listen() {
   return (
     <div className="app-container">
       <div
         style={{
           width: '100%',
-          maxWidth: '900px',
+          maxWidth: '800px',
           padding: '2rem',
           textAlign: 'left',
           letterSpacing: '0.05em',
@@ -41,36 +25,35 @@ export default function App() {
           msUserSelect: 'text',
         }}
       >
-        <div style={{ marginBottom: '2.5rem' }}>
-          <h1
-            style={{
-              fontSize: 'clamp(2rem, 5vw, 4rem)',
-              marginBottom: '1rem',
-              letterSpacing: '0.1em',
-              textTransform: 'lowercase',
-            }}
-          >
-            catsky.club
-          </h1>
-          <div style={{ opacity: 0.9, fontSize: 'clamp(1rem, 2vw, 1.25rem)', lineHeight: '1.8' }}>
-            <div>in the world of data</div>
-            <div>scattered everywhere</div>
-            <div>here to find a meaning</div>
-            <div>for the ones who care</div>
-          </div>
+        <h1
+          style={{
+            fontSize: 'clamp(1.8rem, 4vw, 3rem)',
+            marginBottom: '1.25rem',
+            letterSpacing: '0.1em',
+            textTransform: 'lowercase',
+          }}
+        >
+          listen
+        </h1>
+
+        <div style={{ opacity: 0.9, marginBottom: '2rem' }}>
+          <p style={{ marginBottom: '1.5rem' }}>
+            publicly released materials
+          </p>
         </div>
 
         <div
           style={{
             display: 'flex',
-            flexWrap: 'wrap',
+            flexDirection: 'column',
             gap: '1rem',
-            alignItems: 'center',
+            marginBottom: '2rem',
           }}
         >
           <a
-            href="/listen"
-            onClick={handleListenClick}
+            href="https://www.submithub.com/link/catsky-intro"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               color: 'var(--color-text)',
               textDecoration: 'none',
@@ -82,6 +65,7 @@ export default function App() {
               transition: 'all 0.3s ease',
               cursor: 'pointer',
               textTransform: 'lowercase',
+              width: 'fit-content',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--color-text)'
@@ -92,12 +76,13 @@ export default function App() {
               e.currentTarget.style.color = 'var(--color-text)'
             }}
           >
-            listen
+            latest release →
           </a>
 
           <a
-            href="/watch"
-            onClick={handleWatchClick}
+            href="https://soundcloud.com/catsky_club"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               color: 'var(--color-text)',
               textDecoration: 'none',
@@ -109,6 +94,7 @@ export default function App() {
               transition: 'all 0.3s ease',
               cursor: 'pointer',
               textTransform: 'lowercase',
+              width: 'fit-content',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--color-text)'
@@ -119,12 +105,13 @@ export default function App() {
               e.currentTarget.style.color = 'var(--color-text)'
             }}
           >
-            watch
+            soundcloud →
           </a>
 
           <a
-            href="/follow"
-            onClick={handleConnectClick}
+            href="https://www.youtube.com/@catsky_club"
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               color: 'var(--color-text)',
               textDecoration: 'none',
@@ -136,6 +123,7 @@ export default function App() {
               transition: 'all 0.3s ease',
               cursor: 'pointer',
               textTransform: 'lowercase',
+              width: 'fit-content',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = 'var(--color-text)'
@@ -146,9 +134,74 @@ export default function App() {
               e.currentTarget.style.color = 'var(--color-text)'
             }}
           >
-            connect
+            youtube →
           </a>
         </div>
+
+        <div style={{ opacity: 0.9, marginBottom: '1.5rem' }}>
+          <p style={{ marginBottom: '1.5rem' }}>
+            unreleased music and videos
+          </p>
+        </div>
+
+        <div style={{ marginBottom: '2rem' }}>
+          <a
+            href="/join"
+            onClick={(e) => {
+              e.preventDefault()
+              navigateTo('/join')
+            }}
+            style={{
+              color: 'var(--color-text)',
+              textDecoration: 'none',
+              fontSize: 'clamp(1rem, 2vw, 1.2rem)',
+              letterSpacing: '0.1em',
+              border: '2px solid var(--color-text)',
+              padding: '0.9rem 1.5rem',
+              display: 'inline-block',
+              transition: 'all 0.3s ease',
+              cursor: 'pointer',
+              textTransform: 'lowercase',
+              width: 'fit-content',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'var(--color-text)'
+              e.currentTarget.style.color = 'var(--color-bg)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = 'var(--color-text)'
+            }}
+          >
+            get access
+          </a>
+        </div>
+
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault()
+            navigateTo('/')
+          }}
+          style={{
+            position: 'fixed',
+            bottom: '1rem',
+            left: '1rem',
+            color: 'rgba(255, 255, 255, 0.5)',
+            textDecoration: 'none',
+            fontSize: '0.9rem',
+            letterSpacing: '0.05em',
+            transition: 'color 0.3s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'rgba(255, 255, 255, 1)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
+          }}
+        >
+          ← home
+        </a>
       </div>
     </div>
   )
