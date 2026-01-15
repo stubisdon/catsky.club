@@ -20,11 +20,27 @@ app.use(express.json())
 // Order matters: dist first (built assets), then public (audio, docs, etc.)
 app.use(express.static(path.join(__dirname, 'dist'), { 
   maxAge: '1y', // Cache static assets for 1 year
-  etag: true 
+  etag: true,
+  setHeaders: (res, filePath) => {
+    // Ensure correct MIME types are set
+    if (filePath.endsWith('.svg')) {
+      res.setHeader('Content-Type', 'image/svg+xml')
+    } else if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript')
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css')
+    }
+  }
 }))
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1y',
-  etag: true
+  etag: true,
+  setHeaders: (res, filePath) => {
+    // Ensure correct MIME types are set
+    if (filePath.endsWith('.svg')) {
+      res.setHeader('Content-Type', 'image/svg+xml')
+    }
+  }
 }))
 
 // API endpoint for form submissions
@@ -55,8 +71,16 @@ app.post('/api/submit', (req, res) => {
   })
 })
 
-// Serve index.html for all routes (SPA fallback)
+// Serve index.html for SPA routes (fallback for client-side routing)
+// This should only catch routes that don't correspond to actual files
 app.get('*', (req, res) => {
+  // Check if the request is for a file with an extension
+  // If it is and wasn't found by static middleware, return 404
+  const hasFileExtension = /\.[a-zA-Z0-9]+$/.test(req.path.split('?')[0])
+  if (hasFileExtension) {
+    return res.status(404).type('text/plain').send('File not found')
+  }
+  // Otherwise, serve index.html for SPA routing
   res.sendFile(path.join(__dirname, 'dist', 'index.html'))
 })
 
