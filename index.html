@@ -14,6 +14,47 @@
       data-key="%VITE_GHOST_CONTENT_API_KEY%"
       defer
     ></script>
+    <!-- Workaround for Portal bug with undefined firstpromoter_account -->
+    <script>
+      // Patch fetch to ensure firstpromoter_account is always a string (not undefined)
+      (function() {
+        const originalFetch = window.fetch;
+        window.fetch = function(...args) {
+          const promise = originalFetch.apply(this, args);
+          const url = args[0];
+          
+          if (typeof url === 'string' && url.includes('/ghost/api/content/settings/')) {
+            return promise.then(response => {
+              if (!response.ok) return response;
+              
+              // Clone response to read it without consuming the original
+              const clonedResponse = response.clone();
+              
+              return clonedResponse.json().then(data => {
+                // Fix undefined firstpromoter_account
+                if (data && data.settings) {
+                  if (data.settings.firstpromoter_account === undefined || data.settings.firstpromoter_account === null) {
+                    data.settings.firstpromoter_account = '';
+                  }
+                }
+                
+                // Return a new Response with the fixed data
+                return new Response(JSON.stringify(data), {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: response.headers
+                });
+              }).catch(() => {
+                // If JSON parsing fails, return original response
+                return response;
+              });
+            });
+          }
+          
+          return promise;
+        };
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
