@@ -47,6 +47,7 @@ notes / blockers:
 - [ ] email capture
 - [ ] recurring payments
 - [ ] gated private content page
+- [ ] paid subscriber page for listening to latest versions of tracks
 
 not building in phase 1:
 - community features
