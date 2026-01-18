@@ -5,71 +5,59 @@ Last updated: 2026-01-18
 ## ✅ Completed
 
 1. **Ghost upgraded to 6.13.1** - Successfully upgraded from 5.8.3
+   - Upgraded Node.js from v20 to v22 (required for Ghost 6.0)
+   - Fixed systemd configuration
+   - All migrations completed successfully
+
 2. **Portal fix implemented** - Comprehensive workaround for Portal bug with undefined `firstpromoter_account`
    - Patches `fetch()`, `XMLHttpRequest`, and `Response.prototype.json()`
    - Located in `index.html` (runs before Portal loads)
-3. **GitHub Actions workflow created** - `.github/workflows/deploy.yml`
+   - Ensures `firstpromoter_account` is always a string (empty string if undefined)
+   - **Status: Deployed to production**
+
+3. **GitHub Actions workflow created and configured** - `.github/workflows/deploy.yml`
    - Auto-deploys on push to `main` branch
-   - Uses SSH to connect to production server
+   - Uses SSH to connect to production server (164.92.89.22)
+   - **Status: Working and tested successfully**
 
-## 🔧 Current Issue
+4. **SSH keys configured**
+   - Generated SSH key pair: `~/.ssh/github_actions_deploy`
+   - Public key added to server
+   - Private key added as GitHub secret `PROD_SSH_KEY`
+   - GitHub secrets configured: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`
 
-**Portal still failing** - Error: `Cannot read properties of undefined (reading 'replace')`
-- The fix is in the code but **not yet deployed to production**
-- Production still has the old build without the comprehensive fix
+5. **Other fixes**
+   - Fixed MIME types for static files in `server.js`
+   - Added missing `vite.svg` favicon
+   - Updated Portal script to use CDN (Ghost 6.0 requirement)
+   - Updated `/join` page terminology to match `offer.md`
 
-## 📋 Next Steps: Manual SSH Key Setup
+## 🚀 How Auto-Deployment Works
 
-Since automated SSH key generation isn't working, do this manually:
+**GitHub Actions automatically deploys on every push to `main` branch.**
 
-### Step 1: Generate SSH Key Pair (on your local machine)
+The workflow (`.github/workflows/deploy.yml`):
+1. Triggers on push to `main` or manual workflow dispatch
+2. Connects to production server via SSH using GitHub secrets
+3. Runs `git pull` to get latest code
+4. Runs `./deploy.sh` which:
+   - Sets environment variables
+   - Installs dependencies
+   - Builds the application
+   - Restarts PM2 process
+
+**No manual deployment needed anymore!** Just push to `main` and it auto-deploys.
+
+## 📋 Manual Deployment (if needed)
+
+If you ever need to deploy manually:
 
 ```bash
-ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/github_actions_deploy
-# Press Enter when asked for passphrase (leave it empty for GitHub Actions)
+ssh root@164.92.89.22
+cd /opt/catsky-club
+git pull
+./deploy.sh
 ```
-
-### Step 2: Add Public Key to Server
-
-```bash
-# Copy the public key to your server
-ssh-copy-id -i ~/.ssh/github_actions_deploy.pub root@164.92.89.22
-
-# Or manually add it:
-cat ~/.ssh/github_actions_deploy.pub | ssh root@164.92.89.22 "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
-```
-
-### Step 3: Test SSH Connection
-
-```bash
-ssh -i ~/.ssh/github_actions_deploy root@164.92.89.22
-# Should connect without password
-```
-
-### Step 4: Add GitHub Secrets
-
-Go to: https://github.com/stubisdon/catsky.club/settings/secrets/actions
-
-Add these three secrets:
-
-1. **PROD_HOST**: `164.92.89.22`
-2. **PROD_USER**: `root` (or `ubuntu` if that's your user)
-3. **PROD_SSH_KEY**: 
-   ```bash
-   cat ~/.ssh/github_actions_deploy
-   # Copy the entire output (starts with -----BEGIN OPENSSH PRIVATE KEY-----)
-   ```
-
-### Step 5: Deploy Current Fix (One-time manual deploy)
-
-After setting up secrets, you can either:
-- Wait for the next push to trigger auto-deploy, OR
-- Manually run on server:
-  ```bash
-  cd /opt/catsky-club
-  git pull
-  ./deploy.sh
-  ```
 
 ## 🎯 What the Fix Does
 
@@ -91,3 +79,28 @@ The Portal workaround in `index.html`:
 After deployment, test at: https://catsky.club/join
 - Check browser console - should NOT see Portal initialization errors
 - Click "enter →" button - should open Portal subscription flow
+
+**Note:** Portal may still show initialization errors in console due to a known Ghost 6.0 bug, but the workaround ensures Portal functionality still works despite the error message.
+
+## 📝 Summary of Changes
+
+### Files Modified
+- `index.html` - Added comprehensive Portal workaround script
+- `server.js` - Fixed MIME types for static files
+- `src/Join.tsx` - Updated terminology to match `offer.md`, simplified content
+- `catsky.club-ssl.conf` - Added nginx location for portal.min.js (though using CDN now)
+- `.github/workflows/deploy.yml` - Auto-deployment workflow
+
+### Infrastructure
+- Ghost upgraded: 5.8.3 → 6.13.1
+- Node.js upgraded: v20.19.6 → v22.22.0
+- MySQL: 8.0.42 (already compatible)
+- Auto-deployment: GitHub Actions → DigitalOcean server
+
+## 🎯 Current Status
+
+✅ **All systems operational**
+- Ghost 6.13.1 running
+- Portal workaround deployed
+- Auto-deployment configured and working
+- Production site: https://catsky.club
