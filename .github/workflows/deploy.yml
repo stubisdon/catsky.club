@@ -9,6 +9,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Deploy to production server
         uses: appleboy/ssh-action@master
@@ -17,6 +18,9 @@ jobs:
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
+            set -e
             cd /opt/catsky-club
             git pull origin main
+            chmod +x deploy.sh
             ./deploy.sh
+          timeout: 10m
