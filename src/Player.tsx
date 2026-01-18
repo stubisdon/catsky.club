@@ -4,8 +4,7 @@ import { checkSubscriptionStatus, type SubscriptionStatus } from './utils/subscr
 import { 
   type AudioSource, 
   getDirectAudioUrl, 
-  getSoundCloudEmbedUrl,
-  shouldUseSoundCloudWidget 
+  getSoundCloudEmbedUrl
 } from './utils/audioHelpers'
 
 // Internal navigation helper

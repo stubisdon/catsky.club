@@ -53,7 +53,7 @@ export async function checkSubscriptionStatus(): Promise<SubscriptionStatus> {
       // Check if member has active paid subscriptions
       const subscriptions = member.subscriptions || []
       const hasActivePaidSubscription = subscriptions.some(
-        sub => sub.status === 'active' && sub.price && sub.price.amount > 0
+        sub => sub.status === 'active' && sub.price && sub.price.amount !== undefined && sub.price.amount > 0
       )
       
       if (hasActivePaidSubscription) {
