@@ -99,12 +99,15 @@ export function getSoundCloudEmbedUrl(
   
   const params = new URLSearchParams({
     url: resourceUrl,
-    color: '#ffffff',
+    color: '#ff5500', // SoundCloud orange - makes play button more visible
     auto_play: 'false',
     show_comments: 'false',
     show_user: 'false',
     show_reposts: 'false',
     visual: 'false',
+    buying: 'false',
+    sharing: 'false',
+    download: 'false',
   })
   
   return `https://w.soundcloud.com/player/?${params.toString()}`

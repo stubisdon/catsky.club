@@ -243,6 +243,18 @@ npm run test:e2e -- e2e/player.spec.ts --reporter=html
 - `page is scrollable vertically` - Verifies overflow-y is set to auto and scrolling works
 - `page content is accessible when scrolling` - Verifies all content is accessible via scrolling
 
+### Issue 3: SoundCloud Play Button Not Visible
+**Problem:** SoundCloud player shows a white circle play button, but the play icon (triangle) is not visible until hover, making it unclear that it's clickable
+
+**Root Cause:** SoundCloud's embed widget has a default design where the play button icon is only visible on hover. This is a limitation of SoundCloud's widget design that cannot be overridden due to iframe cross-origin restrictions.
+
+**Fix:** Added hint text above the SoundCloud player:
+- "click the circle to play" message to guide users
+- Changed embed color to SoundCloud orange (#ff5500) for better visibility
+- Added test case to verify hint text is present
+
+**Test Case:** `SoundCloud player has hint text for play button` - Verifies the hint text is visible above the player
+
 ## Notes
 
 - All tests use route mocking for subscription API

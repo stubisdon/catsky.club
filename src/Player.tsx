@@ -551,6 +551,15 @@ export default function Player() {
             {/* SoundCloud widget (for SoundCloud tracks) */}
             {currentTrack.audioSource.type === 'soundcloud' && (
               <div style={{ marginTop: '1rem' }}>
+                <div style={{ 
+                  fontSize: '0.85rem', 
+                  opacity: 0.7, 
+                  marginBottom: '0.5rem',
+                  textAlign: 'center',
+                  fontStyle: 'italic'
+                }}>
+                  click the circle to play
+                </div>
                 <iframe
                   ref={soundcloudIframeRef}
                   width="100%"

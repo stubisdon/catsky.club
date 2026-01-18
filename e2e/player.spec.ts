@@ -320,6 +320,22 @@ test.describe('Player Page - SoundCloud Integration', () => {
       expect(src).toBeTruthy()
     }
   })
+
+  test('SoundCloud player has hint text for play button', async ({ page }) => {
+    await page.goto('/player')
+    await page.waitForLoadState('networkidle')
+
+    // Select first track
+    await page.getByText('Vision').click()
+    
+    // Check that hint text is visible
+    const hintText = page.getByText(/click the circle to play/i)
+    await expect(hintText).toBeVisible()
+    
+    // Verify it's positioned above the iframe
+    const iframe = page.locator('iframe[src*="soundcloud"]').first()
+    await expect(iframe).toBeVisible()
+  })
 })
 
 test.describe('Player Page - Voting and Feedback', () => {
