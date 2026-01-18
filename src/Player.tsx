@@ -2,10 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import './index.css'
 import { checkSubscriptionStatus, type SubscriptionStatus } from './utils/subscription'
 import { 
-  type AudioSource, 
   getDirectAudioUrl, 
   getSoundCloudEmbedUrl
 } from './utils/audioHelpers'
+import { TRACKS, type Track } from './config/tracks'
 
 // Internal navigation helper
 const navigateTo = (path: string) => {
@@ -16,62 +16,6 @@ const navigateTo = (path: string) => {
 function openPortalPaid(): void {
   window.location.hash = '#/portal/account'
 }
-
-// Re-export types from audioHelpers for convenience
-
-interface Track {
-  id: string
-  title: string
-  audioSource: AudioSource
-  version?: string
-  date?: string
-}
-
-// Your SoundCloud tracks from sets
-// 
-// You have two sets with secret tracks:
-// - https://soundcloud.com/catsky_club/sets/soft-and-sound
-// - (your other set)
-//
-// Easiest way: Use the private share link from SoundCloud
-// Just copy the full URL (before the ?) and use it as trackUrl
-
-const MOCK_TRACKS: Track[] = [
-  // Track 1: Vision v1 from "Soft and Sound" set
-  {
-    id: '1',
-    title: 'Vision v1',
-    audioSource: {
-      type: 'soundcloud',
-      trackUrl: 'https://soundcloud.com/catsky_club/vision-v1/s-L5q3Tw7Jyvp', // Private share link (before ?)
-    },
-    version: 'v1.0',
-    date: '2024-01-15'
-  },
-  // Add more tracks from your sets...
-  // You can use either:
-  // 
-  // Option A: Full track URL with secret token (easiest)
-  // {
-  //   id: '2',
-  //   title: 'Track Name',
-  //   audioSource: {
-  //     type: 'soundcloud',
-  //     trackUrl: 'https://soundcloud.com/catsky_club/track-name/s-SECRET_TOKEN'
-  //   }
-  // }
-  //
-  // Option B: Track ID + secret token separately
-  // {
-  //   id: '2',
-  //   title: 'Track Name',
-  //   audioSource: {
-  //     type: 'soundcloud',
-  //     trackId: '123456789',
-  //     secretToken: 's-XXXXX'
-  //   }
-  // }
-]
 
 export default function Player() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('unknown')
@@ -106,30 +50,37 @@ export default function Player() {
   const isPaid = subscriptionStatus === 'paid_subscriber'
   const isSubscriber = subscriptionStatus === 'free_subscriber' || subscriptionStatus === 'paid_subscriber'
 
-  // Free subscribers can access first track + 2 more (3 total)
-  // Paid subscribers can access all tracks
+  // Access control:
+  // - Non-registered users: first 1 track
+  // - Free subscribers: first 2 tracks
+  // - Paid subscribers: all 3 tracks
   const getAccessibleTracks = useCallback(() => {
     if (isPaid) {
-      return MOCK_TRACKS
+      return TRACKS // All tracks for paid subscribers
     }
     if (subscriptionStatus === 'free_subscriber') {
-      return MOCK_TRACKS.slice(0, 3) // First track + 2 more
+      return TRACKS.slice(0, 2) // First 2 tracks for free subscribers
     }
-    return []
+    // Non-registered users get first track only
+    return TRACKS.slice(0, 1)
   }, [isPaid, subscriptionStatus])
 
   const accessibleTracks = getAccessibleTracks()
-  const lockedTracks = isPaid ? [] : MOCK_TRACKS.slice(3)
+  const lockedTracks = isPaid ? [] : TRACKS.slice(accessibleTracks.length)
 
   const handleTrackSelect = useCallback((trackId: string) => {
-    const track = MOCK_TRACKS.find(t => t.id === trackId)
+    const track = TRACKS.find(t => t.id === trackId)
     if (!track) return
 
     // Check access
-    if (!isPaid && subscriptionStatus === 'free_subscriber') {
-      const trackIndex = MOCK_TRACKS.findIndex(t => t.id === trackId)
-      if (trackIndex >= 3) {
-        // Locked track for free subscribers
+    const trackIndex = TRACKS.findIndex(t => t.id === trackId)
+    if (!isPaid) {
+      if (subscriptionStatus === 'free_subscriber' && trackIndex >= 2) {
+        // Locked track for free subscribers (only first 2 tracks accessible)
+        return
+      }
+      if (subscriptionStatus !== 'free_subscriber' && trackIndex >= 1) {
+        // Locked track for non-registered users (only first track accessible)
         return
       }
     }
@@ -209,99 +160,8 @@ export default function Player() {
     )
   }
 
-  if (!isSubscriber) {
-    return (
-      <div className="app-container">
-        <div
-          style={{
-            width: '100%',
-            maxWidth: '800px',
-            padding: '2rem',
-            textAlign: 'left',
-            letterSpacing: '0.05em',
-            lineHeight: '1.8',
-          }}
-        >
-          <h1
-            style={{
-              fontSize: 'clamp(1.8rem, 4vw, 3rem)',
-              marginBottom: '1.25rem',
-              letterSpacing: '0.1em',
-              textTransform: 'lowercase',
-            }}
-          >
-            player
-          </h1>
 
-          <div style={{ opacity: 0.9, marginBottom: '2rem' }}>
-            <p style={{ marginBottom: '1.5rem' }}>
-              this player is for subscribers only.
-            </p>
-            <p style={{ marginBottom: '1.5rem' }}>
-              listen to the latest versions of tracks in progress.
-            </p>
-            <a
-              href="/follow"
-              onClick={(e) => {
-                e.preventDefault()
-                navigateTo('/follow')
-              }}
-              style={{
-                color: 'var(--color-text)',
-                textDecoration: 'none',
-                fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-                letterSpacing: '0.1em',
-                border: '2px solid var(--color-text)',
-                padding: '0.9rem 1.5rem',
-                display: 'inline-block',
-                transition: 'all 0.3s ease',
-                cursor: 'pointer',
-                textTransform: 'lowercase',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--color-text)'
-                e.currentTarget.style.color = 'var(--color-bg)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = 'var(--color-text)'
-              }}
-            >
-              subscribe →
-            </a>
-          </div>
-
-          <a
-            href="/"
-            onClick={(e) => {
-              e.preventDefault()
-              navigateTo('/')
-            }}
-            style={{
-              position: 'fixed',
-              bottom: '1rem',
-              left: '1rem',
-              color: 'rgba(255, 255, 255, 0.5)',
-              textDecoration: 'none',
-              fontSize: '0.9rem',
-              letterSpacing: '0.05em',
-              transition: 'color 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'rgba(255, 255, 255, 1)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
-            }}
-          >
-            ← home
-          </a>
-        </div>
-      </div>
-    )
-  }
-
-  const currentTrack = currentTrackId ? MOCK_TRACKS.find(t => t.id === currentTrackId) : null
+  const currentTrack = currentTrackId ? TRACKS.find(t => t.id === currentTrackId) : null
 
   return (
     <div className="app-container">
@@ -329,8 +189,10 @@ export default function Player() {
         <div style={{ opacity: 0.9, marginBottom: '2rem', fontSize: '0.9rem' }}>
           {isPaid ? (
             <p>paid subscriber — full access to all tracks</p>
+          ) : subscriptionStatus === 'free_subscriber' ? (
+            <p>free subscriber — access to first 2 tracks</p>
           ) : (
-            <p>free subscriber — access to first 3 tracks</p>
+            <p>guest — access to first track only</p>
           )}
         </div>
 
@@ -501,10 +363,12 @@ export default function Player() {
                 ))}
                 <div style={{ marginTop: '1rem', padding: '1rem', border: '1px solid rgba(255, 255, 255, 0.3)' }}>
                   <p style={{ marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                    upgrade to paid to access all tracks
+                    {subscriptionStatus === 'free_subscriber' 
+                      ? 'upgrade to paid to access all tracks'
+                      : 'subscribe to access more tracks'}
                   </p>
                   <button
-                    onClick={openPortalPaid}
+                    onClick={subscriptionStatus === 'free_subscriber' ? openPortalPaid : () => navigateTo('/follow')}
                     style={{
                       background: 'transparent',
                       border: '1px solid var(--color-text)',
@@ -515,7 +379,7 @@ export default function Player() {
                       textTransform: 'lowercase',
                     }}
                   >
-                    upgrade →
+                    {subscriptionStatus === 'free_subscriber' ? 'upgrade →' : 'subscribe →'}
                   </button>
                 </div>
               </>
