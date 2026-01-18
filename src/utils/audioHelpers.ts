@@ -97,9 +97,13 @@ export function getSoundCloudEmbedUrl(
     throw new Error('Either trackId, trackUrl, or setId must be provided')
   }
   
+  // Use brand accent color from branding.md (Inspired Path #8A55A5)
+  // This color is used for interactive elements and highlights per brand guidelines
+  const brandAccentColor = '#8A55A5'
+  
   const params = new URLSearchParams({
     url: resourceUrl,
-    color: '#ff5500', // SoundCloud orange - makes play button more visible
+    color: brandAccentColor, // Brand accent color - Inspired Path (#8A55A5)
     auto_play: 'false',
     show_comments: 'false',
     show_user: 'false',

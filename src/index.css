@@ -5,6 +5,16 @@
   --color-text: #ffffff;
   --color-accent: #ffffff;
   --font-mono: 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace;
+  
+  /* Brand colors from branding.md */
+  --color-warm-narrative: #A6563E;
+  --color-gentle-bond: #D7CCC8;
+  --color-inspired-path: #8A55A5;
+  
+  /* Usage roles */
+  --color-anchor: var(--color-warm-narrative);
+  --color-support: var(--color-gentle-bond);
+  --color-brand-accent: var(--color-inspired-path);
 }
 
 * {
