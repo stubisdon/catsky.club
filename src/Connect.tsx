@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import './index.css'
 
 // Internal navigation helper - ensures all navigation stays within the app
@@ -7,203 +7,63 @@ const navigateTo = (path: string) => {
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
-type MemberCheckState = 'unknown' | 'not_member' | 'member'
-
-function isActivated(): boolean {
-  return window.localStorage.getItem('catsky_activated') === '1'
-}
-
-async function checkGhostMember(): Promise<boolean> {
-  // Ghost Members session endpoint (works on the same domain when Ghost is hosting members)
-  // If Ghost is not available in local dev, this will fail gracefully.
-  const res = await fetch('/members/api/member/', { credentials: 'include' })
-  if (!res.ok) return false
-  const data = (await res.json()) as unknown
-  // Ghost returns { member: {...} } when logged in, or { member: null } otherwise
-  if (typeof data === 'object' && data !== null && 'member' in data) {
-    const member = (data as any).member
-    return Boolean(member)
-  }
-  return false
-}
-
-async function waitForPortal(maxWait = 10000): Promise<boolean> {
-  const start = Date.now()
-  
-  // First, wait for the script to load
-  const scriptLoaded = await new Promise<boolean>((resolve) => {
-    const checkScript = () => {
-      const scripts = Array.from(document.querySelectorAll('script[src*="portal"]'))
-      if (scripts.length > 0) {
-        const script = scripts[0] as HTMLScriptElement
-        // Check if script is loaded using type-safe methods
-        const scriptAny = script as any
-        if (scriptAny.complete || scriptAny.readyState === 'complete' || scriptAny.readyState === 'loaded') {
-          resolve(true)
-          return
-        }
-      }
-      // Check if script is in DOM (might still be loading)
-      if (scripts.length > 0) {
-        resolve(true)
-        return
-      }
-      setTimeout(checkScript, 100)
-    }
-    checkScript()
-    
-    // Timeout after 3 seconds
-    setTimeout(() => resolve(true), 3000)
-  })
-  
-  if (!scriptLoaded) {
-    console.log('Portal script not found in DOM')
-    return false
-  }
-  
-  // Now wait for Portal API to be available
-  while (Date.now() - start < maxWait) {
-    // Check multiple possible Portal API formats
-    const portal: any = (window as any).Portal
-    const portalFunc: any = (window as any).portal
-    
-    if (portal) {
-      if (typeof portal === 'function' || (portal && typeof portal.open === 'function')) {
-        return true
-      }
-    }
-    
-    if (portalFunc && typeof portalFunc === 'function') {
-      return true
-    }
-    
-    // Also check for Portal.init or Portal.ready
-    if (portal && typeof portal.init === 'function') {
-      return true
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, 200))
-  }
-  
-  // Debug: log what's actually available
-  console.log('Portal check failed. Available:', {
-    Portal: (window as any).Portal,
-    portal: (window as any).portal,
-    windowKeys: Object.keys(window).filter(k => k.toLowerCase().includes('portal')),
-    scripts: Array.from(document.querySelectorAll('script[src*="portal"]')).map(s => (s as HTMLScriptElement).src)
-  })
-  
-  return false
-}
-
-function openPortalSignup(): boolean {
-  const portal: any = (window as any).Portal
-  const portalFunc: any = (window as any).portal
-  
-  try {
-    // Try Portal as function
-    if (typeof portal === 'function') {
-      portal('open', { page: 'signup' })
-      return true
-    }
-    
-    // Try portal (lowercase) as function
-    if (typeof portalFunc === 'function') {
-      portalFunc('open', { page: 'signup' })
-      return true
-    }
-    
-    // Try Portal.open method
-    if (portal && typeof portal.open === 'function') {
-      portal.open({ page: 'signup' })
-      return true
-    }
-    
-    // Try portal.open method (lowercase)
-    if (portalFunc && typeof portalFunc.open === 'function') {
-      portalFunc.open({ page: 'signup' })
-      return true
-    }
-  } catch (err) {
-    console.error('Portal open error:', err)
-  }
-  return false
-}
-
 export default function Connect() {
-  const [memberState, setMemberState] = useState<MemberCheckState>('unknown')
-  const [portalMissing, setPortalMissing] = useState(false)
-  const [checking, setChecking] = useState(false)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const refreshMemberState = useCallback(async () => {
+  const alreadySignedUp = useMemo(() => {
     try {
-      const isMember = await checkGhostMember()
-      setMemberState(isMember ? 'member' : 'not_member')
+      return window.localStorage.getItem('catsky_signed_up') === '1'
     } catch {
-      setMemberState('not_member')
+      return false
     }
   }, [])
 
-  useEffect(() => {
-    refreshMemberState()
-  }, [refreshMemberState])
+  const submit = useCallback(async () => {
+    const trimmedName = name.trim()
+    const trimmedEmail = email.trim()
 
-  // Automatically open Portal when component mounts (for non-members)
-  useEffect(() => {
-    if (memberState === 'not_member') {
-      const openPortal = async () => {
-        setChecking(true)
-        setPortalMissing(false)
-        
-        // Wait longer for Portal to load (script has defer attribute)
-        const portalReady = await waitForPortal(10000)
-        
-        if (portalReady) {
-          const opened = openPortalSignup()
-          setChecking(false)
-          
-          if (!opened) {
-            setPortalMissing(true)
-          } else {
-            // Poll to detect successful signup/login
-            const startedAt = Date.now()
-            const poll = async () => {
-              try {
-                const isMember = await checkGhostMember()
-                setMemberState(isMember ? 'member' : 'not_member')
-                if (isMember) {
-                  setChecking(false)
-                  return
-                }
-              } catch {
-                setMemberState('not_member')
-              }
-
-              const now = Date.now()
-              if (now - startedAt > 20000) {
-                setChecking(false)
-                return
-              }
-              setTimeout(poll, 1200)
-            }
-            setTimeout(poll, 1200)
-          }
-        } else {
-          setChecking(false)
-          setPortalMissing(true)
-        }
-      }
-      // Longer delay to ensure Portal script has loaded (it has defer attribute)
-      const timer = setTimeout(openPortal, 1000)
-      return () => clearTimeout(timer)
+    if (!trimmedName) {
+      setError('name is required')
+      return
     }
-  }, [memberState])
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      setError('valid email is required')
+      return
+    }
 
-  const nextLink = useMemo(() => {
-    const activated = isActivated()
-    if (!activated) return { href: '/watch', label: 'complete the experience →' }
-    return { href: '/listen', label: 'continue →' }
-  }, [memberState])
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const res = await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmedName, contact: trimmedEmail, digDeeper: '' }),
+      })
+
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null)
+        setError(payload?.error || 'unable to sign up right now')
+        setSubmitting(false)
+        return
+      }
+
+      try {
+        window.localStorage.setItem('catsky_signed_up', '1')
+      } catch {
+        // ignore
+      }
+      setSubmitted(true)
+      setSubmitting(false)
+    } catch (e) {
+      setError('unable to sign up right now')
+      setSubmitting(false)
+    }
+  }, [email, name])
 
   return (
     <div className="app-container">
@@ -228,29 +88,14 @@ export default function Connect() {
           connect
         </h1>
 
-        <div style={{ opacity: 0.9, marginBottom: '2rem', lineHeight: 1.6 }}>
-          <p style={{ marginBottom: '0.3rem' }}>
-            get closer if you like
-          </p>
-          <p style={{ marginBottom: '0.3rem' }}>
-            be involved if it feels right
-          </p>
-          <p style={{ marginBottom: '0.3rem' }}>
-            this is just a welcome
-          </p>
-          <p style={{ marginBottom: 0 }}>
-            nothing is required
-          </p>
-        </div>
-
-        {memberState === 'member' ? (
-          <div style={{ marginBottom: '2rem' }}>
-            <div style={{ marginBottom: '1rem', opacity: 0.95 }}>you're in.</div>
+        {alreadySignedUp || submitted ? (
+          <div style={{ marginBottom: '2rem', opacity: 0.9 }}>
+            <div style={{ marginBottom: '1rem' }}>you’re in.</div>
             <a
-              href={nextLink.href}
+              href="/listen"
               onClick={(e) => {
                 e.preventDefault()
-                navigateTo(nextLink.href)
+                navigateTo('/listen')
               }}
               style={{
                 color: 'var(--color-text)',
@@ -264,36 +109,108 @@ export default function Connect() {
                 cursor: 'pointer',
                 textTransform: 'lowercase',
               }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--color-text)'
+                e.currentTarget.style.color = 'var(--color-bg)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = 'var(--color-text)'
+              }}
             >
-              {nextLink.label}
+              continue →
             </a>
           </div>
         ) : (
-          <div style={{ marginBottom: '2rem' }}>
-            {checking && (
-              <div style={{ marginTop: '1rem', opacity: 0.7 }}>
-                loading…
+          <form
+            style={{ marginBottom: '2rem' }}
+            onSubmit={(e) => {
+              e.preventDefault()
+              submit()
+            }}
+          >
+            <div style={{ opacity: 0.85, marginBottom: '1.25rem' }}>
+              <div>name</div>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+                style={{
+                  width: '100%',
+                  marginTop: '0.4rem',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  color: 'var(--color-text)',
+                  fontFamily: 'var(--font-mono)',
+                  padding: '0.6rem 0.7rem',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+
+            <div style={{ opacity: 0.85, marginBottom: '1.25rem' }}>
+              <div>email</div>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                inputMode="email"
+                type="email"
+                style={{
+                  width: '100%',
+                  marginTop: '0.4rem',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  color: 'var(--color-text)',
+                  fontFamily: 'var(--font-mono)',
+                  padding: '0.6rem 0.7rem',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+
+            {error && (
+              <div style={{ opacity: 0.75, marginBottom: '1rem', fontSize: '0.9rem' }}>
+                {error}
               </div>
             )}
 
-            {portalMissing && (
-              <div style={{ marginTop: '1rem', opacity: 0.7, fontSize: '0.9rem' }}>
-                <p style={{ marginBottom: '0.5rem' }}>
-                  portal is not available in development.
-                </p>
-                <p style={{ marginBottom: 0, fontSize: '0.85rem' }}>
-                  in production, this will show the Ghost Portal signup form. for local dev, set VITE_GHOST_URL and VITE_GHOST_CONTENT_API_KEY environment variables.
-                </p>
-              </div>
-            )}
-          </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                background: 'transparent',
+                border: '2px solid var(--color-text)',
+                color: 'var(--color-text)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'clamp(1rem, 2vw, 1.2rem)',
+                padding: '0.9rem 1.5rem',
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                letterSpacing: '0.1em',
+                transition: 'all 0.3s ease',
+                textTransform: 'lowercase',
+                opacity: submitting ? 0.6 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (submitting) return
+                e.currentTarget.style.background = 'var(--color-text)'
+                e.currentTarget.style.color = 'var(--color-bg)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent'
+                e.currentTarget.style.color = 'var(--color-text)'
+              }}
+            >
+              {submitting ? 'saving…' : 'sign up →'}
+            </button>
+          </form>
         )}
 
         <a
-          href="/listen"
+          href="/"
           onClick={(e) => {
             e.preventDefault()
-            navigateTo('/listen')
+            navigateTo('/')
           }}
           style={{
             position: 'fixed',
@@ -312,7 +229,7 @@ export default function Connect() {
             e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
           }}
         >
-          ← listen
+          ← home
         </a>
       </div>
     </div>

@@ -108,10 +108,10 @@ export default function UnpublishedExperience() {
         </div>
 
         <a
-          href="/listen"
+          href="/"
           onClick={(e) => {
             e.preventDefault()
-            navigateTo('/listen')
+            navigateTo('/')
           }}
           style={{
             position: 'fixed',
@@ -130,7 +130,7 @@ export default function UnpublishedExperience() {
             e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
           }}
         >
-          ← back to site
+          ← home
         </a>
       </div>
     </div>

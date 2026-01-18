@@ -13,14 +13,9 @@ const navigateTo = (path: string) => {
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
-function openPortalPaid(): void {
-  window.location.hash = '#/portal/account'
-}
-
 export default function Player() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('unknown')
   const [checking, setChecking] = useState(true)
-  const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
   const [currentTrackId, setCurrentTrackId] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -41,9 +36,16 @@ export default function Player() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const soundcloudIframeRef = useRef<HTMLIFrameElement | null>(null)
 
+  const hasLocalSignup = (() => {
+    try {
+      return window.localStorage.getItem('catsky_signed_up') === '1'
+    } catch {
+      return false
+    }
+  })()
+
   const refreshStatus = useCallback(async () => {
     setChecking(true)
-    setSubscriptionError(null)
     try {
       // Add timeout for subscription check
       const timeoutPromise = new Promise<SubscriptionStatus>((_, reject) => {
@@ -56,7 +58,6 @@ export default function Player() {
     } catch (error) {
       console.error('Error checking subscription:', error)
       setSubscriptionStatus('not_subscriber')
-      setSubscriptionError('Unable to verify subscription status. Showing guest access.')
     } finally {
       setChecking(false)
     }
@@ -66,7 +67,10 @@ export default function Player() {
     refreshStatus()
   }, [refreshStatus])
 
-  const isPaid = subscriptionStatus === 'paid_subscriber'
+  const effectiveStatus: SubscriptionStatus =
+    subscriptionStatus === 'not_subscriber' && hasLocalSignup ? 'free_subscriber' : subscriptionStatus
+
+  const isPaid = effectiveStatus === 'paid_subscriber'
 
   // Access control:
   // - Non-registered users: first 1 track
@@ -76,12 +80,12 @@ export default function Player() {
     if (isPaid) {
       return TRACKS // All tracks for paid subscribers
     }
-    if (subscriptionStatus === 'free_subscriber') {
+    if (effectiveStatus === 'free_subscriber') {
       return TRACKS.slice(0, 2) // First 2 tracks for free subscribers
     }
     // Non-registered users get first track only
     return TRACKS.slice(0, 1)
-  }, [isPaid, subscriptionStatus])
+  }, [effectiveStatus, isPaid])
 
   const accessibleTracks = getAccessibleTracks()
   const lockedTracks = isPaid ? [] : TRACKS.slice(accessibleTracks.length)
@@ -105,12 +109,12 @@ export default function Player() {
     // Check access
     const trackIndex = TRACKS.findIndex(t => t.id === trackId)
     if (!isPaid) {
-      if (subscriptionStatus === 'free_subscriber' && trackIndex >= 2) {
-        // Locked track for free subscribers (only first 2 tracks accessible)
+      if (effectiveStatus === 'free_subscriber' && trackIndex >= 2) {
+        navigateTo('/connect')
         return
       }
-      if (subscriptionStatus !== 'free_subscriber' && trackIndex >= 1) {
-        // Locked track for non-registered users (only first track accessible)
+      if (effectiveStatus !== 'free_subscriber' && trackIndex >= 1) {
+        navigateTo('/connect')
         return
       }
     }
@@ -149,7 +153,7 @@ export default function Player() {
         audioRef.current.src = ''
       }
     }
-  }, [isPaid, subscriptionStatus])
+  }, [effectiveStatus, isPaid])
 
   const handlePlayPause = useCallback(() => {
     if (!audioRef.current) return
@@ -247,33 +251,8 @@ export default function Player() {
           listen
         </h1>
 
-        <div style={{ opacity: 0.9, marginBottom: '2rem', fontSize: '0.9rem' }}>
-          {isPaid ? (
-            <p>paid subscriber — full access to all tracks</p>
-          ) : subscriptionStatus === 'free_subscriber' ? (
-            <p>free subscriber — access to first 2 tracks</p>
-          ) : (
-            <p>guest — access to first track only</p>
-          )}
-          {subscriptionError && (
-            <p style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-              {subscriptionError}
-            </p>
-          )}
-        </div>
-
         {/* Track List */}
         <div style={{ marginBottom: '2rem' }}>
-          <h2
-            style={{
-              fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
-              marginBottom: '1rem',
-              letterSpacing: '0.1em',
-              textTransform: 'lowercase',
-            }}
-          >
-            tracks
-          </h2>
           {TRACKS.length === 0 && (
             <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.7 }}>
               <p>No tracks available at this time.</p>
@@ -425,13 +404,13 @@ export default function Player() {
                       padding: '1rem',
                       opacity: 0.5,
                       position: 'relative',
-                      cursor: 'not-allowed',
+                      cursor: 'pointer',
                       userSelect: 'none',
                     }}
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      // Prevent any interaction with locked tracks
+                      navigateTo('/connect')
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -444,32 +423,11 @@ export default function Player() {
                         )}
                       </div>
                       <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>
-                        locked
+                        sign up
                       </div>
                     </div>
                   </div>
                 ))}
-                <div style={{ marginTop: '1rem', padding: '1rem', border: '1px solid rgba(255, 255, 255, 0.3)' }}>
-                  <p style={{ marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                    {subscriptionStatus === 'free_subscriber' 
-                      ? 'upgrade to paid to access all tracks'
-                      : 'subscribe to access more tracks'}
-                  </p>
-                  <button
-                    onClick={subscriptionStatus === 'free_subscriber' ? openPortalPaid : () => navigateTo('/connect')}
-                    style={{
-                      background: 'transparent',
-                      border: '1px solid var(--color-text)',
-                      color: 'var(--color-text)',
-                      cursor: 'pointer',
-                      fontSize: '0.9rem',
-                      padding: '0.5rem 1rem',
-                      textTransform: 'lowercase',
-                    }}
-                  >
-                    {subscriptionStatus === 'free_subscriber' ? 'upgrade →' : 'subscribe →'}
-                  </button>
-                </div>
               </>
             )}
           </div>
@@ -588,10 +546,10 @@ export default function Player() {
         )}
 
         <a
-          href="/watch"
+          href="/"
           onClick={(e) => {
             e.preventDefault()
-            navigateTo('/watch')
+            navigateTo('/')
           }}
           style={{
             position: 'fixed',
@@ -610,7 +568,7 @@ export default function Player() {
             e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
           }}
         >
-          ← watch
+          ← home
         </a>
       </div>
     </div>

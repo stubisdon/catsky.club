@@ -71,10 +71,10 @@ export default function Mission() {
         </div>
         
         <a 
-          href="/listen" 
+          href="/" 
           onClick={(e) => {
             e.preventDefault()
-            navigateTo('/listen')
+            navigateTo('/')
           }}
           style={{ 
             position: 'fixed', 
@@ -93,7 +93,7 @@ export default function Mission() {
             e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
           }}
         >
-          ← listen
+          ← home
         </a>
       </div>
     </div>

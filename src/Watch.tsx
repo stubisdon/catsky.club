@@ -118,10 +118,10 @@ export default function Watch() {
         </div>
 
         <a
-          href="/listen"
+          href="/"
           onClick={(e) => {
             e.preventDefault()
-            navigateTo('/listen')
+            navigateTo('/')
           }}
           style={{
             position: 'fixed',
@@ -140,7 +140,7 @@ export default function Watch() {
             e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
           }}
         >
-          ← listen
+          ← home
         </a>
       </div>
     </div>
