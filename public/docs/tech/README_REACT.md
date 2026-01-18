@@ -4,12 +4,20 @@ This is a React application built with Vite, featuring an interactive audio-sync
 
 ## Features
 
+### Core Experience
 - **Play Button Stage**: Black screen with a centered play button
 - **Intro Stage**: Audio plays with text appearing synced to timecode
 - **Name Input**: User enters their first name
 - **Conversational Interaction**: System confirms name ingestion and becomes conversational
 - **A-HA Moment**: Interactive moment showing the magic of the experience
 - **Contact Collection**: Email or phone number collection at the end
+
+### Music Player (New)
+- **Player Page** (`/player`): Music player for subscribers
+  - Free subscribers: Access to first 3 tracks
+  - Paid subscribers: Full access to all tracks + voting & feedback
+  - SoundCloud integration with secret links for private tracks
+  - Support for individual tracks and playlists/sets
 
 ## Setup
 
@@ -65,16 +73,36 @@ npm start
 
 ```
 ├── src/
-│   ├── App.tsx          # Main application component
-│   ├── main.tsx         # React entry point
+│   ├── App.tsx          # Main home page component
+│   ├── Player.tsx       # Music player page for subscribers (/player)
+│   ├── Listen.tsx        # Public music page (/listen)
+│   ├── Watch.tsx         # Video page (/watch)
+│   ├── Follow.tsx        # Free subscription page (/follow)
+│   ├── Join.tsx          # Paid subscription page (/join)
+│   ├── Mission.tsx       # Mission page (/mission)
+│   ├── main.tsx         # React entry point with routing
 │   ├── index.css        # Global styles
-│   └── api.ts           # API utility functions
+│   ├── utils/
+│   │   ├── subscription.ts    # Subscription checking utilities
+│   │   └── audioHelpers.ts    # Audio hosting helpers (SoundCloud, etc.)
+│   └── types/
+│       └── experience.ts      # Type definitions
 ├── public/
-│   └── audio/           # Audio files
+│   └── audio/           # Audio files (if hosting locally)
 ├── server.js            # Express server for API endpoints
 ├── vite.config.ts       # Vite configuration
 └── package.json         # Dependencies and scripts
 ```
+
+## Routes
+
+- `/` - Home page (App.tsx)
+- `/player` - Music player for subscribers (Player.tsx)
+- `/listen` - Public music links (Listen.tsx)
+- `/watch` - Video content (Watch.tsx)
+- `/follow` - Free subscription signup (Follow.tsx)
+- `/join` - Paid subscription signup (Join.tsx)
+- `/mission` - Mission statement (Mission.tsx)
 
 ## Customization
 

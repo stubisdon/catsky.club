@@ -697,7 +697,112 @@ expect(getSubmitButtonShape()).toBe('rectangle')
 
 ---
 
-*Last Updated: [Current Date]*
-*Document Version: 1.0*
+---
+
+## Player Page (`/player`)
+
+### Overview
+Music player page for subscribers to listen to latest track versions. Implements subscription-based access control.
+
+### Access States
+
+#### Not Subscriber
+- **Visual**: Message "this player is for subscribers only" + "listen to the latest versions of tracks in progress"
+- **Action**: "subscribe →" link to `/follow`
+- **Behavior**: Cannot access any tracks
+
+#### Free Subscriber
+- **Visual**: Track list showing first 3 tracks accessible, remaining tracks shown as "locked"
+- **Access**: Can play first 3 tracks only
+- **Features**: No voting or feedback buttons
+- **Upgrade Prompt**: Shows "upgrade to paid to access all tracks" with upgrade button
+
+#### Paid Subscriber
+- **Visual**: Full track list, all tracks accessible
+- **Access**: Can play all tracks
+- **Features**: 
+  - Upvote/downvote buttons (↑ ↓) on each track
+  - "feedback" button on each track
+  - Full player controls
+
+### Track List UI
+- **Layout**: Vertical list of tracks
+- **Track Item**: Border, padding, hover effect
+- **Information**: Title, version (e.g., "v2.3"), date
+- **Selection**: Selected track highlighted with background color
+- **Locked Tracks**: Reduced opacity (0.5), "locked" label
+
+### Audio Player UI
+
+#### Direct URL Player
+- **Controls**: Play/pause button (▶/⏸), progress bar
+- **Info**: Current time / total duration
+- **Styling**: Border, minimal design matching site aesthetic
+
+#### SoundCloud Widget
+- **Embed**: SoundCloud iframe widget (166px height)
+- **Styling**: White color scheme, no comments/user info
+- **Footer**: "powered by soundcloud" text (small, low opacity)
+
+### Voting UI (Paid Only)
+- **Buttons**: ↑ (upvote) and ↓ (downvote)
+- **State**: Active state changes color (full opacity vs 0.5)
+- **Behavior**: Toggle on/off (click again to remove vote)
+
+### Feedback UI (Paid Only)
+- **Button**: "feedback" text button
+- **Form**: Textarea appears below track when clicked
+- **Submit**: "submit" button below textarea
+- **Placeholder**: "share your thoughts on this track..."
+
+### Navigation
+- **Home Link**: Fixed bottom-left, "← home" link
+- **Styling**: Low opacity (0.5), full opacity on hover
+
+### Expected Behaviors
+
+1. **Subscription Check**: On page load, checks subscription status via Ghost Members API
+2. **Track Access**: Filters tracks based on subscription level
+3. **Track Selection**: Clicking track loads it in player
+4. **Playback**: 
+   - Direct URLs: Uses HTML5 audio element
+   - SoundCloud: Uses embedded widget
+5. **Voting**: Only works for paid subscribers, stores locally (backend integration needed)
+6. **Feedback**: Only works for paid subscribers, currently logs to console (backend integration needed)
+
+### Test Scenarios
+
+1. **Not Subscriber Access**
+   - Visit `/player` without login
+   - Should see subscription gate
+   - Should not see any tracks
+
+2. **Free Subscriber Access**
+   - Log in as free subscriber
+   - Visit `/player`
+   - Should see first 3 tracks playable
+   - Remaining tracks should be locked
+   - No voting/feedback buttons
+
+3. **Paid Subscriber Access**
+   - Log in as paid subscriber
+   - Visit `/player`
+   - Should see all tracks playable
+   - Voting and feedback buttons visible
+   - All features functional
+
+4. **Track Playback**
+   - Select a track
+   - Player should load and be ready
+   - Play button should work
+   - Progress should update
+
+5. **SoundCloud Integration**
+   - Track with SoundCloud source should show widget
+   - Widget should be playable
+   - Secret token should work for private tracks
+
+*Last Updated: January 2025*
+*Document Version: 1.1*
 
 
