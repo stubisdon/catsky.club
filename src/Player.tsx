@@ -5,7 +5,7 @@ import {
   getDirectAudioUrl, 
   getSoundCloudEmbedUrl
 } from './utils/audioHelpers'
-import { TRACKS, type Track } from './config/tracks'
+import { TRACKS } from './config/tracks'
 
 // Internal navigation helper
 const navigateTo = (path: string) => {
@@ -48,7 +48,6 @@ export default function Player() {
   }, [refreshStatus])
 
   const isPaid = subscriptionStatus === 'paid_subscriber'
-  const isSubscriber = subscriptionStatus === 'free_subscriber' || subscriptionStatus === 'paid_subscriber'
 
   // Access control:
   // - Non-registered users: first 1 track
