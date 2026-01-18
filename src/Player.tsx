@@ -20,24 +20,43 @@ function openPortalPaid(): void {
 export default function Player() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('unknown')
   const [checking, setChecking] = useState(true)
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
   const [currentTrackId, setCurrentTrackId] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [trackVotes, setTrackVotes] = useState<Record<string, 'up' | 'down' | null>>({})
+  const [trackVotes, setTrackVotes] = useState<Record<string, 'up' | 'down' | null>>(() => {
+    // Load votes from localStorage on mount
+    try {
+      const saved = localStorage.getItem('trackVotes')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
   const [showFeedback, setShowFeedback] = useState<string | null>(null)
   const [feedbackText, setFeedbackText] = useState('')
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState<string | null>(null)
+  const [trackLoadError, setTrackLoadError] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const soundcloudIframeRef = useRef<HTMLIFrameElement | null>(null)
 
   const refreshStatus = useCallback(async () => {
     setChecking(true)
+    setSubscriptionError(null)
     try {
-      const status = await checkSubscriptionStatus()
+      // Add timeout for subscription check
+      const timeoutPromise = new Promise<SubscriptionStatus>((_, reject) => {
+        setTimeout(() => reject(new Error('Subscription check timeout')), 10000)
+      })
+      
+      const statusPromise = checkSubscriptionStatus()
+      const status = await Promise.race([statusPromise, timeoutPromise])
       setSubscriptionStatus(status)
     } catch (error) {
       console.error('Error checking subscription:', error)
       setSubscriptionStatus('not_subscriber')
+      setSubscriptionError('Unable to verify subscription status. Showing guest access.')
     } finally {
       setChecking(false)
     }
@@ -67,9 +86,21 @@ export default function Player() {
   const accessibleTracks = getAccessibleTracks()
   const lockedTracks = isPaid ? [] : TRACKS.slice(accessibleTracks.length)
 
+  // Persist votes to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('trackVotes', JSON.stringify(trackVotes))
+    } catch (error) {
+      console.error('Error saving votes to localStorage:', error)
+    }
+  }, [trackVotes])
+
   const handleTrackSelect = useCallback((trackId: string) => {
     const track = TRACKS.find(t => t.id === trackId)
-    if (!track) return
+    if (!track) {
+      setTrackLoadError('Track not found')
+      return
+    }
 
     // Check access
     const trackIndex = TRACKS.findIndex(t => t.id === trackId)
@@ -84,6 +115,7 @@ export default function Player() {
       }
     }
 
+    setTrackLoadError(null)
     setCurrentTrackId(trackId)
     setIsPlaying(false)
     setCurrentTime(0)
@@ -94,8 +126,20 @@ export default function Player() {
       // Direct URL - use HTML5 audio element
       const audioUrl = getDirectAudioUrl(track.audioSource)
       if (audioUrl && audioRef.current) {
-        audioRef.current.src = audioUrl
-        audioRef.current.load()
+        try {
+          audioRef.current.src = audioUrl
+          audioRef.current.load()
+          // Set up error handler for audio element
+          audioRef.current.onerror = () => {
+            setTrackLoadError('Failed to load audio track')
+          }
+          audioRef.current.onloadeddata = () => {
+            setTrackLoadError(null)
+          }
+        } catch (error) {
+          console.error('Error loading audio:', error)
+          setTrackLoadError('Failed to load audio track')
+        }
       }
     } else if (track.audioSource.type === 'soundcloud') {
       // SoundCloud - will use iframe widget (handled in render)
@@ -133,14 +177,26 @@ export default function Player() {
     }))
   }, [isPaid])
 
-  const handleSubmitFeedback = useCallback((trackId: string) => {
+  const handleSubmitFeedback = useCallback(async (trackId: string) => {
     if (!isPaid || !feedbackText.trim()) return
-    // TODO: Send feedback to backend
-    console.log('Feedback for track', trackId, ':', feedbackText)
-    setFeedbackText('')
-    setShowFeedback(null)
-    // Show confirmation
-    alert('Feedback submitted. Thank you!')
+    
+    try {
+      // TODO: Send feedback to backend
+      console.log('Feedback for track', trackId, ':', feedbackText)
+      
+      // Show success message
+      setFeedbackSubmitted(trackId)
+      setFeedbackText('')
+      setShowFeedback(null)
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setFeedbackSubmitted(null)
+      }, 3000)
+    } catch (error) {
+      console.error('Error submitting feedback:', error)
+      setTrackLoadError('Failed to submit feedback. Please try again.')
+    }
   }, [isPaid, feedbackText])
 
   const formatTime = (seconds: number) => {
@@ -193,6 +249,11 @@ export default function Player() {
           ) : (
             <p>guest — access to first track only</p>
           )}
+          {subscriptionError && (
+            <p style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+              {subscriptionError}
+            </p>
+          )}
         </div>
 
         {/* Track List */}
@@ -207,6 +268,11 @@ export default function Player() {
           >
             tracks
           </h2>
+          {TRACKS.length === 0 && (
+            <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.7 }}>
+              <p>No tracks available at this time.</p>
+            </div>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {accessibleTracks.map(track => (
               <div
@@ -329,6 +395,16 @@ export default function Player() {
                     >
                       submit
                     </button>
+                    {feedbackSubmitted === track.id && (
+                      <div style={{ 
+                        marginTop: '0.5rem', 
+                        fontSize: '0.85rem', 
+                        opacity: 0.7,
+                        color: 'rgba(255, 255, 255, 0.8)'
+                      }}>
+                        ✓ feedback submitted. thank you!
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -343,6 +419,13 @@ export default function Player() {
                       padding: '1rem',
                       opacity: 0.5,
                       position: 'relative',
+                      cursor: 'not-allowed',
+                      userSelect: 'none',
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      // Prevent any interaction with locked tracks
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -402,6 +485,16 @@ export default function Player() {
               {currentTrack.audioSource.type === 'direct' && (
                 <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>
                   {formatTime(currentTime)} / {formatTime(duration)}
+                </div>
+              )}
+              {trackLoadError && (
+                <div style={{ 
+                  fontSize: '0.85rem', 
+                  opacity: 0.7, 
+                  marginTop: '0.5rem',
+                  color: 'rgba(255, 255, 255, 0.7)'
+                }}>
+                  ⚠ {trackLoadError}
                 </div>
               )}
             </div>
@@ -469,6 +562,7 @@ export default function Player() {
                     border: 'none',
                     borderRadius: '0',
                   }}
+                  title={`SoundCloud player for ${currentTrack.title}`}
                 />
                 <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '0.5rem', textAlign: 'center' }}>
                   powered by soundcloud
