@@ -36,7 +36,9 @@ async function waitForPortal(maxWait = 10000): Promise<boolean> {
       const scripts = Array.from(document.querySelectorAll('script[src*="portal"]'))
       if (scripts.length > 0) {
         const script = scripts[0] as HTMLScriptElement
-        if (script.complete || script.readyState === 'complete' || script.readyState === 'loaded') {
+        // Check if script is loaded using type-safe methods
+        const scriptAny = script as any
+        if (scriptAny.complete || scriptAny.readyState === 'complete' || scriptAny.readyState === 'loaded') {
           resolve(true)
           return
         }
@@ -130,7 +132,6 @@ function openPortalSignup(): boolean {
 
 export default function Connect() {
   const [memberState, setMemberState] = useState<MemberCheckState>('unknown')
-  const [portalOpened, setPortalOpened] = useState(false)
   const [portalMissing, setPortalMissing] = useState(false)
   const [checking, setChecking] = useState(false)
 
@@ -159,7 +160,6 @@ export default function Connect() {
         
         if (portalReady) {
           const opened = openPortalSignup()
-          setPortalOpened(opened)
           setChecking(false)
           
           if (!opened) {
