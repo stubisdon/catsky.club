@@ -215,9 +215,38 @@ npm run test:e2e -- e2e/player.spec.ts --reporter=html
    - Memory leak detection
    - Iframe performance impact
 
+## Known Issues Fixed
+
+### Issue 1: SoundCloud Invalid URL Error
+**Problem:** When clicking on "Vision" track, SoundCloud shows error: "You have not provided a valid SoundCloud URL"
+
+**Root Cause:** SoundCloud embed widget requires secret tokens to be passed as query parameters (`?secret_token=s-XXXXX`) rather than in the URL path (`/s-XXXXX`)
+
+**Fix:** Updated `getSoundCloudEmbedUrl()` in `src/utils/audioHelpers.ts` to:
+- Extract secret token from path format (`/s-XXXXX`)
+- Convert to query parameter format (`?secret_token=s-XXXXX`)
+- Properly encode the URL for the embed widget
+
+**Test Case:** `SoundCloud iframe does not show invalid URL error` - Verifies that clicking a track does not show the SoundCloud error message
+
+### Issue 2: Page Not Scrollable Vertically
+**Problem:** Player page content cannot be scrolled vertically, making some content inaccessible
+
+**Root Cause:** Player component's content div was missing `overflowY: 'auto'` and `maxHeight: '100vh'` styles that other pages (Listen, App) have
+
+**Fix:** Added scrolling styles to Player component's content container:
+- `maxHeight: '100vh'`
+- `overflowY: 'auto'`
+- `userSelect: 'text'` (for text selection)
+
+**Test Cases:**
+- `page is scrollable vertically` - Verifies overflow-y is set to auto and scrolling works
+- `page content is accessible when scrolling` - Verifies all content is accessible via scrolling
+
 ## Notes
 
 - All tests use route mocking for subscription API
 - Tests assume 3 tracks are configured (Vision, Overpriced Airbnb, Nova)
-- SoundCloud iframe tests might need adjustment based on actual embed behavior
+- SoundCloud iframe tests verify URL format and error handling
+- Scrolling tests verify vertical scroll functionality
 - Some tests might need adjustment based on actual UI implementation

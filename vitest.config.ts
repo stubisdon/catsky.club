@@ -6,15 +6,24 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
-    environment: 'jsdom',
+    environment: 'happy-dom',
     setupFiles: './src/test/setup.ts',
     css: true,
+    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    exclude: [
+      'node_modules/',
+      'dist/',
+      'e2e/',
+      '**/*.d.ts',
+      '**/*.config.*',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
         'src/test/',
+        'e2e/',
         '**/*.d.ts',
         '**/*.config.*',
         '**/mockData',

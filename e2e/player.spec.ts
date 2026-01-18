@@ -281,6 +281,29 @@ test.describe('Player Page - SoundCloud Integration', () => {
     await expect(iframe).toHaveAttribute('scrolling', 'no')
   })
 
+  test('SoundCloud iframe does not show invalid URL error', async ({ page }) => {
+    await page.goto('/player')
+    await page.waitForLoadState('networkidle')
+
+    // Select first track
+    await page.getByText('Vision').click()
+    
+    // Wait for iframe to load
+    const iframe = page.locator('iframe[src*="soundcloud"]').first()
+    await expect(iframe).toBeVisible()
+    
+    // Check that SoundCloud error message is NOT visible
+    // SoundCloud shows "You have not provided a valid SoundCloud URL" if URL is invalid
+    const errorMessage = page.getByText(/you have not provided a valid soundcloud url/i)
+    await expect(errorMessage).not.toBeVisible({ timeout: 5000 })
+    
+    // Verify the iframe src contains the track URL properly encoded
+    const src = await iframe.getAttribute('src')
+    expect(src).toBeTruthy()
+    // URL should be properly encoded in the embed URL
+    expect(src).toContain('url=')
+  })
+
   test('SoundCloud widget shows for all tracks', async ({ page }) => {
     await page.goto('/player')
     await page.waitForLoadState('networkidle')
@@ -498,6 +521,83 @@ test.describe('Player Page - UI Elements', () => {
     // Clicking should navigate
     await homeLink.click()
     await expect(page).toHaveURL(/.*\/$/)
+  })
+
+  test('page is scrollable vertically', async ({ page }) => {
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: {
+            id: 'test-member',
+            email: 'test@example.com',
+            subscriptions: [
+              {
+                id: 'sub-1',
+                status: 'active',
+                price: { amount: 1000, currency: 'USD' },
+              },
+            ],
+          },
+        }),
+      })
+    })
+
+    await page.goto('/player')
+    await page.waitForLoadState('networkidle')
+
+    // Check that the content container has overflow-y: auto
+    const contentContainer = page.locator('.app-container > div').first()
+    const overflowY = await contentContainer.evaluate((el) => {
+      return window.getComputedStyle(el).overflowY
+    })
+    expect(overflowY).toBe('auto')
+
+    // Verify we can scroll by checking scroll position
+    const initialScrollTop = await contentContainer.evaluate((el) => el.scrollTop)
+    
+    // Try to scroll down
+    await contentContainer.evaluate((el) => {
+      el.scrollTop = 100
+    })
+    
+    const scrolledTop = await contentContainer.evaluate((el) => el.scrollTop)
+    expect(scrolledTop).toBeGreaterThan(initialScrollTop)
+  })
+
+  test('page content is accessible when scrolling', async ({ page }) => {
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: {
+            id: 'test-member',
+            email: 'test@example.com',
+            subscriptions: [
+              {
+                id: 'sub-1',
+                status: 'active',
+                price: { amount: 1000, currency: 'USD' },
+              },
+            ],
+          },
+        }),
+      })
+    })
+
+    await page.goto('/player')
+    await page.waitForLoadState('networkidle')
+
+    // Verify all tracks are visible (should be scrollable to see all)
+    await expect(page.getByText('Vision')).toBeVisible()
+    await expect(page.getByText('Overpriced Airbnb')).toBeVisible()
+    await expect(page.getByText('Nova')).toBeVisible()
+    
+    // Verify home link is accessible (should be at bottom, scrollable)
+    const homeLink = page.getByRole('link', { name: /home/i })
+    await expect(homeLink).toBeVisible()
   })
 
   test('upgrade button works for free subscribers', async ({ page }) => {

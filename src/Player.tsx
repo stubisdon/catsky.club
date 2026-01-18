@@ -228,6 +228,12 @@ export default function Player() {
           textAlign: 'left',
           letterSpacing: '0.05em',
           lineHeight: '1.8',
+          maxHeight: '100vh',
+          overflowY: 'auto',
+          userSelect: 'text',
+          WebkitUserSelect: 'text',
+          MozUserSelect: 'text',
+          msUserSelect: 'text',
         }}
       >
         <h1

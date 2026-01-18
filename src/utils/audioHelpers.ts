@@ -64,14 +64,25 @@ export function getSoundCloudEmbedUrl(
     }
   } else if (trackUrl) {
     // Handle full track URL (e.g., from private share link)
-    // If URL already has secret token, use as-is
-    // Otherwise, add secret token if provided
+    // SoundCloud embed widget needs the URL in a specific format
+    // For private tracks with secret tokens in path (e.g., /s-XXXXX), we need to extract
+    // the base track URL and pass the secret token as a query parameter
     if (trackUrl.includes('/s-')) {
-      // URL already contains secret token (e.g., soundcloud.com/user/track/s-XXXXX)
-      resourceUrl = trackUrl.split('?')[0] // Remove query params, keep secret token in path
+      // URL contains secret token in path (e.g., soundcloud.com/user/track/s-XXXXX)
+      // Extract base URL and secret token
+      const urlParts = trackUrl.split('/s-')
+      if (urlParts.length === 2) {
+        const baseUrl = urlParts[0].split('?')[0] // Remove any existing query params
+        const token = 's-' + urlParts[1].split('?')[0] // Extract token, remove query params
+        // Use base URL and add secret_token as query parameter (SoundCloud embed format)
+        resourceUrl = `${baseUrl}?secret_token=${token}`
+      } else {
+        // Fallback: use URL as-is but clean query params
+        resourceUrl = trackUrl.split('?')[0]
+      }
     } else if (secretToken) {
-      // Add secret token to URL
-      resourceUrl = `${trackUrl}${trackUrl.includes('?') ? '&' : '/'}${secretToken}`
+      // Add secret token to URL as query parameter
+      resourceUrl = `${trackUrl}${trackUrl.includes('?') ? '&' : '?'}secret_token=${secretToken}`
     } else {
       resourceUrl = trackUrl
     }
