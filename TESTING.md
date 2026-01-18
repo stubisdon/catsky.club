@@ -14,6 +14,21 @@ This project includes automated tests to catch regressions and ensure code quali
 - **Framework**: Playwright
 - **Purpose**: Test full user flows and page interactions in real browsers
 
+## Manual Test Execution
+
+Tests are configured to run **manually only** to avoid slowing down development. It's recommended to run tests once per working day to catch any regressions.
+
+### Quick Test Commands
+
+```bash
+# Run all tests (unit + E2E) - takes ~40 seconds
+npm run test:all
+
+# Or run them separately:
+npm run test          # Unit tests only (~1 second)
+npm run test:e2e      # E2E tests only (~40 seconds)
+```
+
 ## Running Tests Locally
 
 ### Unit Tests
@@ -68,14 +83,19 @@ TEST_URL=http://localhost:3001 PROD_URL=https://catsky.club ./test-production.sh
 
 ### GitHub Actions
 
-Tests run automatically on:
-- Every push to `main` or `develop` branches
-- Every pull request to `main` or `develop`
-- Before deployment (deployment is blocked if tests fail)
+**Tests are now manual-only** - they no longer run automatically on push/PR to avoid slowing down development.
+
+To run tests manually:
+1. Go to the "Actions" tab in GitHub
+2. Select "Run Tests" workflow
+3. Click "Run workflow" button
+4. Choose the branch and click "Run workflow"
+
+**Recommended**: Run tests once per working day to ensure nothing broke.
 
 Workflows:
-- **`.github/workflows/test.yml`**: Runs tests on commits/PRs
-- **`.github/workflows/deploy.yml`**: Runs tests before deploying, then runs post-deployment tests
+- **`.github/workflows/test.yml`**: Manual trigger only (workflow_dispatch)
+- **`.github/workflows/deploy.yml`**: Deployment workflow (does not run tests)
 
 ## Test Coverage
 

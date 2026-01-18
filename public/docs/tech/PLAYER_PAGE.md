@@ -11,7 +11,7 @@ The Player page (`/player`) is a music player interface for subscribers to liste
 1. **Not Subscriber** (`not_subscriber`)
    - Cannot access player
    - Shows message: "this player is for subscribers only"
-   - Link to `/follow` to subscribe
+   - Link to `/connect` to connect
 
 2. **Free Subscriber** (`free_subscriber`)
    - Access to first 3 tracks only
@@ -175,7 +175,7 @@ if (subscriptionStatus === 'paid_subscriber') {
    - Should see subscription gate
 
 2. **Free Subscriber**
-   - Log in via `/follow`
+   - Log in via `/connect`
    - Visit `/player`
    - Should see first 3 tracks only
    - Locked tracks should show upgrade prompt

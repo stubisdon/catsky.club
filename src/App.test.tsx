@@ -65,7 +65,7 @@ describe('App', () => {
     await user.click(connectLink)
 
     await waitFor(() => {
-      expect(mockPushState).toHaveBeenCalledWith({}, '', '/follow')
+      expect(mockPushState).toHaveBeenCalledWith({}, '', '/connect')
       expect(mockDispatchEvent).toHaveBeenCalled()
     })
   })

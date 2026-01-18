@@ -117,12 +117,17 @@ test.describe('Player Page - Access Control', () => {
     // Should NOT see locked tracks section
     await expect(page.getByText(/upgrade to paid/i)).not.toBeVisible()
     
-    // Should see voting buttons on tracks
-    const voteButtons = page.locator('button').filter({ hasText: /↑|↓/ })
-    await expect(voteButtons.first()).toBeVisible()
+    // Wait for tracks to load
+    await page.waitForSelector('text=Vision', { state: 'visible' })
+    
+    // Should see voting buttons on tracks (they're inside the track container)
+    const firstTrack = page.locator('text=Vision').locator('..').locator('..')
+    const voteButtons = firstTrack.locator('button').filter({ hasText: /↑|↓/ })
+    await expect(voteButtons.first()).toBeVisible({ timeout: 5000 })
     
     // Should see feedback buttons
-    await expect(page.getByRole('button', { name: /feedback/i })).toBeVisible()
+    const feedbackButton = firstTrack.getByRole('button', { name: /feedback/i })
+    await expect(feedbackButton).toBeVisible({ timeout: 5000 })
   })
 
   test('subscription check error shows guest access', async ({ page }) => {
@@ -173,20 +178,28 @@ test.describe('Player Page - Track Selection', () => {
   test('clicking track selects it and shows player', async ({ page }) => {
     await page.goto('/player')
     await page.waitForLoadState('networkidle')
+    
+    // Wait for tracks to be visible
+    await page.waitForSelector('text=Vision', { state: 'visible' })
 
-    // Click on first track
-    await page.getByText('Vision').click()
+    // Click on first track (click on the track container, not just the text)
+    const visionTrack = page.locator('text=Vision').locator('..').locator('..').first()
+    await visionTrack.click()
     
-    // Track should be highlighted/selected
-    const visionTrack = page.locator('text=Vision').locator('..')
-    await expect(visionTrack).toHaveCSS('font-weight', /bold|700/)
+    // Wait a bit for the selection to take effect
+    await page.waitForTimeout(500)
     
-    // Player section should show track title
-    await expect(page.locator('text=Vision').filter({ hasText: /^Vision$/ })).toBeVisible()
+    // Track should be highlighted/selected (check the title has bold font-weight)
+    const trackTitle = visionTrack.locator('text=Vision').first()
+    await expect(trackTitle).toHaveCSS('font-weight', /bold|700/, { timeout: 2000 })
+    
+    // Player section should show track title (look for it in the player section specifically)
+    const playerSection = page.locator('[style*="border: 1px solid"]').filter({ hasText: 'Vision' }).first()
+    await expect(playerSection).toBeVisible({ timeout: 5000 })
     
     // SoundCloud iframe should be present
     const iframe = page.locator('iframe[src*="soundcloud"]')
-    await expect(iframe).toBeVisible()
+    await expect(iframe).toBeVisible({ timeout: 5000 })
   })
 
   test('clicking locked track does nothing (free subscriber)', async ({ page }) => {
@@ -400,13 +413,22 @@ test.describe('Player Page - Voting and Feedback', () => {
   test('clicking vote button toggles vote state', async ({ page }) => {
     await page.goto('/player')
     await page.waitForLoadState('networkidle')
+    
+    // Wait for tracks to load
+    await page.waitForSelector('text=Vision', { state: 'visible' })
 
-    // Find first track's upvote button
-    const firstTrack = page.locator('text=Vision').locator('..')
-    const upvoteButton = firstTrack.locator('button').filter({ hasText: '↑' })
+    // Find first track's upvote button (need to go up to the track container)
+    const firstTrack = page.locator('text=Vision').locator('..').locator('..').first()
+    const upvoteButton = firstTrack.locator('button').filter({ hasText: '↑' }).first()
+    
+    // Wait for button to be visible
+    await expect(upvoteButton).toBeVisible({ timeout: 5000 })
     
     // Click upvote
     await upvoteButton.click()
+    
+    // Wait a bit for state to update
+    await page.waitForTimeout(300)
     
     // Button should be highlighted (check color or style)
     const buttonColor = await upvoteButton.evaluate((el) => {
@@ -416,32 +438,41 @@ test.describe('Player Page - Voting and Feedback', () => {
     
     // Click again to toggle off
     await upvoteButton.click()
+    await page.waitForTimeout(300)
   })
 
   test('feedback form opens and closes', async ({ page }) => {
     await page.goto('/player')
     await page.waitForLoadState('networkidle')
+    
+    // Wait for tracks to load
+    await page.waitForSelector('text=Vision', { state: 'visible' })
 
-    // Find feedback button for first track
-    const firstTrack = page.locator('text=Vision').locator('..')
-    const feedbackButton = firstTrack.getByRole('button', { name: /feedback/i })
+    // Find feedback button for first track (need to go up to the track container)
+    const firstTrack = page.locator('text=Vision').locator('..').locator('..').first()
+    const feedbackButton = firstTrack.getByRole('button', { name: /feedback/i }).first()
+    
+    // Wait for button to be visible
+    await expect(feedbackButton).toBeVisible({ timeout: 5000 })
     
     // Click to open feedback form
     await feedbackButton.click()
+    await page.waitForTimeout(300)
     
     // Textarea should be visible
     const textarea = page.locator('textarea[placeholder*="share your thoughts"]')
-    await expect(textarea).toBeVisible()
+    await expect(textarea).toBeVisible({ timeout: 5000 })
     
     // Submit button should be visible
     const submitButton = page.getByRole('button', { name: /submit/i })
-    await expect(submitButton).toBeVisible()
+    await expect(submitButton).toBeVisible({ timeout: 5000 })
     
     // Click feedback button again to close
     await feedbackButton.click()
+    await page.waitForTimeout(300)
     
     // Form should be hidden
-    await expect(textarea).not.toBeVisible()
+    await expect(textarea).not.toBeVisible({ timeout: 2000 })
   })
 
   test('feedback form not visible for free subscribers', async ({ page }) => {

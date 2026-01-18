@@ -77,7 +77,7 @@ npm start
 │   ├── Player.tsx       # Music player page for subscribers (/player)
 │   ├── Listen.tsx        # Public music page (/listen)
 │   ├── Watch.tsx         # Video page (/watch)
-│   ├── Follow.tsx        # Free subscription page (/follow)
+│   ├── Connect.tsx        # Free subscription page (/connect)
 │   ├── Join.tsx          # Paid subscription page (/join)
 │   ├── Mission.tsx       # Mission page (/mission)
 │   ├── main.tsx         # React entry point with routing
@@ -100,7 +100,7 @@ npm start
 - `/player` - Music player for subscribers (Player.tsx)
 - `/listen` - Public music links (Listen.tsx)
 - `/watch` - Video content (Watch.tsx)
-- `/follow` - Free subscription signup (Follow.tsx)
+- `/connect` - Free subscription signup (Connect.tsx)
 - `/join` - Paid subscription signup (Join.tsx)
 - `/mission` - Mission statement (Mission.tsx)
 

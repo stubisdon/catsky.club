@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import Watch from './Watch.tsx'
 import Mission from './Mission.tsx'
-import Follow from './Follow.tsx'
+import Connect from './Connect.tsx'
 import Join from './Join.tsx'
 import Listen from './Listen.tsx'
 import Player from './Player.tsx'
@@ -11,7 +11,7 @@ import './index.css'
 
 // Simple routing based on pathname
 function Router() {
-  const [view, setView] = React.useState<'home' | 'watch' | 'mission' | 'follow' | 'join' | 'listen' | 'player'>(() => {
+  const [view, setView] = React.useState<'home' | 'watch' | 'mission' | 'connect' | 'join' | 'listen' | 'player'>(() => {
     // Check pathname
     const pathname = window.location.pathname
     if (pathname === '/watch') {
@@ -20,8 +20,8 @@ function Router() {
     if (pathname === '/mission') {
       return 'mission'
     }
-    if (pathname === '/follow') {
-      return 'follow'
+    if (pathname === '/connect') {
+      return 'connect'
     }
     if (pathname === '/join') {
       return 'join'
@@ -43,8 +43,8 @@ function Router() {
         setView('watch')
       } else if (pathname === '/mission') {
         setView('mission')
-      } else if (pathname === '/follow') {
-        setView('follow')
+      } else if (pathname === '/connect') {
+        setView('connect')
       } else if (pathname === '/join') {
         setView('join')
       } else if (pathname === '/listen') {
@@ -65,7 +65,7 @@ function Router() {
 
   if (view === 'watch') return <Watch />
   if (view === 'mission') return <Mission />
-  if (view === 'follow') return <Follow />
+  if (view === 'connect') return <Connect />
   if (view === 'join') return <Join />
   if (view === 'listen') return <Listen />
   if (view === 'player') return <Player />

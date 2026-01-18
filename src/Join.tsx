@@ -111,10 +111,10 @@ export default function Join() {
               one more step: sign up for letters (free). then you can decide if close is for you.
             </p>
             <a
-              href="/follow"
+              href="/connect"
               onClick={(e) => {
                 e.preventDefault()
-                navigateTo('/follow')
+                navigateTo('/connect')
               }}
               style={{
                 color: 'var(--color-text)',
@@ -129,7 +129,7 @@ export default function Join() {
                 textTransform: 'lowercase',
               }}
             >
-              follow →
+              connect →
             </a>
           </div>
         ) : (

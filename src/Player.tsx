@@ -456,7 +456,7 @@ export default function Player() {
                       : 'subscribe to access more tracks'}
                   </p>
                   <button
-                    onClick={subscriptionStatus === 'free_subscriber' ? openPortalPaid : () => navigateTo('/follow')}
+                    onClick={subscriptionStatus === 'free_subscriber' ? openPortalPaid : () => navigateTo('/connect')}
                     style={{
                       background: 'transparent',
                       border: '1px solid var(--color-text)',

@@ -89,8 +89,8 @@ else
     ((TESTS_FAILED++))
 fi
 
-# Test 5: Follow page loads
-if test_endpoint "$TEST_URL/follow" "Follow page"; then
+# Test 5: Connect page loads
+if test_endpoint "$TEST_URL/connect" "Connect page"; then
     ((TESTS_PASSED++))
 else
     ((TESTS_FAILED++))

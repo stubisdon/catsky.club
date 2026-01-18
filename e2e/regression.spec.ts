@@ -12,7 +12,7 @@ test.describe('Regression Tests', () => {
     const navPaths = [
       { link: 'listen', path: '/listen' },
       { link: 'watch', path: '/watch' },
-      { link: 'connect', path: '/follow' },
+      { link: 'connect', path: '/connect' },
     ]
     
     for (const { link, path } of navPaths) {

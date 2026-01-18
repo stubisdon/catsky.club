@@ -27,8 +27,39 @@ async function checkGhostMember(): Promise<boolean> {
   return false
 }
 
-async function waitForPortal(maxWait = 5000): Promise<boolean> {
+async function waitForPortal(maxWait = 10000): Promise<boolean> {
   const start = Date.now()
+  
+  // First, wait for the script to load
+  const scriptLoaded = await new Promise<boolean>((resolve) => {
+    const checkScript = () => {
+      const scripts = Array.from(document.querySelectorAll('script[src*="portal"]'))
+      if (scripts.length > 0) {
+        const script = scripts[0] as HTMLScriptElement
+        if (script.complete || script.readyState === 'complete' || script.readyState === 'loaded') {
+          resolve(true)
+          return
+        }
+      }
+      // Check if script is in DOM (might still be loading)
+      if (scripts.length > 0) {
+        resolve(true)
+        return
+      }
+      setTimeout(checkScript, 100)
+    }
+    checkScript()
+    
+    // Timeout after 3 seconds
+    setTimeout(() => resolve(true), 3000)
+  })
+  
+  if (!scriptLoaded) {
+    console.log('Portal script not found in DOM')
+    return false
+  }
+  
+  // Now wait for Portal API to be available
   while (Date.now() - start < maxWait) {
     // Check multiple possible Portal API formats
     const portal: any = (window as any).Portal
@@ -44,14 +75,20 @@ async function waitForPortal(maxWait = 5000): Promise<boolean> {
       return true
     }
     
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Also check for Portal.init or Portal.ready
+    if (portal && typeof portal.init === 'function') {
+      return true
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 200))
   }
   
   // Debug: log what's actually available
   console.log('Portal check failed. Available:', {
     Portal: (window as any).Portal,
     portal: (window as any).portal,
-    windowKeys: Object.keys(window).filter(k => k.toLowerCase().includes('portal'))
+    windowKeys: Object.keys(window).filter(k => k.toLowerCase().includes('portal')),
+    scripts: Array.from(document.querySelectorAll('script[src*="portal"]')).map(s => (s as HTMLScriptElement).src)
   })
   
   return false
@@ -91,7 +128,7 @@ function openPortalSignup(): boolean {
   return false
 }
 
-export default function Follow() {
+export default function Connect() {
   const [memberState, setMemberState] = useState<MemberCheckState>('unknown')
   const [portalOpened, setPortalOpened] = useState(false)
   const [portalMissing, setPortalMissing] = useState(false)
@@ -110,50 +147,57 @@ export default function Follow() {
     refreshMemberState()
   }, [refreshMemberState])
 
-  const handleFollow = useCallback(async () => {
-    setPortalMissing(false)
-    setChecking(true)
-    
-    // Wait for Portal to load (it might still be loading)
-    const portalReady = await waitForPortal(3000)
-    if (!portalReady) {
-      setChecking(false)
-      setPortalMissing(true)
-      return
-    }
-    
-    const opened = openPortalSignup()
-    setPortalOpened(opened)
-    setChecking(false)
-    if (!opened) {
-      setPortalMissing(true)
-      return
-    }
-
-    // Poll briefly to detect successful signup/login in Ghost session.
-    setChecking(true)
-    const startedAt = Date.now()
-    const poll = async () => {
-      try {
-        const isMember = await checkGhostMember()
-        setMemberState(isMember ? 'member' : 'not_member')
-        if (isMember) {
+  // Automatically open Portal when component mounts (for non-members)
+  useEffect(() => {
+    if (memberState === 'not_member') {
+      const openPortal = async () => {
+        setChecking(true)
+        setPortalMissing(false)
+        
+        // Wait longer for Portal to load (script has defer attribute)
+        const portalReady = await waitForPortal(10000)
+        
+        if (portalReady) {
+          const opened = openPortalSignup()
+          setPortalOpened(opened)
           setChecking(false)
-          return
-        }
-      } catch {
-        setMemberState('not_member')
-      }
+          
+          if (!opened) {
+            setPortalMissing(true)
+          } else {
+            // Poll to detect successful signup/login
+            const startedAt = Date.now()
+            const poll = async () => {
+              try {
+                const isMember = await checkGhostMember()
+                setMemberState(isMember ? 'member' : 'not_member')
+                if (isMember) {
+                  setChecking(false)
+                  return
+                }
+              } catch {
+                setMemberState('not_member')
+              }
 
-      const now = Date.now()
-      if (now - startedAt > 20000) {
-        setChecking(false)
-        return
+              const now = Date.now()
+              if (now - startedAt > 20000) {
+                setChecking(false)
+                return
+              }
+              setTimeout(poll, 1200)
+            }
+            setTimeout(poll, 1200)
+          }
+        } else {
+          setChecking(false)
+          setPortalMissing(true)
+        }
       }
-      setTimeout(poll, 1200)
+      // Longer delay to ensure Portal script has loaded (it has defer attribute)
+      const timer = setTimeout(openPortal, 1000)
+      return () => clearTimeout(timer)
     }
-    setTimeout(poll, 1200)
-  }, [])
+  }, [memberState])
 
   const nextLink = useMemo(() => {
     const activated = isActivated()
@@ -181,21 +225,27 @@ export default function Follow() {
             textTransform: 'lowercase',
           }}
         >
-          follow
+          connect
         </h1>
 
-        <div style={{ opacity: 0.9, marginBottom: '2rem' }}>
-          <p style={{ marginBottom: '1rem' }}>
-            if you want, you can follow quietly. no pressure.
+        <div style={{ opacity: 0.9, marginBottom: '2rem', lineHeight: 1.6 }}>
+          <p style={{ marginBottom: '0.3rem' }}>
+            get closer if you like
+          </p>
+          <p style={{ marginBottom: '0.3rem' }}>
+            be involved if it feels right
+          </p>
+          <p style={{ marginBottom: '0.3rem' }}>
+            this is just a welcome
           </p>
           <p style={{ marginBottom: 0 }}>
-            this is the free tier, just a way to stay connected.
+            nothing is required
           </p>
         </div>
 
         {memberState === 'member' ? (
           <div style={{ marginBottom: '2rem' }}>
-            <div style={{ marginBottom: '1rem', opacity: 0.95 }}>you’re in.</div>
+            <div style={{ marginBottom: '1rem', opacity: 0.95 }}>you're in.</div>
             <a
               href={nextLink.href}
               onClick={(e) => {
@@ -220,48 +270,20 @@ export default function Follow() {
           </div>
         ) : (
           <div style={{ marginBottom: '2rem' }}>
-            <button
-              type="button"
-              onClick={handleFollow}
-              style={{
-                background: 'transparent',
-                border: '2px solid var(--color-text)',
-                color: 'var(--color-text)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-                padding: '0.9rem 1.5rem',
-                cursor: 'pointer',
-                letterSpacing: '0.1em',
-                transition: 'all 0.3s ease',
-                textTransform: 'lowercase',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--color-text)'
-                e.currentTarget.style.color = 'var(--color-bg)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = 'var(--color-text)'
-              }}
-            >
-              follow (free)
-            </button>
-
             {checking && (
               <div style={{ marginTop: '1rem', opacity: 0.7 }}>
-                waiting for confirmation…
-              </div>
-            )}
-
-            {portalOpened && !checking && (
-              <div style={{ marginTop: '1rem', opacity: 0.7 }}>
-                if you finished signup, refresh this page or click follow again.
+                loading…
               </div>
             )}
 
             {portalMissing && (
               <div style={{ marginTop: '1rem', opacity: 0.7, fontSize: '0.9rem' }}>
-                portal is not available. check browser console for details. make sure Ghost Portal is enabled in Ghost admin and the script is loading.
+                <p style={{ marginBottom: '0.5rem' }}>
+                  portal is not available in development.
+                </p>
+                <p style={{ marginBottom: 0, fontSize: '0.85rem' }}>
+                  in production, this will show the Ghost Portal signup form. for local dev, set VITE_GHOST_URL and VITE_GHOST_CONTENT_API_KEY environment variables.
+                </p>
               </div>
             )}
           </div>
@@ -296,4 +318,3 @@ export default function Follow() {
     </div>
   )
 }
-

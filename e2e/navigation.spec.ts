@@ -39,14 +39,14 @@ test.describe('Navigation', () => {
     await expect(page).toHaveURL(/.*\/watch/)
   })
 
-  test('navigates to follow page', async ({ page }) => {
+  test('navigates to connect page', async ({ page }) => {
     await page.goto('/')
     
-    // Click connect link (which navigates to /follow)
+    // Click connect link (which navigates to /connect)
     await page.getByRole('link', { name: 'connect' }).click()
     
     // Wait for navigation
-    await expect(page).toHaveURL(/.*\/follow/)
+    await expect(page).toHaveURL(/.*\/connect/)
   })
 
   test('direct navigation to /listen works', async ({ page }) => {
@@ -62,10 +62,10 @@ test.describe('Navigation', () => {
     await expect(page).toHaveURL(/.*\/watch/)
   })
 
-  test('direct navigation to /follow works', async ({ page }) => {
-    await page.goto('/follow')
+  test('direct navigation to /connect works', async ({ page }) => {
+    await page.goto('/connect')
     
-    await expect(page).toHaveURL(/.*\/follow/)
+    await expect(page).toHaveURL(/.*\/connect/)
   })
 
   test('back button navigation works', async ({ page }) => {

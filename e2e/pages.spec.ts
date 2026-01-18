@@ -56,8 +56,8 @@ test.describe('Page Load Tests', () => {
     })
   })
 
-  test('follow page loads correctly', async ({ page }) => {
-    await page.goto('/follow')
+  test('connect page loads correctly', async ({ page }) => {
+    await page.goto('/connect')
     
     // Page should load without errors
     await page.waitForLoadState('networkidle')

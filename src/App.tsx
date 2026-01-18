@@ -20,7 +20,7 @@ export default function App() {
 
   const handleConnectClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
-    navigateTo('/follow')
+    navigateTo('/connect')
   }, [])
 
   return (
@@ -123,7 +123,7 @@ export default function App() {
           </a>
 
           <a
-            href="/follow"
+            href="/connect"
             onClick={handleConnectClick}
             style={{
               color: 'var(--color-text)',

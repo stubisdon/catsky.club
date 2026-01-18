@@ -20,8 +20,8 @@ vi.mock('./Mission', () => ({
   default: () => <div>Mission Component</div>,
 }))
 
-vi.mock('./Follow', () => ({
-  default: () => <div>Follow Component</div>,
+vi.mock('./Connect', () => ({
+  default: () => <div>Connect Component</div>,
 }))
 
 vi.mock('./Join', () => ({
@@ -64,9 +64,9 @@ describe('Router', () => {
     expect(window.location.pathname).toBe('/watch')
   })
 
-  it('handles /follow route', () => {
-    window.location.pathname = '/follow'
-    expect(window.location.pathname).toBe('/follow')
+  it('handles /connect route', () => {
+    window.location.pathname = '/connect'
+    expect(window.location.pathname).toBe('/connect')
   })
 
   it('handles /join route', () => {

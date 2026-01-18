@@ -708,7 +708,7 @@ Music player page for subscribers to listen to latest track versions. Implements
 
 #### Not Subscriber
 - **Visual**: Message "this player is for subscribers only" + "listen to the latest versions of tracks in progress"
-- **Action**: "subscribe →" link to `/follow`
+- **Action**: "connect →" link to `/connect`
 - **Behavior**: Cannot access any tracks
 
 #### Free Subscriber
