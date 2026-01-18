@@ -38,6 +38,7 @@ logs/
 .env*.local
 .env
 .env.production
+.env.server
 
 # vercel
 .vercel

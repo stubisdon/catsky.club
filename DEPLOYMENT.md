@@ -149,21 +149,25 @@ sudo lsof -i :3001
 
 ### Ghost integration (recommended)
 
-To store signups in Ghost Members via the Ghost Admin API:
+To store signups in Ghost Members via the Ghost Admin API, set these on the **server** (recommended via a server-only `.env.server` file):
 
 ```bash
-export GHOST_URL="https://catsky.club"
-export GHOST_ADMIN_API_KEY="YOUR_ADMIN_API_KEY_ID:YOUR_ADMIN_API_KEY_SECRET"
-export GHOST_ADMIN_API_VERSION="v5.0"
+cd /opt/catsky-club
+nano .env.server
+```
+
+Example `.env.server`:
+
+```bash
+GHOST_URL="https://catsky.club"
+GHOST_ADMIN_API_KEY="YOUR_ADMIN_API_KEY_ID:YOUR_ADMIN_API_KEY_SECRET"
+GHOST_ADMIN_API_VERSION="v5.0"
+SIGNUPS_API_TOKEN="some-long-random-string"
 ```
 
 **Security note:** never paste your Admin API key into chat, commits, or issues. If it leaks, revoke it in Ghost and create a new one.
 
-To allow fetching recent signups from this app’s API (optional, protected):
-
-```bash
-export SIGNUPS_API_TOKEN="some-long-random-string"
-```
+Then re-run `./deploy.sh` (it will auto-load `.env.server`) or restart PM2.
 
 You can set a custom port:
 ```bash

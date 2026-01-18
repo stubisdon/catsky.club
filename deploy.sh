@@ -18,6 +18,21 @@ if [ -d ".git" ]; then
     git pull || echo "⚠️  Warning: git pull failed (this is okay if not using git)"
 fi
 
+# Load server-only environment variables (not committed to git)
+# Create /opt/catsky-club/.env.server on the server with lines like:
+# GHOST_URL="https://catsky.club"
+# GHOST_ADMIN_API_KEY="id:secret"
+# SIGNUPS_API_TOKEN="..."
+if [ -f ".env.server" ]; then
+    echo "🔐 Loading server environment from .env.server"
+    set -a
+    # shellcheck disable=SC1091
+    . ".env.server"
+    set +a
+else
+    echo "ℹ️  .env.server not found (ok if Ghost signups not enabled yet)"
+fi
+
 # Set Ghost Portal environment variables for build
 # These are required for the Ghost Portal embed in index.html
 export VITE_GHOST_URL="${VITE_GHOST_URL:-https://catsky.club}"
