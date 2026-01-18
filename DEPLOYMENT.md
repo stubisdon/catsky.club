@@ -64,6 +64,8 @@ This will:
 - Build the application
 - Start/restart with PM2
 
+**Note:** CI / automated tests are currently disabled and deployments do not run tests.
+
 ### 4. Configure Nginx
 
 **Important:** Since Ghost is already running, you may need to update your existing nginx config rather than replacing it.

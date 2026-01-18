@@ -24,14 +24,6 @@ vi.mock('./Connect', () => ({
   default: () => <div>Connect Component</div>,
 }))
 
-vi.mock('./Join', () => ({
-  default: () => <div>Join Component</div>,
-}))
-
-vi.mock('./Listen', () => ({
-  default: () => <div>Listen Component</div>,
-}))
-
 vi.mock('./Player', () => ({
   default: () => <div>Player Component</div>,
 }))
@@ -54,11 +46,6 @@ describe('Router', () => {
     expect(window.location.pathname).toBe('/')
   })
 
-  it('handles /listen route', () => {
-    window.location.pathname = '/listen'
-    expect(window.location.pathname).toBe('/listen')
-  })
-
   it('handles /watch route', () => {
     window.location.pathname = '/watch'
     expect(window.location.pathname).toBe('/watch')
@@ -69,13 +56,18 @@ describe('Router', () => {
     expect(window.location.pathname).toBe('/connect')
   })
 
-  it('handles /join route', () => {
-    window.location.pathname = '/join'
-    expect(window.location.pathname).toBe('/join')
-  })
-
   it('handles /player route', () => {
     window.location.pathname = '/player'
     expect(window.location.pathname).toBe('/player')
+  })
+
+  it('handles /listen route', () => {
+    window.location.pathname = '/listen'
+    expect(window.location.pathname).toBe('/listen')
+  })
+
+  it('handles /mission route', () => {
+    window.location.pathname = '/mission'
+    expect(window.location.pathname).toBe('/mission')
   })
 })

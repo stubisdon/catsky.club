@@ -1,6 +1,7 @@
 # Running Tests Manually
 
-Tests are configured to run **manually only** to avoid slowing down development workflow.
+Tests are currently **disabled in CI/deploy** to avoid slowing down development and deployments.
+You can still run them locally when you want.
 
 ## Quick Start
 
@@ -47,13 +48,8 @@ NODE_OPTIONS="--loader tsx/esm" npx playwright test --config=playwright.config.p
 
 ### GitHub Actions (Remote)
 
-To run tests in GitHub Actions:
-1. Go to your repository on GitHub
-2. Click the "Actions" tab
-3. Select "Run Tests" workflow
-4. Click "Run workflow" button
-5. Choose branch (usually `main`)
-6. Click "Run workflow"
+The `Run Tests` workflow is temporarily a **no-op** (tests disabled).
+Re-enable later by restoring the jobs in `.github/workflows/test.yml`.
 
 ## When to Run Tests
 

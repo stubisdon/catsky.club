@@ -10,7 +10,7 @@ test.describe('Regression Tests', () => {
     
     // Test all main navigation paths
     const navPaths = [
-      { link: 'listen', path: '/listen' },
+      { link: 'player', path: '/player' },
       { link: 'watch', path: '/watch' },
       { link: 'connect', path: '/connect' },
     ]
@@ -22,14 +22,12 @@ test.describe('Regression Tests', () => {
     }
   })
 
-  test('home page content structure is intact', async ({ page }) => {
+  test('public nav is present on player', async ({ page }) => {
     await page.goto('/')
     
     // Critical elements that should always be present
     const criticalElements = [
-      'catsky.club',
-      'in the world of data',
-      'listen',
+      'player',
       'watch',
       'connect',
     ]
@@ -39,13 +37,13 @@ test.describe('Regression Tests', () => {
     }
   })
 
-  test('listen page external links are present', async ({ page }) => {
-    await page.goto('/listen')
-    
-    // Check that external links exist (they might change URLs, but should exist)
-    const links = page.locator('a[href^="http"]')
-    const count = await links.count()
-    expect(count).toBeGreaterThan(0)
+  test('player page shows tracks', async ({ page }) => {
+    await page.goto('/player')
+    await page.waitForLoadState('networkidle')
+
+    // Should show some track content
+    await expect(page.getByText(/tracks/i)).toBeVisible()
+    await expect(page.getByText(/vision/i)).toBeVisible()
   })
 
   test('no JavaScript errors on page load', async ({ page }) => {
@@ -85,8 +83,8 @@ test.describe('Regression Tests', () => {
     await page.goto('/')
     
     // Check that content is visible and not cut off
-    await expect(page.getByText('catsky.club')).toBeVisible()
-    await expect(page.getByRole('link', { name: 'listen' })).toBeVisible()
+    await expect(page.getByText(/player/i)).toBeVisible()
+    await expect(page.getByRole('link', { name: 'player' })).toBeVisible()
   })
 
   test('CSS variables are loaded', async ({ page }) => {

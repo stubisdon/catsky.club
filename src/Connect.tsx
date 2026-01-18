@@ -202,7 +202,7 @@ export default function Connect() {
   const nextLink = useMemo(() => {
     const activated = isActivated()
     if (!activated) return { href: '/watch', label: 'complete the experience →' }
-    return { href: '/join', label: 'continue →' }
+    return { href: '/listen', label: 'continue →' }
   }, [memberState])
 
   return (
@@ -290,10 +290,10 @@ export default function Connect() {
         )}
 
         <a
-          href="/"
+          href="/listen"
           onClick={(e) => {
             e.preventDefault()
-            navigateTo('/')
+            navigateTo('/listen')
           }}
           style={{
             position: 'fixed',
@@ -312,7 +312,7 @@ export default function Connect() {
             e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
           }}
         >
-          ← home
+          ← listen
         </a>
       </div>
     </div>

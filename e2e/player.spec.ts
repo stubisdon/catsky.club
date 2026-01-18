@@ -549,7 +549,7 @@ test.describe('Player Page - Error Cases', () => {
 })
 
 test.describe('Player Page - UI Elements', () => {
-  test('home link is present and works', async ({ page }) => {
+  test('public nav is present and works', async ({ page }) => {
     await page.route('**/members/api/member/', (route) => {
       route.fulfill({
         status: 200,
@@ -561,13 +561,14 @@ test.describe('Player Page - UI Elements', () => {
     await page.goto('/player')
     await page.waitForLoadState('networkidle')
 
-    // Home link should be visible
-    const homeLink = page.getByRole('link', { name: /home/i })
-    await expect(homeLink).toBeVisible()
-    
+    // Nav links should be visible
+    await expect(page.getByRole('link', { name: 'player' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'connect' })).toBeVisible()
+
     // Clicking should navigate
-    await homeLink.click()
-    await expect(page).toHaveURL(/.*\/$/)
+    await page.getByRole('link', { name: 'watch' }).click()
+    await expect(page).toHaveURL(/.*\/watch/)
   })
 
   test('page is scrollable vertically', async ({ page }) => {
@@ -641,10 +642,9 @@ test.describe('Player Page - UI Elements', () => {
     await expect(page.getByText('Vision')).toBeVisible()
     await expect(page.getByText('Overpriced Airbnb')).toBeVisible()
     await expect(page.getByText('Nova')).toBeVisible()
-    
-    // Verify home link is accessible (should be at bottom, scrollable)
-    const homeLink = page.getByRole('link', { name: /home/i })
-    await expect(homeLink).toBeVisible()
+
+    // Verify nav is accessible (should be at top)
+    await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
   })
 
   test('upgrade button works for free subscribers', async ({ page }) => {

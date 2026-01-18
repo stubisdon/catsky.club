@@ -244,7 +244,7 @@ export default function Player() {
             textTransform: 'lowercase',
           }}
         >
-          player
+          listen
         </h1>
 
         <div style={{ opacity: 0.9, marginBottom: '2rem', fontSize: '0.9rem' }}>
@@ -588,10 +588,10 @@ export default function Player() {
         )}
 
         <a
-          href="/"
+          href="/watch"
           onClick={(e) => {
             e.preventDefault()
-            navigateTo('/')
+            navigateTo('/watch')
           }}
           style={{
             position: 'fixed',
@@ -610,7 +610,7 @@ export default function Player() {
             e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
           }}
         >
-          ← home
+          ← watch
         </a>
       </div>
     </div>
