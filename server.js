@@ -163,7 +163,6 @@ app.post('/api/submit', async (req, res) => {
           {
             name: safeName,
             email,
-            subscribed: true,
           },
         ],
       }),
@@ -191,12 +190,7 @@ app.post('/api/submit', async (req, res) => {
     }
 
     // Log Ghost response in production so you can debug via pm2 logs / server logs
-    console.error('[Ghost member create failed]', {
-      status: createRes.status,
-      statusText: createRes.statusText,
-      ghostUrl: GHOST_URL,
-      body: errPayload,
-    })
+    console.error('[Ghost member create failed]', createRes.status, createRes.statusText, JSON.stringify(errPayload))
 
     return res.status(createRes.status).json({
       error: 'Failed to create member in Ghost',
