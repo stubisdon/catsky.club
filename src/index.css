@@ -61,6 +61,43 @@ body {
   transition: background-color 1s ease-out;
 }
 
+/* Ensure Ghost Portal can overlay our full-screen app */
+#ghost-portal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  /* Important: Portal root exists even when closed. Don't block app clicks. */
+  pointer-events: none;
+}
+
+/* Allow interaction with the actual Portal UI when present */
+#ghost-portal-root * {
+  pointer-events: auto;
+}
+
+/* Styled Portal triggers (real DOM nodes Portal binds to) */
+.catsky-portal-trigger-btn {
+  background: transparent;
+  border: 2px solid var(--color-text);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  padding: 0.9rem 1.5rem;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: all 0.3s ease;
+  text-transform: lowercase;
+}
+
+.catsky-portal-trigger-btn:hover {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+.catsky-portal-trigger-btn-secondary {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
 /* Allow text selection on landing page */
 .app-container > div {
   user-select: text !important;

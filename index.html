@@ -124,6 +124,13 @@
     ></script>
   </head>
   <body>
+    <!-- Portal binds click handlers at load time to existing DOM nodes.
+         We keep these triggers outside React and move them into pages as needed. -->
+    <div id="ghost-portal-trigger-stash" style="display:none">
+      <button id="ghost-portal-trigger-signup" data-portal="signup" type="button"></button>
+      <button id="ghost-portal-trigger-signin" data-portal="signin" type="button"></button>
+      <button id="ghost-portal-trigger-account" data-portal="account" type="button"></button>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

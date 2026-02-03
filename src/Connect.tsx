@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import './index.css'
+import { clearLocalSessionFlags } from './utils/memberSession.ts'
 
 // Internal navigation helper - ensures all navigation stays within the app
 const navigateTo = (path: string) => {
@@ -8,62 +9,37 @@ const navigateTo = (path: string) => {
 }
 
 export default function Connect() {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const portalSlotRef = useRef<HTMLDivElement | null>(null)
 
-  const alreadySignedUp = useMemo(() => {
-    try {
-      return window.localStorage.getItem('catsky_signed_up') === '1'
-    } catch {
-      return false
-    }
+  const handleLogout = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    clearLocalSessionFlags()
   }, [])
 
-  const submit = useCallback(async () => {
-    const trimmedName = name.trim()
-    const trimmedEmail = email.trim()
+  useEffect(() => {
+    const stash = document.getElementById('ghost-portal-trigger-stash')
+    const signup = document.getElementById('ghost-portal-trigger-signup')
+    const signin = document.getElementById('ghost-portal-trigger-signin')
 
-    if (!trimmedName) {
-      setError('name is required')
-      return
+    if (!portalSlotRef.current || !stash || !signup || !signin) return
+
+    // Style + label the real Portal triggers (Portal already attached handlers).
+    signup.textContent = 'sign up →'
+    signin.textContent = 'log in →'
+    signup.classList.add('catsky-portal-trigger-btn')
+    signin.classList.add('catsky-portal-trigger-btn')
+    signin.classList.add('catsky-portal-trigger-btn-secondary')
+
+    // Move into this page.
+    portalSlotRef.current.appendChild(signup)
+    portalSlotRef.current.appendChild(signin)
+
+    return () => {
+      // Move back to stash so other pages can reuse.
+      if (signup.parentElement !== stash) stash.appendChild(signup)
+      if (signin.parentElement !== stash) stash.appendChild(signin)
     }
-    if (!trimmedEmail || !trimmedEmail.includes('@')) {
-      setError('valid email is required')
-      return
-    }
-
-    setSubmitting(true)
-    setError(null)
-
-    try {
-      const res = await fetch('/api/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmedName, contact: trimmedEmail, digDeeper: '' }),
-      })
-
-      if (!res.ok) {
-        const payload = await res.json().catch(() => null)
-        setError(payload?.error || 'unable to sign up right now')
-        setSubmitting(false)
-        return
-      }
-
-      try {
-        window.localStorage.setItem('catsky_signed_up', '1')
-      } catch {
-        // ignore
-      }
-      setSubmitted(true)
-      setSubmitting(false)
-    } catch (e) {
-      setError('unable to sign up right now')
-      setSubmitting(false)
-    }
-  }, [email, name])
+  }, [])
 
   return (
     <div className="app-container">
@@ -88,9 +64,34 @@ export default function Connect() {
           connect
         </h1>
 
-        {alreadySignedUp || submitted ? (
-          <div style={{ marginBottom: '2rem', opacity: 0.9 }}>
-            <div style={{ marginBottom: '1rem' }}>you’re in.</div>
+        <div style={{ marginBottom: '2rem', opacity: 0.9 }}>
+          <p style={{ marginBottom: '1.5rem' }}>
+            sign up / log in via ghost portal.
+          </p>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+            <div ref={portalSlotRef} style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }} />
+
+            <a
+              href="#"
+              data-members-signout
+              onClick={handleLogout}
+              style={{
+                color: 'rgba(255, 255, 255, 0.7)',
+                textDecoration: 'none',
+                fontSize: '0.95rem',
+                letterSpacing: '0.05em',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+                paddingBottom: '0.1rem',
+                cursor: 'pointer',
+                textTransform: 'lowercase',
+              }}
+            >
+              log out
+            </a>
+          </div>
+
+          <div style={{ marginTop: '1.5rem' }}>
             <a
               href="/listen"
               onClick={(e) => {
@@ -98,113 +99,20 @@ export default function Connect() {
                 navigateTo('/listen')
               }}
               style={{
-                color: 'var(--color-text)',
+                color: 'rgba(255, 255, 255, 0.6)',
                 textDecoration: 'none',
-                fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-                letterSpacing: '0.1em',
-                border: '2px solid var(--color-text)',
-                padding: '0.9rem 1.5rem',
-                display: 'inline-block',
-                transition: 'all 0.3s ease',
+                fontSize: '0.95rem',
+                letterSpacing: '0.05em',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+                paddingBottom: '0.1rem',
                 cursor: 'pointer',
                 textTransform: 'lowercase',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--color-text)'
-                e.currentTarget.style.color = 'var(--color-bg)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = 'var(--color-text)'
               }}
             >
               continue →
             </a>
           </div>
-        ) : (
-          <form
-            style={{ marginBottom: '2rem' }}
-            onSubmit={(e) => {
-              e.preventDefault()
-              submit()
-            }}
-          >
-            <div style={{ opacity: 0.85, marginBottom: '1.25rem' }}>
-              <div>name</div>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoComplete="name"
-                style={{
-                  width: '100%',
-                  marginTop: '0.4rem',
-                  background: 'rgba(0, 0, 0, 0.3)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  color: 'var(--color-text)',
-                  fontFamily: 'var(--font-mono)',
-                  padding: '0.6rem 0.7rem',
-                  fontSize: '1rem',
-                }}
-              />
-            </div>
-
-            <div style={{ opacity: 0.85, marginBottom: '1.25rem' }}>
-              <div>email</div>
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                inputMode="email"
-                type="email"
-                style={{
-                  width: '100%',
-                  marginTop: '0.4rem',
-                  background: 'rgba(0, 0, 0, 0.3)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  color: 'var(--color-text)',
-                  fontFamily: 'var(--font-mono)',
-                  padding: '0.6rem 0.7rem',
-                  fontSize: '1rem',
-                }}
-              />
-            </div>
-
-            {error && (
-              <div style={{ opacity: 0.75, marginBottom: '1rem', fontSize: '0.9rem' }}>
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              style={{
-                background: 'transparent',
-                border: '2px solid var(--color-text)',
-                color: 'var(--color-text)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-                padding: '0.9rem 1.5rem',
-                cursor: submitting ? 'not-allowed' : 'pointer',
-                letterSpacing: '0.1em',
-                transition: 'all 0.3s ease',
-                textTransform: 'lowercase',
-                opacity: submitting ? 0.6 : 1,
-              }}
-              onMouseEnter={(e) => {
-                if (submitting) return
-                e.currentTarget.style.background = 'var(--color-text)'
-                e.currentTarget.style.color = 'var(--color-bg)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.color = 'var(--color-text)'
-              }}
-            >
-              {submitting ? 'saving…' : 'sign up →'}
-            </button>
-          </form>
-        )}
+        </div>
 
         <a
           href="/"

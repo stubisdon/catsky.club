@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import './index.css'
+import { clearLocalSessionFlags, openPortalAccount, openPortalSignIn } from './utils/memberSession.ts'
 
 // Internal navigation helper - ensures all navigation stays within the app
 const navigateTo = (path: string) => {
@@ -23,9 +24,7 @@ async function checkGhostMember(): Promise<boolean> {
 }
 
 function openPortalPaid(): void {
-  // Ghost Portal uses hash navigation to open the account/subscription page
-  // This will trigger Portal to open if the script is loaded
-  window.location.hash = '#/portal/account'
+  openPortalAccount()
 }
 
 export default function Join() {
@@ -70,6 +69,54 @@ export default function Join() {
         >
           join close
         </h1>
+
+        <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', opacity: 0.8 }}>
+          <a
+            href="#/portal/signin"
+            data-portal="signin"
+            onClick={(e) => {
+              e.preventDefault()
+              openPortalSignIn()
+            }}
+            style={{
+              color: 'rgba(255, 255, 255, 0.7)',
+              textDecoration: 'none',
+              fontSize: '0.95rem',
+              letterSpacing: '0.05em',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+              paddingBottom: '0.1rem',
+              cursor: 'pointer',
+              textTransform: 'lowercase',
+            }}
+          >
+            log in
+          </a>
+
+          <a
+            href="#"
+            data-members-signout
+            onClick={(e) => {
+              e.preventDefault()
+              clearLocalSessionFlags()
+              // Refresh state after Portal processes signout
+              setTimeout(() => {
+                refresh()
+              }, 300)
+            }}
+            style={{
+              color: 'rgba(255, 255, 255, 0.7)',
+              textDecoration: 'none',
+              fontSize: '0.95rem',
+              letterSpacing: '0.05em',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+              paddingBottom: '0.1rem',
+              cursor: 'pointer',
+              textTransform: 'lowercase',
+            }}
+          >
+            log out
+          </a>
+        </div>
 
         {!activated ? (
           <div style={{ opacity: 0.9, marginBottom: '2rem' }}>

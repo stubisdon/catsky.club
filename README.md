@@ -129,6 +129,14 @@ The project includes:
 
 - `POST /api/submit` - Submit form data (configured in `server.js`)
 
+## Local dev: enabling `/connect` signup
+
+`/connect` posts to `POST /api/submit`, which is served by the Express API in `server.js` (port `3001`) and proxied by Vite (port `3000`).
+
+- Create a local secrets file (gitignored) named `.env.server` next to `server.js`.
+- Use `ENV_SERVER.example` as a template.
+- Restart the API server (`npm run server`).
+
 ## Troubleshooting
 
 ### Audio not playing?

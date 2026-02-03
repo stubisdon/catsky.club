@@ -5,6 +5,7 @@ import {
   getDirectAudioUrl, 
   getSoundCloudEmbedUrl
 } from './utils/audioHelpers'
+import { clearLocalSessionFlags, openPortalAccount, openPortalSignIn } from './utils/memberSession.ts'
 import { TRACKS } from './config/tracks'
 
 // Internal navigation helper
@@ -71,6 +72,7 @@ export default function Player() {
     subscriptionStatus === 'not_subscriber' && hasLocalSignup ? 'free_subscriber' : subscriptionStatus
 
   const isPaid = effectiveStatus === 'paid_subscriber'
+  const isGhostMember = subscriptionStatus === 'free_subscriber' || subscriptionStatus === 'paid_subscriber'
 
   // Access control:
   // - Non-registered users: first 1 track
@@ -250,6 +252,82 @@ export default function Player() {
         >
           listen
         </h1>
+
+        <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', opacity: 0.8 }}>
+          <a
+            href="#/portal/signin"
+            data-portal="signin"
+            onClick={(e) => {
+              e.preventDefault()
+              openPortalSignIn()
+            }}
+            style={{
+              color: 'rgba(255, 255, 255, 0.7)',
+              textDecoration: 'none',
+              fontSize: '0.95rem',
+              letterSpacing: '0.05em',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+              paddingBottom: '0.1rem',
+              cursor: 'pointer',
+              textTransform: 'lowercase',
+            }}
+          >
+            log in
+          </a>
+
+          {isGhostMember && (
+            <a
+              href="#/portal/account"
+              data-portal="account"
+              onClick={(e) => {
+                e.preventDefault()
+                openPortalAccount()
+              }}
+              style={{
+                color: 'rgba(255, 255, 255, 0.7)',
+                textDecoration: 'none',
+                fontSize: '0.95rem',
+                letterSpacing: '0.05em',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+                paddingBottom: '0.1rem',
+                cursor: 'pointer',
+                textTransform: 'lowercase',
+              }}
+            >
+              account
+            </a>
+          )}
+
+          <a
+            href="#"
+            data-members-signout
+            onClick={(e) => {
+              e.preventDefault()
+              // Clear our local gating first (so access drops immediately)
+              clearLocalSessionFlags()
+              setSubscriptionStatus('not_subscriber')
+              setCurrentTrackId(null)
+              setIsPlaying(false)
+
+              // Give Portal a moment to clear the member session, then re-check
+              setTimeout(() => {
+                refreshStatus()
+              }, 300)
+            }}
+            style={{
+              color: 'rgba(255, 255, 255, 0.7)',
+              textDecoration: 'none',
+              fontSize: '0.95rem',
+              letterSpacing: '0.05em',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+              paddingBottom: '0.1rem',
+              cursor: 'pointer',
+              textTransform: 'lowercase',
+            }}
+          >
+            log out
+          </a>
+        </div>
 
         {/* Track List */}
         <div style={{ marginBottom: '2rem' }}>
