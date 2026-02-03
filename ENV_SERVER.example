@@ -1,0 +1,13 @@
+## Local API server environment (Express `server.js`)
+#
+# Create a file named `.env.server` (gitignored) next to `server.js`
+# and paste the values there.
+#
+# Required for /api/submit (creates members in Ghost):
+GHOST_ADMIN_API_KEY=YOUR_ID:YOUR_HEX_SECRET
+#
+# Optional:
+# GHOST_URL=https://catsky.club
+# GHOST_ADMIN_API_VERSION=v5.0   (use v6.0 if your Ghost is 6.x)
+# SIGNUPS_API_TOKEN=dev-only-token
+

@@ -169,6 +169,14 @@ SIGNUPS_API_TOKEN="some-long-random-string"
 
 Then re-run `./deploy.sh` (it will auto-load `.env.server`) or restart PM2.
 
+**If you see "Failed to create member in Ghost" in production:**
+
+1. **Check server logs** – The app logs the real Ghost response. Run `pm2 logs catsky-club` (or your app name) and reproduce the error; you’ll see `[Ghost member create failed]` with `status`, `body`, and `ghostUrl`.
+2. **GHOST_URL** – Must be the full public URL Ghost is reachable at (e.g. `https://catsky.club`). If the Node app runs on the same host as Ghost, this still must be the public URL so the Admin API request goes through the same origin/SSL as Ghost.
+3. **GHOST_ADMIN_API_KEY** – From Ghost Admin → Settings → Integrations → “Admin API” key. Format is `id:hex_secret` (e.g. `abc123:deadbeef...`). If the key was recreated or is for another site, creation will fail (often 401/403).
+4. **Ghost 6.x** – If you’re on Ghost 6, try `GHOST_ADMIN_API_VERSION=v6.0` in `.env.server` (default is `v5.0`). Then restart the app.
+5. **Network** – The server must be able to reach `GHOST_URL` (e.g. `https://catsky.club`). If you see `ECONNREFUSED` or `fetch failed` in logs, fix DNS/firewall or use the correct `GHOST_URL`.
+
 You can set a custom port:
 ```bash
 export PORT=3001

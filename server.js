@@ -7,9 +7,42 @@ import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import crypto from 'crypto'
+import fs from 'fs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+function loadEnvFile(relativePath) {
+  try {
+    const fullPath = path.join(__dirname, relativePath)
+    if (!fs.existsSync(fullPath)) return
+    const raw = fs.readFileSync(fullPath, 'utf8')
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) continue
+      const eqIdx = trimmed.indexOf('=')
+      if (eqIdx <= 0) continue
+
+      const key = trimmed.slice(0, eqIdx).trim()
+      let value = trimmed.slice(eqIdx + 1).trim()
+      if (!key) continue
+      if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1)
+      if (value.startsWith("'") && value.endsWith("'")) value = value.slice(1, -1)
+
+      // Do not overwrite env vars already set by the process manager
+      if (process.env[key] === undefined) {
+        process.env[key] = value
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
+// Load local env for the API server (optional).
+// Preferred: .env.server (ignored by git). Fallback: .env
+loadEnvFile('.env.server')
+loadEnvFile('.env')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -114,7 +147,11 @@ app.post('/api/submit', async (req, res) => {
   }
 
   if (!GHOST_ADMIN_API_KEY) {
-    return res.status(500).json({ error: 'Ghost Admin API is not configured (missing GHOST_ADMIN_API_KEY)' })
+    return res.status(500).json({
+      error: 'Ghost Admin API is not configured (missing GHOST_ADMIN_API_KEY)',
+      hint:
+        "For local dev, set env var GHOST_ADMIN_API_KEY before `npm run server`, or create a `.env.server` file next to server.js with `GHOST_ADMIN_API_KEY=...` (it is gitignored).",
+    })
   }
 
   try {
@@ -153,11 +190,20 @@ app.post('/api/submit', async (req, res) => {
       })
     }
 
+    // Log Ghost response in production so you can debug via pm2 logs / server logs
+    console.error('[Ghost member create failed]', {
+      status: createRes.status,
+      statusText: createRes.statusText,
+      ghostUrl: GHOST_URL,
+      body: errPayload,
+    })
+
     return res.status(createRes.status).json({
       error: 'Failed to create member in Ghost',
       details: errPayload || { status: createRes.status, statusText: createRes.statusText },
     })
   } catch (e) {
+    console.error('[Ghost signup error]', e?.message || e, { ghostUrl: GHOST_URL })
     return res.status(500).json({ error: 'Ghost signup error', details: String(e?.message || e) })
   }
 })
