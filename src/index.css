@@ -23,10 +23,17 @@
   box-sizing: border-box;
 }
 
-html,
+html {
+  width: 100%;
+  min-width: 100vw;
+  height: 100%;
+}
+
 body {
   width: 100%;
+  min-width: 100vw;
   height: 100%;
+  margin: 0;
   overflow: hidden;
   background: var(--color-bg);
   color: var(--color-text);
@@ -42,23 +49,30 @@ body {
 }
 
 #root {
+  position: relative;
+  z-index: 0;
   width: 100%;
+  min-width: 100vw;
   height: 100%;
+  display: block;
 }
 
-/* App Container */
+/* App Container: always full viewport width so content can be centered up to 800px */
 .app-container {
   width: 100vw;
+  min-width: 100%;
   height: 100vh;
   position: fixed;
   top: 0;
   left: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-bg);
   overflow: hidden;
   transition: background-color 1s ease-out;
+  box-sizing: border-box;
 }
 
 /* Ensure Ghost Portal can overlay our full-screen app */
@@ -75,8 +89,79 @@ body {
   pointer-events: auto;
 }
 
-/* Styled Portal triggers (real DOM nodes Portal binds to) */
-.catsky-portal-trigger-btn {
+/* Connect page content: full width of container, capped at 800px, centered */
+.app-container > .connect-content {
+  flex: 0 0 100%;
+  width: 100%;
+  max-width: 800px;
+  padding: 2rem;
+  text-align: left;
+  letter-spacing: 0.05em;
+  line-height: 1.8;
+  box-sizing: border-box;
+}
+
+/* Connect page: Portal trigger links; styled as buttons */
+.connect-portal-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.connect-portal-buttons .connect-portal-btn {
+  display: inline-block;
+  background: transparent;
+  border: 2px solid var(--color-text);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  padding: 0.9rem 1.5rem;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: all 0.3s ease;
+  text-transform: lowercase;
+  text-decoration: none;
+}
+
+.connect-portal-buttons .connect-portal-btn:hover {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+/* Portal triggers: only on /connect, over the slot. Must sit above #root so buttons aren’t covered by text. */
+.ghost-portal-triggers {
+  display: none;
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: auto;
+  max-width: min(800px, calc(100vw - 4rem));
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 2rem;
+}
+
+/* On /connect: align content to top; use in-content portal links (overlay triggers stay hidden) */
+body.route-connect .app-container {
+  align-items: flex-start;
+}
+
+body.route-connect .app-container > .connect-content {
+  padding-top: 2rem;
+}
+
+body.route-connect #ghost-portal-triggers.ghost-portal-triggers {
+  display: none !important;
+}
+
+.ghost-portal-triggers button {
   background: transparent;
   border: 2px solid var(--color-text);
   color: var(--color-text);
@@ -89,12 +174,12 @@ body {
   text-transform: lowercase;
 }
 
-.catsky-portal-trigger-btn:hover {
+.ghost-portal-triggers button:hover {
   background: var(--color-text);
   color: var(--color-bg);
 }
 
-.catsky-portal-trigger-btn-secondary {
+.ghost-portal-triggers button[data-portal="signin"] {
   border-color: rgba(255, 255, 255, 0.3);
 }
 

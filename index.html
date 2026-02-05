@@ -5,6 +5,11 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Catsky Club</title>
+    <!-- Critical: black first paint so no white flash before CSS loads -->
+    <style>
+      html, body { background: #000; color: #fff; margin: 0; }
+      #ghost-portal-triggers { display: none !important; }
+    </style>
     <!-- Workaround for Portal bug with undefined firstpromoter_account - MUST load before Portal -->
     <script>
       // Comprehensive patch for Portal bug - patches fetch, XMLHttpRequest, and Response.json()
@@ -124,12 +129,11 @@
     ></script>
   </head>
   <body>
-    <!-- Portal binds click handlers at load time to existing DOM nodes.
-         We keep these triggers outside React and move them into pages as needed. -->
-    <div id="ghost-portal-trigger-stash" style="display:none">
-      <button id="ghost-portal-trigger-signup" data-portal="signup" type="button"></button>
-      <button id="ghost-portal-trigger-signin" data-portal="signin" type="button"></button>
-      <button id="ghost-portal-trigger-account" data-portal="account" type="button"></button>
+    <!-- Portal binds click handlers at load time. These stay in the DOM; we show them only on /connect. -->
+    <div id="ghost-portal-triggers" class="ghost-portal-triggers" aria-hidden="true">
+      <button id="ghost-portal-trigger-signup" data-portal="signup" type="button">sign up →</button>
+      <button id="ghost-portal-trigger-signin" data-portal="signin" type="button">log in →</button>
+      <button id="ghost-portal-trigger-account" data-portal="account" type="button">account</button>
     </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
