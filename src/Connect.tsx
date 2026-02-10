@@ -35,8 +35,14 @@ function handlePortalClick(e: React.MouseEvent<HTMLAnchorElement>) {
     try {
       const fallback = new URL(fallbackUrl)
       const current = new URL(window.location.href)
-      // Production (same origin as Ghost): never open a new tab
-      if (current.origin === fallback.origin) return
+      const sameOrigin = current.origin === fallback.origin
+      const sameSite =
+        current.hostname === fallback.hostname ||
+        current.hostname === 'www.' + fallback.hostname ||
+        fallback.hostname === 'www.' + current.hostname
+      const alreadyOnConnect = current.pathname.replace(/\/+$/, '') === '/connect'
+      // Same origin/site or already on /connect: never open a new tab
+      if (sameOrigin || (sameSite && alreadyOnConnect)) return
       const root = document.getElementById('ghost-portal-root')
       const hasPortal = root?.querySelector('[class*="popup"], [class*="modal"], iframe') != null
       if (hasPortal) return
@@ -45,7 +51,8 @@ function handlePortalClick(e: React.MouseEvent<HTMLAnchorElement>) {
     } catch {
       const current = new URL(window.location.href)
       const fallback = new URL(getPortalFallbackUrl(hash))
-      if (current.origin !== fallback.origin) window.open(getPortalFallbackUrl(hash), '_blank', 'noopener')
+      const same = current.origin === fallback.origin || current.hostname === fallback.hostname
+      if (!same) window.open(getPortalFallbackUrl(hash), '_blank', 'noopener')
     }
   }, PORTAL_FALLBACK_MS)
 }
