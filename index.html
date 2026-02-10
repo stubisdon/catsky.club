@@ -10,123 +10,173 @@
       html, body { background: #000; color: #fff; margin: 0; }
       #ghost-portal-triggers { display: none !important; }
     </style>
-    <!-- Workaround for Portal bug with undefined firstpromoter_account - MUST load before Portal -->
+    <!-- Workaround for Portal bugs (undefined firstpromoter_account, site.url) - MUST load before Portal -->
     <script>
-      // Comprehensive patch for Portal bug - patches fetch, XMLHttpRequest, and Response.json()
-      // This must run immediately, before Portal script loads
       (function() {
         'use strict';
-        
-        // Helper to fix firstpromoter_account in data
-        function fixFirstPromoter(data) {
-          if (data && data.settings) {
-            if (data.settings.firstpromoter_account === undefined || data.settings.firstpromoter_account === null) {
-              data.settings.firstpromoter_account = '';
+        var defaultUrl = (typeof window !== 'undefined' && window.location && window.location.origin)
+          ? window.location.origin
+          : 'https://catsky.club';
+
+        function ensureString(obj, key) {
+          if (obj && (obj[key] === undefined || obj[key] === null || typeof obj[key] !== 'string')) obj[key] = defaultUrl;
+        }
+
+        function ensureSiteHasUrl(obj) {
+          if (obj && typeof obj === 'object' && !Array.isArray(obj)) ensureString(obj, 'url');
+        }
+
+        function fixPortalSettings(data) {
+          if (!data) return data;
+          if (data.settings && typeof data.settings === 'object') {
+            var s = data.settings;
+            if (!Array.isArray(s)) {
+              if (s.firstpromoter_account === undefined || s.firstpromoter_account === null) s.firstpromoter_account = '';
+              ensureString(s, 'url');
+            } else {
+              for (var i = 0; i < s.length; i++) {
+                if (s[i] && s[i].key === 'url' && typeof s[i].value === 'string') return data;
+              }
+              s.push({ key: 'url', value: defaultUrl });
             }
           }
+          if (data.site && typeof data.site === 'object') ensureString(data.site, 'url');
           return data;
         }
-        
-        // Patch Response.prototype.json
-        const originalJson = Response.prototype.json;
+
+        function fixIfNeeded(v) {
+          if (v && typeof v === 'object' && (v.settings || v.site)) return fixPortalSettings(v);
+          if (v && typeof v === 'object' && !Array.isArray(v) && (v.title !== undefined || v.newsletters !== undefined || v.members_enabled !== undefined)) ensureSiteHasUrl(v);
+          return v;
+        }
+
+        function fixSiteInObject(v) {
+          if (!v || typeof v !== 'object') return v;
+          if (Array.isArray(v)) {
+            v.forEach(function(el, i) { v[i] = fixSiteInObject(fixIfNeeded(el)); });
+            return v;
+          }
+          ensureSiteHasUrl(v.site);
+          return fixIfNeeded(v);
+        }
+
+        var originalThen = Promise.prototype.then;
+        Promise.prototype.then = function(onFulfilled, onRejected) {
+          var wrapped = onFulfilled ? function(v) {
+            return onFulfilled(fixSiteInObject(v));
+          } : onFulfilled;
+          return originalThen.call(this, wrapped, onRejected);
+        };
+
+        var originalJson = Response.prototype.json;
         Response.prototype.json = function() {
-          const url = this.url || '';
-          if (url.includes('/ghost/api/content/settings/')) {
-            return originalJson.call(this).then(data => fixFirstPromoter(data));
-          }
-          return originalJson.call(this);
+          return originalJson.call(this).then(fixIfNeeded);
         };
-        
-        // Patch fetch
-        const originalFetch = window.fetch;
-        window.fetch = function(...args) {
-          const url = args[0];
-          const isSettingsApi = typeof url === 'string' && url.includes('/ghost/api/content/settings/');
-          
-          if (isSettingsApi) {
-            return originalFetch.apply(this, args).then(async response => {
-              if (!response.ok) return response;
-              
+
+        function isGhostApiUrl(url) {
+          var u = (url && (typeof url === 'string' ? url : url.url)) || '';
+          return u.indexOf('ghost') !== -1 || u.indexOf('members') !== -1;
+        }
+
+        var _portalFixLog = function(msg, detail) {
+          try { console.log('[Portal fix] ' + msg, detail !== undefined ? detail : ''); } catch (e) {}
+        };
+
+        function fixJsonResponse(response, reqUrl) {
+          var contentType = response.headers.get('Content-Type') || '';
+          if (contentType.indexOf('application/json') === -1) return Promise.resolve(response);
+          return response.clone().text().then(function(text) {
+            try {
+              if (!text || text.trim() === '') throw new Error('empty');
+              var data = fixIfNeeded(JSON.parse(text));
+              _portalFixLog('patched response: ' + (reqUrl || response.url || '').split('?')[0]);
+              var r = new Response(JSON.stringify(data), {
+                status: response.status,
+                statusText: response.statusText,
+                headers: { 'Content-Type': 'application/json' }
+              });
+              if (response.url) Object.defineProperty(r, 'url', { value: response.url, configurable: true });
+              return r;
+            } catch (e) {
+              return response;
+            }
+          });
+        }
+
+        var originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+          var reqUrl = (url && (typeof url === 'string' ? url : url.url)) || '';
+          if (isGhostApiUrl(reqUrl)) _portalFixLog('fetch: ' + reqUrl.split('?')[0]);
+          var args;
+          if (isGhostApiUrl(reqUrl)) {
+            var opts = (options && typeof options === 'object') ? Object.assign({}, options) : {};
+            opts.cache = 'no-store';
+            args = [url, opts];
+          } else {
+            args = arguments.length === 0 ? [] : arguments.length === 1 ? [url] : [url, options];
+          }
+          return originalFetch.apply(this, args).then(function(response) {
+            if (!response.ok && response.status !== 304) return response;
+            if (response.status === 304 && isGhostApiUrl(reqUrl)) {
+              return originalFetch.call(this, url, { cache: 'no-store' }).then(function(r) { return fixJsonResponse(r, reqUrl); });
+            }
+            return fixJsonResponse(response, reqUrl);
+          });
+        };
+
+        var originalXHROpen = XMLHttpRequest.prototype.open;
+        var originalXHRSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.open = function(method, url) {
+          this._portalUrl = url;
+          return originalXHROpen.apply(this, arguments);
+        };
+        XMLHttpRequest.prototype.send = function() {
+          var xhr = this;
+          var origOnReady = xhr.onreadystatechange;
+          xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4 && xhr.status === 200) {
               try {
-                const text = await response.clone().text();
-                const data = JSON.parse(text);
-                const fixedData = fixFirstPromoter(data);
-                
-                const fixedResponse = new Response(JSON.stringify(fixedData), {
-                  status: response.status,
-                  statusText: response.statusText,
-                  headers: {
-                    ...Object.fromEntries(response.headers.entries()),
-                    'Content-Type': 'application/json'
-                  }
-                });
-                
-                Object.defineProperty(fixedResponse, 'url', {
-                  value: response.url,
-                  writable: false,
-                  configurable: true
-                });
-                
-                return fixedResponse;
-              } catch (e) {
-                console.warn('[Portal workaround] Failed to patch response:', e);
-                return response;
-              }
-            });
-          }
-          
-          return originalFetch.apply(this, args);
-        };
-        
-        // Patch XMLHttpRequest (in case Portal uses it)
-        const originalXHROpen = XMLHttpRequest.prototype.open;
-        const originalXHRSend = XMLHttpRequest.prototype.send;
-        const originalXHRSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
-        
-        XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-          this._portalWorkaroundUrl = url;
-          return originalXHROpen.call(this, method, url, ...rest);
-        };
-        
-        XMLHttpRequest.prototype.send = function(...args) {
-          const xhr = this;
-          const url = xhr._portalWorkaroundUrl || '';
-          
-          if (url.includes('/ghost/api/content/settings/')) {
-            const originalOnReadyStateChange = xhr.onreadystatechange;
-            xhr.onreadystatechange = function() {
-              if (xhr.readyState === 4 && xhr.status === 200) {
-                try {
-                  const data = JSON.parse(xhr.responseText);
-                  const fixedData = fixFirstPromoter(data);
-                  Object.defineProperty(xhr, 'responseText', {
-                    value: JSON.stringify(fixedData),
-                    writable: false,
-                    configurable: true
-                  });
-                } catch (e) {
-                  // Ignore parse errors
+                var ct = xhr.getResponseHeader('Content-Type') || '';
+                if (ct.indexOf('json') !== -1) {
+                  var data = fixIfNeeded(JSON.parse(xhr.responseText));
+                  Object.defineProperty(xhr, 'responseText', { value: JSON.stringify(data), configurable: true });
                 }
-              }
-              if (originalOnReadyStateChange) {
-                originalOnReadyStateChange.apply(this, arguments);
-              }
-            };
-          }
-          
-          return originalXHRSend.apply(this, args);
+              } catch (e) {}
+            }
+            if (origOnReady) origOnReady.apply(this, arguments);
+          };
+          return originalXHRSend.apply(this, arguments);
         };
       })();
     </script>
-    <!-- Ghost Portal (Members + Paid subscriptions) -->
-    <!-- Required env vars (Vite): VITE_GHOST_URL, VITE_GHOST_CONTENT_API_KEY -->
-    <!-- Portal loads from CDN in Ghost 6.0+ -->
-    <script
-      src="https://cdn.jsdelivr.net/ghost/portal@latest/umd/portal.min.js"
-      data-ghost="%VITE_GHOST_URL%"
-      data-key="%VITE_GHOST_CONTENT_API_KEY%"
-      defer
-    ></script>
+    <!-- Ghost Portal: load dynamically so we can patch undefined site.url before it runs -->
+    <script id="ghost-portal-config" data-ghost="%VITE_GHOST_URL%" data-key="%VITE_GHOST_CONTENT_API_KEY%"></script>
+    <script>
+      (function() {
+        var config = document.getElementById('ghost-portal-config');
+        var ghostUrl = (config && config.getAttribute('data-ghost')) || 'https://catsky.club';
+        var apiKey = (config && config.getAttribute('data-key')) || '';
+        window.__GHOST_SITE__ = { url: ghostUrl.replace(/\/$/, ''), firstpromoter_account: '' };
+        var portalSrc = 'https://cdn.jsdelivr.net/npm/@tryghost/portal@latest/umd/portal.min.js';
+        fetch(portalSrc, { cache: 'no-store' }).then(function(r) { return r.text(); }).then(function(code) {
+          var safe = code.replace(/(\w+)\.url\.replace\(/g, function(_, v) {
+            return '((typeof ' + v + '!=="undefined"&&' + v + '&&' + v + '.url)?' + v + '.url:(window.__GHOST_SITE__&&window.__GHOST_SITE__.url)||"").replace(';
+          });
+          var s = document.createElement('script');
+          s.textContent = safe;
+          s.setAttribute('data-ghost', ghostUrl);
+          s.setAttribute('data-key', apiKey);
+          document.head.appendChild(s);
+        }).catch(function() {
+          var s = document.createElement('script');
+          s.src = portalSrc;
+          s.setAttribute('data-ghost', ghostUrl);
+          s.setAttribute('data-key', apiKey);
+          s.defer = true;
+          document.head.appendChild(s);
+        });
+      })();
+    </script>
   </head>
   <body>
     <!-- Portal binds click handlers at load time. These stay in the DOM; we show them only on /connect. -->

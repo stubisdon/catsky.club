@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import './index.css'
 import { clearLocalSessionFlags } from './utils/memberSession.ts'
 
@@ -33,13 +33,35 @@ function handlePortalClick(e: React.MouseEvent<HTMLAnchorElement>) {
   setTimeout(() => {
     const root = document.getElementById('ghost-portal-root')
     const hasPortal = root?.querySelector('[class*="popup"], [class*="modal"], iframe') != null
-    if (!hasPortal) {
-      window.open(getPortalFallbackUrl(hash), '_blank', 'noopener')
+    if (hasPortal) return
+    const fallbackUrl = getPortalFallbackUrl(hash)
+    try {
+      const fallback = new URL(fallbackUrl)
+      const current = new URL(window.location.href)
+      if (current.origin !== fallback.origin) {
+        if (current.hostname === 'localhost' || current.hostname === '127.0.0.1') return
+      } else if (current.pathname.replace(/\/+$/, '') === '/connect' && current.hash === fallback.hash) {
+        return
+      }
+      window.open(fallbackUrl, '_blank', 'noopener')
+    } catch {
+      window.open(fallbackUrl, '_blank', 'noopener')
     }
   }, PORTAL_FALLBACK_MS)
 }
 
+const PORTAL_HASH_REGEX = /^#\/portal\/(signup|signin|account)/
+
 export default function Connect() {
+  const [portalHashActive, setPortalHashActive] = useState(false)
+
+  useEffect(() => {
+    const check = () => setPortalHashActive(PORTAL_HASH_REGEX.test(window.location.hash))
+    check()
+    window.addEventListener('hashchange', check)
+    return () => window.removeEventListener('hashchange', check)
+  }, [])
+
   const handleLogout = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     clearLocalSessionFlags()
@@ -96,6 +118,23 @@ export default function Connect() {
             account
           </a>
         </div>
+
+        {portalHashActive && (
+          <p className="connect-portal-hint">
+            If the sign-up form didn’t appear, the membership script may need to be configured (Ghost URL and Content API key). Check the browser console for errors.
+            {typeof window !== 'undefined' && (() => {
+              const script = document.querySelector('script[data-ghost]')
+              const url = script?.getAttribute('data-ghost') || '(not found)'
+              const key = script?.getAttribute('data-key') ?? ''
+              const keyStatus = key ? `set (${key.length} chars)` : 'not set'
+              return (
+                <span className="connect-portal-debug" style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.8 }}>
+                  Portal config: URL = {url}, API key = {keyStatus}
+                </span>
+              )
+            })()}
+          </p>
+        )}
 
         <div style={{ marginBottom: '2rem', opacity: 0.9 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
