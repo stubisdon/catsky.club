@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Catsky Club</title>
     <!-- Critical: black first paint so no white flash before CSS loads -->
@@ -17,6 +17,11 @@
         var defaultUrl = (typeof window !== 'undefined' && window.location && window.location.origin)
           ? window.location.origin
           : 'https://catsky.club';
+        var defaultSupportEmail = 'support@catsky.club';
+        function ensureSupportAddress(obj) {
+          if (obj && typeof obj === 'object' && (!obj.members_support_address || typeof obj.members_support_address !== 'string' || !obj.members_support_address.trim()))
+            obj.members_support_address = defaultSupportEmail;
+        }
         function ensureString(obj, key) {
           if (obj && (obj[key] === undefined || obj[key] === null || typeof obj[key] !== 'string')) obj[key] = defaultUrl;
         }
@@ -39,7 +44,12 @@
               s.push({ key: 'url', value: defaultUrl });
             }
           }
-          if (data.site && typeof data.site === 'object') ensureString(data.site, 'url');
+          if (data.site && typeof data.site === 'object') {
+            ensureString(data.site, 'url');
+            ensureSupportAddress(data.site);
+          }
+          if (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings))
+            ensureSupportAddress(data.settings);
           return data;
         }
 
