@@ -33,7 +33,8 @@ else
     echo "ℹ️  .env.server not found (ok if Ghost signups not enabled yet)"
 fi
 
-# Set Ghost Portal environment variables for build
+# Set Ghost Portal environment variables for production build
+# (Dev uses .env.development when you run `npm run dev`.)
 # These are required for the Ghost Portal embed in index.html
 export VITE_GHOST_URL="${VITE_GHOST_URL:-https://catsky.club}"
 export VITE_GHOST_CONTENT_API_KEY="${VITE_GHOST_CONTENT_API_KEY:-f6dd5a28bd25bdc6e849457dd2}"

@@ -3,11 +3,17 @@
 # Create a file named `.env.server` (gitignored) next to `server.js`
 # and paste the values there.
 #
+# --- Server (server.js) ---
 # Required for /api/submit (creates members in Ghost):
 GHOST_ADMIN_API_KEY=YOUR_ID:YOUR_HEX_SECRET
 #
 # Optional:
+# PORT=3001
 # GHOST_URL=https://catsky.club
 # GHOST_ADMIN_API_VERSION=v5.0   (use v6.0 if your Ghost is 6.x)
 # SIGNUPS_API_TOKEN=dev-only-token
-
+#
+# --- Frontend build (deploy.sh uses these for `npm run build`) ---
+# Optional; deploy.sh has defaults if unset:
+# VITE_GHOST_URL=https://catsky.club
+# VITE_GHOST_CONTENT_API_KEY=your_content_api_key_here

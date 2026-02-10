@@ -129,6 +129,11 @@ The project includes:
 
 - `POST /api/submit` - Submit form data (configured in `server.js`)
 
+## Environment (dev vs prod)
+
+- **Dev:** `npm run dev` uses `.env.development` (committed). Override with `.env.development.local` (gitignored) for Ghost Content API key so Portal works locally.
+- **Prod:** `./deploy.sh` on the server sources `.env.server` and exports `VITE_GHOST_URL` and `VITE_GHOST_CONTENT_API_KEY` before building. See `.env.example` for variable names.
+
 ## Local dev: enabling `/connect` signup
 
 `/connect` posts to `POST /api/submit`, which is served by the Express API in `server.js` (port `3001`) and proxied by Vite (port `3000`).

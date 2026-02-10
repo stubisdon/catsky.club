@@ -31,21 +31,21 @@ function handlePortalClick(e: React.MouseEvent<HTMLAnchorElement>) {
   window.location.hash = hash
   window.dispatchEvent(new HashChangeEvent('hashchange'))
   setTimeout(() => {
-    const root = document.getElementById('ghost-portal-root')
-    const hasPortal = root?.querySelector('[class*="popup"], [class*="modal"], iframe') != null
-    if (hasPortal) return
     const fallbackUrl = getPortalFallbackUrl(hash)
     try {
       const fallback = new URL(fallbackUrl)
       const current = new URL(window.location.href)
-      if (current.origin !== fallback.origin) {
-        if (current.hostname === 'localhost' || current.hostname === '127.0.0.1') return
-      } else if (current.pathname.replace(/\/+$/, '') === '/connect' && current.hash === fallback.hash) {
-        return
-      }
+      // Production (same origin as Ghost): never open a new tab
+      if (current.origin === fallback.origin) return
+      const root = document.getElementById('ghost-portal-root')
+      const hasPortal = root?.querySelector('[class*="popup"], [class*="modal"], iframe') != null
+      if (hasPortal) return
+      // Other origin (e.g. localhost): open fallback only if Portal didn't show
       window.open(fallbackUrl, '_blank', 'noopener')
     } catch {
-      window.open(fallbackUrl, '_blank', 'noopener')
+      const current = new URL(window.location.href)
+      const fallback = new URL(getPortalFallbackUrl(hash))
+      if (current.origin !== fallback.origin) window.open(getPortalFallbackUrl(hash), '_blank', 'noopener')
     }
   }, PORTAL_FALLBACK_MS)
 }
@@ -130,6 +130,11 @@ export default function Connect() {
               return (
                 <span className="connect-portal-debug" style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.8 }}>
                   Portal config: URL = {url}, API key = {keyStatus}
+              {typeof window !== 'undefined' && window.location?.hostname !== 'catsky.club' && (
+                <span style={{ display: 'block', marginTop: '0.25rem' }}>
+                  Session is stored on the Ghost domain; use production (catsky.club) to see logged-in state.
+                </span>
+              )}
                 </span>
               )
             })()}

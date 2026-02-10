@@ -130,6 +130,13 @@ body {
   color: var(--color-bg);
 }
 
+.connect-portal-hint {
+  margin: -0.5rem 0 1.5rem;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  letter-spacing: 0.03em;
+}
+
 /* Portal triggers: only on /connect, over the slot. Must sit above #root so buttons aren’t covered by text. */
 .ghost-portal-triggers {
   display: none;

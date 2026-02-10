@@ -198,6 +198,8 @@ In **Ghost Admin** go to **Settings → Labs** and use the “Send test email”
 
 **Summary:** Fix the 500 by configuring `mail` in Ghost’s `config.production.json` on the prod server and restarting Ghost; there is no email setup screen in Ghost Admin.
 
+**If logs show `535 Authentication failed` / `EAUTH`:** The `mail` section exists but the SMTP **username or password is wrong** (or not allowed). Use an **app password** for Gmail; fix typos; or switch to a provider that allows SMTP (Mailgun, SendGrid, etc.).
+
 **Automated check from CI:** A script runs on the server and reports Ghost path, mail config, process status, and recent log errors. From the repo:
 
 - **Script:** `scripts/check-ghost.sh` (run on the server, or via CI).
