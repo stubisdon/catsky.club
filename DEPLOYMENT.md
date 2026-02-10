@@ -133,6 +133,78 @@ sudo lsof -i :3001
 - Make sure your nginx config still has all the Ghost location blocks
 - Check that Ghost is running: `ghost status`
 
+### Debugging Ghost (members, magic link, email)
+
+The **Portal** (sign up / log in) and **magic link** emails are handled by **Ghost**, not by this app. A 500 on `POST /members/api/send-magic-link/` means Ghost is failing when sending the login email.
+
+**1. Where Ghost lives and how it runs**
+
+SSH to your server, then:
+
+```bash
+# Common Ghost install path (adjust if you installed elsewhere)
+cd /var/www/ghost   # or wherever Ghost is (e.g. ghost install listed it)
+
+# See how Ghost is running
+ghost status
+```
+
+**2. Where email is configured (no UI in Admin)**
+
+Ghost does **not** expose SMTP in the Admin UI. Mail is set in the **Ghost install** config:
+
+- **File:** `config.production.json` in the Ghost root (e.g. `/var/www/ghost/config.production.json`).
+- **Section:** `mail` with `transport` and `options` (host, port, auth, etc.).
+
+Example (add or edit the `mail` block):
+
+```json
+"mail": {
+  "transport": "SMTP",
+  "options": {
+    "host": "smtp.example.com",
+    "port": 587,
+    "secure": false,
+    "auth": {
+      "user": "your-email@example.com",
+      "pass": "your-app-password"
+    }
+  }
+}
+```
+
+If `mail` is missing or wrong, magic links (and other transactional emails) will fail, often with 500.
+
+After editing: `ghost restart` (from the Ghost root).
+
+**3. See why send-magic-link returns 500**
+
+Reproduce the error (click “Sign in” and submit email), then on the server:
+
+```bash
+# Ghost logs (path may vary; check ghost status or your install)
+# Common locations:
+tail -100 /var/www/ghost/content/logs/*.log
+
+# If Ghost runs under PM2:
+pm2 logs ghost --lines 100
+```
+
+Look for the stack trace or error message at the time of the POST to `send-magic-link`.
+
+**4. Test email from Ghost**
+
+In **Ghost Admin** go to **Settings → Labs** and use the “Send test email” (or similar) button. If that fails, the same mail config is the cause.
+
+**Summary:** Fix the 500 by configuring `mail` in Ghost’s `config.production.json` on the prod server and restarting Ghost; there is no email setup screen in Ghost Admin.
+
+**Automated check from CI:** A script runs on the server and reports Ghost path, mail config, process status, and recent log errors. From the repo:
+
+- **Script:** `scripts/check-ghost.sh` (run on the server, or via CI).
+- **GitHub Actions:** workflow **“Ghost diagnostics”** (Actions tab → run manually). It SSHs to production, runs the script, and posts the report to the job summary. Uses the same secrets as deploy: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`.
+
+Optional: install `jq` on the server for a more detailed mail config report.
+
 ## File Structure on Server
 
 ```

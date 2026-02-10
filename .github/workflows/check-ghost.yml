@@ -1,0 +1,45 @@
+# Run Ghost diagnostics on the production server and post the report to the job summary.
+# Requires the same SSH secrets as deploy: PROD_HOST, PROD_USER, PROD_SSH_KEY.
+#
+# To run: Actions → "Ghost diagnostics" → "Run workflow".
+
+name: Ghost diagnostics
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check-ghost:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Ghost diagnostics on production server
+        env:
+          SSH_HOST: ${{ secrets.PROD_HOST }}
+          SSH_USER: ${{ secrets.PROD_USER }}
+          SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+        run: |
+          if [ -z "$SSH_HOST" ] || [ -z "$SSH_USER" ] || [ -z "$SSH_KEY" ]; then
+            echo "::error::Secrets PROD_HOST, PROD_USER, PROD_SSH_KEY must be set."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/ghost_check_key
+          chmod 600 ~/.ssh/ghost_check_key
+          ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 \
+            -i ~/.ssh/ghost_check_key \
+            "$SSH_USER@$SSH_HOST" 'bash -s' < scripts/check-ghost.sh > report.md || true
+          if [ ! -s report.md ]; then
+            echo "No report generated (SSH or script failed)." > report.md
+          fi
+
+      - name: Post report to job summary
+        run: |
+          echo "# Ghost diagnostics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat report.md >> $GITHUB_STEP_SUMMARY
