@@ -16,7 +16,19 @@ if [ -z "$GHOST_ROOT" ]; then
       break
     fi
   done
-  if [ -n "$GHOST_ROOT" ] && [ -d "$GHOST_ROOT/current" ]; then
+  # Broader search if not found (Ghost may be in e.g. /var/www/catsky.club, /home/ubuntu/ghost)
+  if [ -z "$GHOST_ROOT" ] && command -v find >/dev/null 2>&1; then
+    FOUND=""
+    for base in /var/www /opt /home; do
+      [ ! -d "$base" ] && continue
+      FOUND=$(find "$base" -maxdepth 5 -name "config.production.json" -type f 2>/dev/null | head -1)
+      [ -n "$FOUND" ] && break
+    done
+    if [ -n "$FOUND" ]; then
+      GHOST_ROOT="$(dirname "$FOUND")"
+    fi
+  fi
+  if [ -n "$GHOST_ROOT" ] && [ -d "$GHOST_ROOT/current" ] && [ -f "$GHOST_ROOT/current/config.production.json" ]; then
     GHOST_ROOT="$GHOST_ROOT/current"
   fi
 fi
@@ -30,7 +42,9 @@ report ""
 if [ -z "$GHOST_ROOT" ] || [ ! -d "$GHOST_ROOT" ]; then
   report "### Ghost install"
   report ""
-  report "❌ Could not find Ghost install (set \`GHOST_ROOT\` or use default paths: \`/var/www/ghost\`, \`/opt/ghost\`, \`\$HOME/ghost\`)."
+  report "❌ Could not find Ghost install. Searched: /var/www/ghost, /opt/ghost, \$HOME/ghost, and find /var/www /opt /home for config.production.json."
+  report ""
+  report "**Next step:** On the server, run: find / -name config.production.json 2>/dev/null . Then set GHOST_ROOT to that directory (or its parent if inside current/) and re-run, or add the path to the script."
   report ""
   exit 0
 fi
