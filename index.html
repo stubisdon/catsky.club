@@ -53,9 +53,28 @@
           return data;
         }
 
+        var productionOrigin = 'https://catsky.club';
+        function replaceProductionUrls(obj) {
+          if (obj === null || obj === undefined) return obj;
+          if (typeof obj === 'string') {
+            if (obj.indexOf(productionOrigin) === 0) return defaultUrl + obj.slice(productionOrigin.length);
+            return obj;
+          }
+          if (Array.isArray(obj)) {
+            for (var i = 0; i < obj.length; i++) obj[i] = replaceProductionUrls(obj[i]);
+            return obj;
+          }
+          if (typeof obj === 'object') {
+            for (var k in obj) if (Object.prototype.hasOwnProperty.call(obj, k)) obj[k] = replaceProductionUrls(obj[k]);
+            return obj;
+          }
+          return obj;
+        }
+
         function fixIfNeeded(v) {
-          if (v && typeof v === 'object' && (v.settings || v.site)) return fixPortalSettings(v);
+          if (v && typeof v === 'object' && (v.settings || v.site)) v = fixPortalSettings(v);
           if (v && typeof v === 'object' && !Array.isArray(v) && (v.title !== undefined || v.newsletters !== undefined || v.members_enabled !== undefined)) ensureSiteHasUrl(v);
+          if (v && typeof v === 'object') v = replaceProductionUrls(v);
           return v;
         }
 
@@ -163,7 +182,11 @@
     <script>
       (function() {
         var config = document.getElementById('ghost-portal-config');
-        var ghostUrl = (config && config.getAttribute('data-ghost')) || 'https://catsky.club';
+        var configuredGhost = (config && config.getAttribute('data-ghost')) || 'https://catsky.club';
+        // In dev (localhost), point Portal at current origin so requests go through Vite proxy → no CORS; proxy forwards to real Ghost
+        var ghostUrl = (typeof window !== 'undefined' && window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+          ? window.location.origin
+          : configuredGhost;
         var apiKey = (config && config.getAttribute('data-key')) || '';
         window.__GHOST_SITE__ = { url: ghostUrl.replace(/\/$/, ''), firstpromoter_account: '' };
         var portalSrc = 'https://cdn.jsdelivr.net/npm/@tryghost/portal@latest/umd/portal.min.js';

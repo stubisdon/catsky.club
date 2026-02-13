@@ -23,6 +23,39 @@ interface GhostMember {
   }>
 }
 
+const DEV_MEMBER_KEY = 'catsky_dev_member'
+const DEV_PAID_KEY = 'catsky_dev_paid'
+
+/** Only in Vite dev: allow simulating logged-in state for localhost testing (cookie is on prod domain). */
+function getDevOverride(): SubscriptionStatus | null {
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+    try {
+      const member = window.localStorage?.getItem(DEV_MEMBER_KEY)
+      if (member === '1' || member === 'true') {
+        const paid = window.localStorage?.getItem(DEV_PAID_KEY)
+        return paid === '1' || paid === 'true' ? 'paid_subscriber' : 'free_subscriber'
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null
+}
+
+export function setDevMemberOverride(loggedIn: boolean, paid = false): void {
+  try {
+    if (loggedIn) {
+      window.localStorage.setItem(DEV_MEMBER_KEY, '1')
+      window.localStorage.setItem(DEV_PAID_KEY, paid ? '1' : '0')
+    } else {
+      window.localStorage.removeItem(DEV_MEMBER_KEY)
+      window.localStorage.removeItem(DEV_PAID_KEY)
+    }
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Checks subscription status via Ghost Members API
  * Returns:
@@ -31,6 +64,9 @@ interface GhostMember {
  * - 'paid_subscriber': In the system with active paid subscription
  */
 export async function checkSubscriptionStatus(): Promise<SubscriptionStatus> {
+  const devOverride = getDevOverride()
+  if (devOverride !== null) return devOverride
+
   try {
     const res = await fetch('/members/api/member/', { 
       credentials: 'include' 

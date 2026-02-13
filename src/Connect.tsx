@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import './index.css'
 import { clearLocalSessionFlags } from './utils/memberSession.ts'
+import { isSubscriber, setDevMemberOverride } from './utils/subscription.ts'
 
 // Internal navigation helper - ensures all navigation stays within the app
 const navigateTo = (path: string) => {
@@ -35,18 +36,18 @@ function handlePortalClick(e: React.MouseEvent<HTMLAnchorElement>) {
     try {
       const fallback = new URL(fallbackUrl)
       const current = new URL(window.location.href)
+      const isLocalhost = current.hostname === 'localhost' || current.hostname === '127.0.0.1'
       const sameOrigin = current.origin === fallback.origin
       const sameSite =
         current.hostname === fallback.hostname ||
         current.hostname === 'www.' + fallback.hostname ||
         fallback.hostname === 'www.' + current.hostname
       const alreadyOnConnect = current.pathname.replace(/\/+$/, '') === '/connect'
-      // Same origin/site or already on /connect: never open a new tab
-      if (sameOrigin || (sameSite && alreadyOnConnect)) return
+      // Never open a new tab on localhost (Portal loads in-page via proxy); same origin/site or already on /connect: stay
+      if (isLocalhost || sameOrigin || (sameSite && alreadyOnConnect)) return
       const root = document.getElementById('ghost-portal-root')
       const hasPortal = root?.querySelector('[class*="popup"], [class*="modal"], iframe') != null
       if (hasPortal) return
-      // Other origin (e.g. localhost): open fallback only if Portal didn't show
       window.open(fallbackUrl, '_blank', 'noopener')
     } catch {
       const current = new URL(window.location.href)
@@ -61,6 +62,7 @@ const PORTAL_HASH_REGEX = /^#\/portal\/(signup|signin|account)/
 
 export default function Connect() {
   const [portalHashActive, setPortalHashActive] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
 
   useEffect(() => {
     const check = () => setPortalHashActive(PORTAL_HASH_REGEX.test(window.location.hash))
@@ -69,10 +71,39 @@ export default function Connect() {
     return () => window.removeEventListener('hashchange', check)
   }, [])
 
+  const refreshMemberStatus = useCallback(() => {
+    isSubscriber().then(setIsLoggedIn)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    isSubscriber().then((loggedIn) => {
+      if (!cancelled) setIsLoggedIn(loggedIn)
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  // After closing the Portal (e.g. after sign-in), re-check so we hide sign up / log in
+  const wasPortalActive = React.useRef(false)
+  useEffect(() => {
+    if (portalHashActive) {
+      wasPortalActive.current = true
+    } else if (wasPortalActive.current) {
+      wasPortalActive.current = false
+      // Brief delay so cookie from login response is set before we refetch
+      const t = setTimeout(refreshMemberStatus, 300)
+      return () => clearTimeout(t)
+    }
+  }, [portalHashActive, refreshMemberStatus])
+
   const handleLogout = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     clearLocalSessionFlags()
-  }, [])
+    setDevMemberOverride(false) // clear dev override so localhost stays in sync
+    setIsLoggedIn(false)
+    // Re-check after Ghost has processed signout so UI stays in sync
+    setTimeout(refreshMemberStatus, 400)
+  }, [refreshMemberStatus])
 
   useEffect(() => {
     document.body.classList.add(CONNECT_BODY_CLASS)
@@ -100,22 +131,26 @@ export default function Connect() {
 
         {/* Portal links: set hash so Ghost Portal opens; if it didn’t init, fallback opens Ghost in new tab */}
         <div className="connect-portal-buttons">
-          <a
-            href="#/portal/signup"
-            data-portal="signup"
-            className="connect-portal-btn"
-            onClick={handlePortalClick}
-          >
-            sign up →
-          </a>
-          <a
-            href="#/portal/signin"
-            data-portal="signin"
-            className="connect-portal-btn"
-            onClick={handlePortalClick}
-          >
-            log in →
-          </a>
+          {isLoggedIn !== true && (
+            <>
+              <a
+                href="#/portal/signup"
+                data-portal="signup"
+                className="connect-portal-btn"
+                onClick={handlePortalClick}
+              >
+                sign up →
+              </a>
+              <a
+                href="#/portal/signin"
+                data-portal="signin"
+                className="connect-portal-btn"
+                onClick={handlePortalClick}
+              >
+                log in →
+              </a>
+            </>
+          )}
           <a
             href="#/portal/account"
             data-portal="account"
@@ -126,25 +161,9 @@ export default function Connect() {
           </a>
         </div>
 
-        {portalHashActive && (
-          <p className="connect-portal-hint">
-            If the sign-up form didn’t appear, the membership script may need to be configured (Ghost URL and Content API key). Check the browser console for errors.
-            {typeof window !== 'undefined' && (() => {
-              const script = document.querySelector('script[data-ghost]')
-              const url = script?.getAttribute('data-ghost') || '(not found)'
-              const key = script?.getAttribute('data-key') ?? ''
-              const keyStatus = key ? `set (${key.length} chars)` : 'not set'
-              return (
-                <span className="connect-portal-debug" style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.8 }}>
-                  Portal config: URL = {url}, API key = {keyStatus}
-              {typeof window !== 'undefined' && window.location?.hostname !== 'catsky.club' && (
-                <span style={{ display: 'block', marginTop: '0.25rem' }}>
-                  Session is stored on the Ghost domain; use production (catsky.club) to see logged-in state.
-                </span>
-              )}
-                </span>
-              )
-            })()}
+        {portalHashActive && typeof window !== 'undefined' && window.location?.hostname !== 'catsky.club' && (
+          <p className="connect-portal-hint" style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '0.75rem' }}>
+            Session is stored on the Ghost domain; use production (catsky.club) to see logged-in state.
           </p>
         )}
 
@@ -191,6 +210,59 @@ export default function Connect() {
             </a>
           </div>
         </div>
+
+        {typeof import.meta !== 'undefined' && import.meta.env?.DEV && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: '1rem',
+              right: '1rem',
+              fontSize: '0.75rem',
+              opacity: 0.7,
+              display: 'flex',
+              gap: '0.5rem',
+              alignItems: 'center',
+            }}
+          >
+            <span style={{ letterSpacing: '0.05em' }}>Dev:</span>
+            <button
+              type="button"
+              onClick={() => {
+                setDevMemberOverride(true)
+                refreshMemberStatus()
+              }}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.4)',
+                color: 'rgba(255,255,255,0.9)',
+                padding: '0.25rem 0.5rem',
+                cursor: 'pointer',
+                letterSpacing: '0.05em',
+                textTransform: 'lowercase',
+              }}
+            >
+              simulate logged in
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDevMemberOverride(false)
+                refreshMemberStatus()
+              }}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.4)',
+                color: 'rgba(255,255,255,0.9)',
+                padding: '0.25rem 0.5rem',
+                cursor: 'pointer',
+                letterSpacing: '0.05em',
+                textTransform: 'lowercase',
+              }}
+            >
+              simulate logged out
+            </button>
+          </div>
+        )}
 
         <a
           href="/"

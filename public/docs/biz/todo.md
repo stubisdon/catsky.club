@@ -176,3 +176,11 @@ evidence:
 - internal motivation
 
 final notes:
+
+---
+
+## technical fixes
+
+- [ ] fix contact support email
+- [ ] fix sign-in email capitalization (Catsky.Club)
+- [ ] can't CMD+A inside the log-in pop-up to edit the email address
