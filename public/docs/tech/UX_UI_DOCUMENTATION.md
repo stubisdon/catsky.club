@@ -699,7 +699,7 @@ expect(getSubmitButtonShape()).toBe('rectangle')
 
 ---
 
-## Player Page (`/player`)
+## Listen Page (`/listen`)
 
 ### Overview
 Music player page for subscribers to listen to latest track versions. Implements subscription-based access control.
@@ -773,20 +773,20 @@ Music player page for subscribers to listen to latest track versions. Implements
 ### Test Scenarios
 
 1. **Not Subscriber Access**
-   - Visit `/player` without login
+   - Visit `/listen` without login
    - Should see subscription gate
    - Should not see any tracks
 
 2. **Free Subscriber Access**
    - Log in as free subscriber
-   - Visit `/player`
+   - Visit `/listen`
    - Should see first 3 tracks playable
    - Remaining tracks should be locked
    - No voting/feedback buttons
 
 3. **Paid Subscriber Access**
    - Log in as paid subscriber
-   - Visit `/player`
+   - Visit `/listen`
    - Should see all tracks playable
    - Voting and feedback buttons visible
    - All features functional

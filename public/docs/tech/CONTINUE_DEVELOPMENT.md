@@ -63,15 +63,15 @@ Everything is saved locally on your machine and backed up on GitHub. Here's how 
 - Edit `src/App.tsx` to modify the experience timeline
 - Or use `experience-example.json` as a template
 
-### Music Player
-- `src/Player.tsx` - Main player page component
+### Music / Listen
+- `src/Listen.tsx` - Main listen page component
 - `src/utils/subscription.ts` - Subscription checking logic
 - `src/utils/audioHelpers.ts` - Audio hosting utilities
-- Update `MOCK_TRACKS` in `Player.tsx` with your SoundCloud tracks
+- Update `TRACKS` in `src/config/tracks.ts` (used by Listen.tsx) with your SoundCloud tracks
 
 ### Media Files
 - `public/audio/knock-knock.mp3` - Your audio file (if hosting locally)
-- SoundCloud tracks configured in `Player.tsx` (recommended)
+- SoundCloud tracks configured in `src/config/tracks.ts` (used by Listen.tsx, recommended)
 
 ### Git Status
 Check what's changed:

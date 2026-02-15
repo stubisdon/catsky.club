@@ -1,6 +1,6 @@
 # Tracks Configuration
 
-This directory contains the tracks configuration for the Player page.
+This directory contains the tracks configuration for the Listen page.
 
 ## Adding Tracks from SoundCloud
 

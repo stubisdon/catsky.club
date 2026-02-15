@@ -1,8 +1,8 @@
-# Player Page Documentation
+# Listen Page Documentation (formerly Player)
 
 ## Overview
 
-The Player page (`/player`) is a music player interface for subscribers to listen to latest track versions. It implements subscription-based access control and integrates with SoundCloud for audio hosting.
+The Listen page (`/listen`) is a music player interface for subscribers to listen to latest track versions. It implements subscription-based access control and integrates with SoundCloud for audio hosting. The route `/player` redirects to `/listen`.
 
 ## Access Control
 
@@ -28,13 +28,13 @@ The Player page (`/player`) is a music player interface for subscribers to liste
 
 ### Files
 
-- `src/Player.tsx` - Main component
+- `src/Listen.tsx` - Main component
 - `src/utils/subscription.ts` - Subscription status checking
 - `src/utils/audioHelpers.ts` - Audio source handling (SoundCloud, direct URLs)
 
 ### Route
 
-- Path: `/player`
+- Path: `/listen` (canonical). `/player` redirects to `/listen`
 - Route handler: `src/main.tsx` (Router component)
 
 ## Audio Sources
@@ -97,7 +97,7 @@ interface Track {
 
 1. Get private share link from SoundCloud
 2. Copy URL (before the `?`)
-3. Add to `MOCK_TRACKS` in `src/Player.tsx`:
+3. Add to `TRACKS` in `src/config/tracks.ts` (or the array used by `src/Listen.tsx`):
 
 ```typescript
 {

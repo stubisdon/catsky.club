@@ -30,7 +30,7 @@ Last updated: 2026-01-18
    - Fixed MIME types for static files in `server.js`
    - Added missing `vite.svg` favicon
    - Updated Portal script to use CDN (Ghost 6.0 requirement)
-   - Updated `/join` page terminology to match `offer.md`
+   - (Join page removed; Connect covers sign up / account)
 
 ## 🚀 How Auto-Deployment Works
 
@@ -76,9 +76,9 @@ The Portal workaround in `index.html`:
 
 ## 🔍 Testing
 
-After deployment, test at: https://catsky.club/join
+After deployment, test at: https://catsky.club/connect
 - Check browser console - should NOT see Portal initialization errors
-- Click "enter →" button - should open Portal subscription flow
+- Click sign up / log in - should open Portal
 
 **Note:** Portal may still show initialization errors in console due to a known Ghost 6.0 bug, but the workaround ensures Portal functionality still works despite the error message.
 
@@ -87,7 +87,7 @@ After deployment, test at: https://catsky.club/join
 ### Files Modified
 - `index.html` - Added comprehensive Portal workaround script
 - `server.js` - Fixed MIME types for static files
-- `src/Join.tsx` - Updated terminology to match `offer.md`, simplified content
+- `src/Join.tsx` - Removed (unused; Connect covers membership)
 - `catsky.club-ssl.conf` - Added nginx location for portal.min.js (though using CDN now)
 - `.github/workflows/deploy.yml` - Auto-deployment workflow
 

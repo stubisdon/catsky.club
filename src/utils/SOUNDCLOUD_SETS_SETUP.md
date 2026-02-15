@@ -142,7 +142,7 @@ You can use:
 
 ## Recommendation
 
-**For your Player page**, I recommend **Option 2 (Individual Tracks)** because:
+**For your Listen page**, I recommend **Option 2 (Individual Tracks)** because:
 - ✅ Better control over track metadata (version, date, etc.)
 - ✅ Users see individual tracks in your list
 - ✅ Can implement voting/feedback per track
@@ -156,8 +156,8 @@ You can use:
 ## Example Implementation
 
 ```typescript
-// In src/Player.tsx
-const MOCK_TRACKS: Track[] = [
+// In src/config/tracks.ts (used by Listen.tsx)
+export const TRACKS: Track[] = [
   // Track from "Soft and Sound" set
   {
     id: '1',
@@ -199,9 +199,9 @@ const MOCK_TRACKS: Track[] = [
 
 ## Testing
 
-1. Update `MOCK_TRACKS` in `src/Player.tsx`
+1. Update `TRACKS` in `src/config/tracks.ts`
 2. Run `npm run dev`
-3. Go to `/player`
+3. Go to `/listen`
 4. Click a track - it should play!
 
 ## Troubleshooting

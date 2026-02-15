@@ -46,7 +46,7 @@ If the track ID isn't in the URL:
 
 ## Step 5: Add to Your Track Data
 
-Update `MOCK_TRACKS` in `src/Player.tsx`:
+Update `TRACKS` in `src/config/tracks.ts` (used by Listen.tsx):
 
 ```typescript
 {

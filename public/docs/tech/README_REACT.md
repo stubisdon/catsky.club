@@ -12,9 +12,9 @@ This is a React application built with Vite, featuring an interactive audio-sync
 - **A-HA Moment**: Interactive moment showing the magic of the experience
 - **Contact Collection**: Email or phone number collection at the end
 
-### Music Player (New)
-- **Player Page** (`/player`): Music player for subscribers
-  - Free subscribers: Access to first 3 tracks
+### Music / Listen (New)
+- **Listen page** (`/listen`): Music player for subscribers (`/player` redirects here)
+  - Free subscribers: Access to first 2 tracks
   - Paid subscribers: Full access to all tracks + voting & feedback
   - SoundCloud integration with secret links for private tracks
   - Support for individual tracks and playlists/sets
@@ -74,11 +74,9 @@ npm start
 ```
 ├── src/
 │   ├── App.tsx          # Main home page component
-│   ├── Player.tsx       # Music player page for subscribers (/player)
-│   ├── Listen.tsx        # Public music page (/listen)
+│   ├── Listen.tsx        # Music / tracks page (/listen)
 │   ├── Watch.tsx         # Video page (/watch)
-│   ├── Connect.tsx        # Free subscription page (/connect)
-│   ├── Join.tsx          # Paid subscription page (/join)
+│   ├── Connect.tsx        # Sign up / log in / account (/connect)
 │   ├── Mission.tsx       # Mission page (/mission)
 │   ├── main.tsx         # React entry point with routing
 │   ├── index.css        # Global styles
@@ -97,11 +95,9 @@ npm start
 ## Routes
 
 - `/` - Home page (App.tsx)
-- `/player` - Music player for subscribers (Player.tsx)
-- `/listen` - Public music links (Listen.tsx)
+- `/listen` - Music player / tracks (Listen.tsx). `/player` redirects to `/listen`
 - `/watch` - Video content (Watch.tsx)
-- `/connect` - Free subscription signup (Connect.tsx)
-- `/join` - Paid subscription signup (Join.tsx)
+- `/connect` - Sign up, log in, account (Connect.tsx)
 - `/mission` - Mission statement (Mission.tsx)
 
 ## Customization

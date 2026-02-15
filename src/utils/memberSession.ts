@@ -30,3 +30,7 @@ export function openPortalAccount(): void {
   window.location.hash = '#/portal/account'
 }
 
+/** Trigger Ghost Portal sign out (clears member session cookie). Call before clearing local state. */
+export function triggerPortalSignOut(): boolean {
+  return clickPortalTrigger('ghost-portal-trigger-signout')
+}

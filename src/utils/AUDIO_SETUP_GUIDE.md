@@ -1,6 +1,6 @@
 # Audio Hosting Setup Guide
 
-This guide shows you how to set up audio hosting for the Player page without hosting files on your server.
+This guide shows you how to set up audio hosting for the Listen page without hosting files on your server.
 
 ## Quick Comparison
 
@@ -227,7 +227,7 @@ const TRACKS = [
 
 1. Choose your hosting solution
 2. Upload your tracks
-3. Update `MOCK_TRACKS` in `src/Player.tsx` with your track data
+3. Update `TRACKS` in `src/config/tracks.ts` with your track data (used by Listen.tsx)
 4. Test the player at `/player`
 
 For production, you'll want to:

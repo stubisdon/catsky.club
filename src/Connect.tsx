@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import './index.css'
-import { clearLocalSessionFlags } from './utils/memberSession.ts'
+import { clearLocalSessionFlags, triggerPortalSignOut } from './utils/memberSession.ts'
 import { isSubscriber, setDevMemberOverride } from './utils/subscription.ts'
 
 // Internal navigation helper - ensures all navigation stays within the app
@@ -98,11 +98,13 @@ export default function Connect() {
 
   const handleLogout = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
+    // Trigger Ghost Portal sign out first (clears member cookie); hidden trigger is in DOM at load so Portal bound to it
+    triggerPortalSignOut()
     clearLocalSessionFlags()
     setDevMemberOverride(false) // clear dev override so localhost stays in sync
     setIsLoggedIn(false)
     // Re-check after Ghost has processed signout so UI stays in sync
-    setTimeout(refreshMemberStatus, 400)
+    setTimeout(refreshMemberStatus, 500)
   }, [refreshMemberStatus])
 
   useEffect(() => {

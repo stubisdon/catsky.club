@@ -4,9 +4,7 @@ import App from './App.tsx'
 import Watch from './Watch.tsx'
 import Connect from './Connect.tsx'
 import Mission from './Mission.tsx'
-import Player from './Player.tsx'
-import Unpublished from './Unpublished.tsx'
-import UnpublishedExperience from './UnpublishedExperience.tsx'
+import Listen from './Listen.tsx'
 import './index.css'
 
 type View =
@@ -15,8 +13,6 @@ type View =
   | 'watch'
   | 'connect'
   | 'mission'
-  | 'unpublished_index'
-  | 'unpublished_experience'
 
 function normalizePathname(pathname: string): string {
   // Collapse trailing slashes (except root)
@@ -31,15 +27,9 @@ function resolveView(pathnameRaw: string): { view: View; normalizedPath?: string
   if (pathname === '/watch') return { view: 'watch' }
   if (pathname === '/connect') return { view: 'connect' }
   if (pathname === '/listen') return { view: 'listen' }
-  // Back-compat: /player now points to /listen
-  if (pathname === '/player') return { view: 'listen', normalizedPath: '/listen' }
 
   // Hidden (but still reachable)
   if (pathname === '/mission') return { view: 'mission' }
-
-  // "Unpublished pages" area
-  if (pathname === '/unpublished') return { view: 'unpublished_index' }
-  if (pathname === '/unpublished/experience') return { view: 'unpublished_experience' }
 
   // Default: normalize everything else to landing page
   return { view: 'home', normalizedPath: '/' }
@@ -70,10 +60,8 @@ function Router() {
   if (view === 'home') return <App />
   if (view === 'watch') return <Watch />
   if (view === 'connect') return <Connect />
-  if (view === 'listen') return <Player />
+  if (view === 'listen') return <Listen />
   if (view === 'mission') return <Mission />
-  if (view === 'unpublished_index') return <Unpublished />
-  if (view === 'unpublished_experience') return <UnpublishedExperience />
   return <App />
 }
 

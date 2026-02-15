@@ -23,9 +23,9 @@ https://soundcloud.com/catsky_club/vision-v1/s-L5q3Tw7Jyvp
 
 The secret token (`s-L5q3Tw7Jyvp`) is already in the URL!
 
-### Step 3: Add to Player.tsx
+### Step 3: Add to tracks config
 
-Open `src/Player.tsx` and add:
+Open `src/config/tracks.ts` (used by Listen.tsx) and add:
 
 ```typescript
 {

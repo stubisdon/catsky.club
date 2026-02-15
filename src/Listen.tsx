@@ -1,12 +1,187 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './index.css'
+import { checkSubscriptionStatus, type SubscriptionStatus } from './utils/subscription'
+import {
+  getDirectAudioUrl,
+  getSoundCloudEmbedUrl
+} from './utils/audioHelpers'
+import { clearLocalSessionFlags, openPortalAccount, openPortalSignIn, triggerPortalSignOut } from './utils/memberSession.ts'
+import { TRACKS } from './config/tracks'
 
-// Internal navigation helper - ensures all navigation stays within the app
+// Internal navigation helper
 const navigateTo = (path: string) => {
   window.history.pushState({}, '', path)
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
 export default function Listen() {
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('unknown')
+  const [checking, setChecking] = useState(true)
+  const [currentTrackId, setCurrentTrackId] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [trackVotes, setTrackVotes] = useState<Record<string, 'up' | 'down' | null>>(() => {
+    try {
+      const saved = localStorage.getItem('trackVotes')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
+  const [showFeedback, setShowFeedback] = useState<string | null>(null)
+  const [feedbackText, setFeedbackText] = useState('')
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState<string | null>(null)
+  const [trackLoadError, setTrackLoadError] = useState<string | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const soundcloudIframeRef = useRef<HTMLIFrameElement | null>(null)
+
+  const hasLocalSignup = (() => {
+    try {
+      return window.localStorage.getItem('catsky_signed_up') === '1'
+    } catch {
+      return false
+    }
+  })()
+
+  const refreshStatus = useCallback(async () => {
+    setChecking(true)
+    try {
+      const timeoutPromise = new Promise<SubscriptionStatus>((_, reject) => {
+        setTimeout(() => reject(new Error('Subscription check timeout')), 10000)
+      })
+      const statusPromise = checkSubscriptionStatus()
+      const status = await Promise.race([statusPromise, timeoutPromise])
+      setSubscriptionStatus(status)
+    } catch (error) {
+      console.error('Error checking subscription:', error)
+      setSubscriptionStatus('not_subscriber')
+    } finally {
+      setChecking(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    refreshStatus()
+  }, [refreshStatus])
+
+  const effectiveStatus: SubscriptionStatus =
+    subscriptionStatus === 'not_subscriber' && hasLocalSignup ? 'free_subscriber' : subscriptionStatus
+
+  const isPaid = effectiveStatus === 'paid_subscriber'
+  const isGhostMember = subscriptionStatus === 'free_subscriber' || subscriptionStatus === 'paid_subscriber'
+
+  const getAccessibleTracks = useCallback(() => {
+    if (isPaid) return TRACKS
+    if (effectiveStatus === 'free_subscriber') return TRACKS.slice(0, 2)
+    return TRACKS.slice(0, 1)
+  }, [effectiveStatus, isPaid])
+
+  const accessibleTracks = getAccessibleTracks()
+  const lockedTracks = isPaid ? [] : TRACKS.slice(accessibleTracks.length)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('trackVotes', JSON.stringify(trackVotes))
+    } catch (error) {
+      console.error('Error saving votes to localStorage:', error)
+    }
+  }, [trackVotes])
+
+  const handleTrackSelect = useCallback((trackId: string) => {
+    const track = TRACKS.find(t => t.id === trackId)
+    if (!track) {
+      setTrackLoadError('Track not found')
+      return
+    }
+    const trackIndex = TRACKS.findIndex(t => t.id === trackId)
+    if (!isPaid) {
+      if (effectiveStatus === 'free_subscriber' && trackIndex >= 2) {
+        navigateTo('/connect')
+        return
+      }
+      if (effectiveStatus !== 'free_subscriber' && trackIndex >= 1) {
+        navigateTo('/connect')
+        return
+      }
+    }
+    setTrackLoadError(null)
+    setCurrentTrackId(trackId)
+    setIsPlaying(false)
+    setCurrentTime(0)
+    setDuration(0)
+    if (track.audioSource.type === 'direct') {
+      const audioUrl = getDirectAudioUrl(track.audioSource)
+      if (audioUrl && audioRef.current) {
+        try {
+          audioRef.current.src = audioUrl
+          audioRef.current.load()
+          audioRef.current.onerror = () => setTrackLoadError('Failed to load audio track')
+          audioRef.current.onloadeddata = () => setTrackLoadError(null)
+        } catch (error) {
+          console.error('Error loading audio:', error)
+          setTrackLoadError('Failed to load audio track')
+        }
+      }
+    } else if (track.audioSource.type === 'soundcloud') {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.src = ''
+      }
+    }
+  }, [effectiveStatus, isPaid])
+
+  const handlePlayPause = useCallback(() => {
+    if (!audioRef.current) return
+    if (isPlaying) audioRef.current.pause()
+    else audioRef.current.play()
+    setIsPlaying(!isPlaying)
+  }, [isPlaying])
+
+  const handleTimeUpdate = useCallback(() => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime)
+      setDuration(audioRef.current.duration || 0)
+    }
+  }, [])
+
+  const handleVote = useCallback((trackId: string, vote: 'up' | 'down') => {
+    if (!isPaid) return
+    setTrackVotes(prev => ({ ...prev, [trackId]: prev[trackId] === vote ? null : vote }))
+  }, [isPaid])
+
+  const handleSubmitFeedback = useCallback(async (trackId: string) => {
+    if (!isPaid || !feedbackText.trim()) return
+    try {
+      console.log('Feedback for track', trackId, ':', feedbackText)
+      setFeedbackSubmitted(trackId)
+      setFeedbackText('')
+      setShowFeedback(null)
+      setTimeout(() => setFeedbackSubmitted(null), 3000)
+    } catch (error) {
+      console.error('Error submitting feedback:', error)
+      setTrackLoadError('Failed to submit feedback. Please try again.')
+    }
+  }, [isPaid, feedbackText])
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  if (checking) {
+    return (
+      <div className="app-container">
+        <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.9 }}>
+          checking access…
+        </div>
+      </div>
+    )
+  }
+
+  const currentTrack = currentTrackId ? TRACKS.find(t => t.id === currentTrackId) : null
+
   return (
     <div className="app-container">
       <div
@@ -16,7 +191,7 @@ export default function Listen() {
           padding: '2rem',
           textAlign: 'left',
           letterSpacing: '0.05em',
-          lineHeight: 1.8,
+          lineHeight: '1.8',
           maxHeight: '100vh',
           overflowY: 'auto',
           userSelect: 'text',
@@ -36,169 +211,291 @@ export default function Listen() {
           listen
         </h1>
 
-        <div style={{ opacity: 0.9, marginBottom: '2rem' }}>
-          <p style={{ marginBottom: '1.5rem' }}>
-            publicly released materials
-          </p>
-        </div>
-
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            marginBottom: '2rem',
-          }}
-        >
+        <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', opacity: 0.8 }}>
           <a
-            href="https://www.submithub.com/link/catsky-intro"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#/portal/signin"
+            data-portal="signin"
+            onClick={(e) => {
+              e.preventDefault()
+              openPortalSignIn()
+            }}
             style={{
-              color: 'var(--color-text)',
+              color: 'rgba(255, 255, 255, 0.7)',
               textDecoration: 'none',
-              fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-              letterSpacing: '0.1em',
-              border: '2px solid var(--color-text)',
-              padding: '0.9rem 1.5rem',
-              display: 'inline-block',
-              transition: 'all 0.3s ease',
+              fontSize: '0.95rem',
+              letterSpacing: '0.05em',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+              paddingBottom: '0.1rem',
               cursor: 'pointer',
               textTransform: 'lowercase',
-              width: 'fit-content',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--color-text)'
-              e.currentTarget.style.color = 'var(--color-bg)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = 'var(--color-text)'
             }}
           >
-            latest release →
+            log in
           </a>
+
+          {isGhostMember && (
+            <a
+              href="#/portal/account"
+              data-portal="account"
+              onClick={(e) => {
+                e.preventDefault()
+                openPortalAccount()
+              }}
+              style={{
+                color: 'rgba(255, 255, 255, 0.7)',
+                textDecoration: 'none',
+                fontSize: '0.95rem',
+                letterSpacing: '0.05em',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+                paddingBottom: '0.1rem',
+                cursor: 'pointer',
+                textTransform: 'lowercase',
+              }}
+            >
+              account
+            </a>
+          )}
 
           <a
-            href="https://soundcloud.com/catsky_club"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#"
+            data-members-signout
+            onClick={(e) => {
+              e.preventDefault()
+              triggerPortalSignOut()
+              clearLocalSessionFlags()
+              setSubscriptionStatus('not_subscriber')
+              setCurrentTrackId(null)
+              setIsPlaying(false)
+              setTimeout(() => refreshStatus(), 500)
+            }}
             style={{
-              color: 'var(--color-text)',
+              color: 'rgba(255, 255, 255, 0.7)',
               textDecoration: 'none',
-              fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-              letterSpacing: '0.1em',
-              border: '2px solid var(--color-text)',
-              padding: '0.9rem 1.5rem',
-              display: 'inline-block',
-              transition: 'all 0.3s ease',
+              fontSize: '0.95rem',
+              letterSpacing: '0.05em',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+              paddingBottom: '0.1rem',
               cursor: 'pointer',
               textTransform: 'lowercase',
-              width: 'fit-content',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--color-text)'
-              e.currentTarget.style.color = 'var(--color-bg)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = 'var(--color-text)'
             }}
           >
-            soundcloud →
+            log out
           </a>
-
-          <a
-            href="https://www.youtube.com/@catsky_club"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: 'var(--color-text)',
-              textDecoration: 'none',
-              fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-              letterSpacing: '0.1em',
-              border: '2px solid var(--color-text)',
-              padding: '0.9rem 1.5rem',
-              display: 'inline-block',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              textTransform: 'lowercase',
-              width: 'fit-content',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--color-text)'
-              e.currentTarget.style.color = 'var(--color-bg)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = 'var(--color-text)'
-            }}
-          >
-            youtube →
-          </a>
-        </div>
-
-        <div style={{ opacity: 0.9, marginBottom: '1.5rem' }}>
-          <p style={{ marginBottom: '1.5rem' }}>
-            unreleased music and videos
-          </p>
         </div>
 
         <div style={{ marginBottom: '2rem' }}>
-          <a
-            href="/join"
-            onClick={(e) => {
-              e.preventDefault()
-              navigateTo('/join')
-            }}
-            style={{
-              color: 'var(--color-text)',
-              textDecoration: 'none',
-              fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-              letterSpacing: '0.1em',
-              border: '2px solid var(--color-text)',
-              padding: '0.9rem 1.5rem',
-              display: 'inline-block',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              textTransform: 'lowercase',
-              width: 'fit-content',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'var(--color-text)'
-              e.currentTarget.style.color = 'var(--color-bg)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = 'var(--color-text)'
-            }}
-          >
-            get access
-          </a>
+          {TRACKS.length === 0 && (
+            <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.7 }}>
+              <p>No tracks available at this time.</p>
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {accessibleTracks.map(track => (
+              <div
+                key={track.id}
+                style={{
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  padding: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  backgroundColor: currentTrackId === track.id ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)' }}
+                onMouseLeave={(e) => {
+                  if (currentTrackId !== track.id) e.currentTarget.style.backgroundColor = 'transparent'
+                }}
+                onClick={() => handleTrackSelect(track.id)}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: currentTrackId === track.id ? 'bold' : 'normal' }}>{track.title}</div>
+                    {track.version && (
+                      <div style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.25rem' }}>
+                        {track.version} {track.date && `• ${track.date}`}
+                      </div>
+                    )}
+                  </div>
+                  {isPaid && (
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleVote(track.id, 'up') }}
+                        style={{
+                          background: 'transparent', border: 'none',
+                          color: trackVotes[track.id] === 'up' ? 'var(--color-text)' : 'rgba(255, 255, 255, 0.5)',
+                          cursor: 'pointer', fontSize: '1.2rem', padding: '0.25rem',
+                        }}
+                      >↑</button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleVote(track.id, 'down') }}
+                        style={{
+                          background: 'transparent', border: 'none',
+                          color: trackVotes[track.id] === 'down' ? 'var(--color-text)' : 'rgba(255, 255, 255, 0.5)',
+                          cursor: 'pointer', fontSize: '1.2rem', padding: '0.25rem',
+                        }}
+                      >↓</button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setShowFeedback(showFeedback === track.id ? null : track.id) }}
+                        style={{
+                          background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.3)',
+                          color: 'var(--color-text)', cursor: 'pointer', fontSize: '0.85rem',
+                          padding: '0.25rem 0.5rem', textTransform: 'lowercase',
+                        }}
+                      >feedback</button>
+                    </div>
+                  )}
+                </div>
+                {showFeedback === track.id && (
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                    <textarea
+                      value={feedbackText}
+                      onChange={(e) => setFeedbackText(e.target.value)}
+                      placeholder="share your thoughts on this track..."
+                      style={{
+                        width: '100%', minHeight: '80px', background: 'rgba(0, 0, 0, 0.3)',
+                        border: '1px solid rgba(255, 255, 255, 0.3)', color: 'var(--color-text)',
+                        fontFamily: 'var(--font-mono)', padding: '0.5rem', fontSize: '0.9rem', resize: 'vertical',
+                      }}
+                    />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleSubmitFeedback(track.id) }}
+                      style={{
+                        marginTop: '0.5rem', background: 'transparent', border: '1px solid var(--color-text)',
+                        color: 'var(--color-text)', cursor: 'pointer', fontSize: '0.9rem',
+                        padding: '0.5rem 1rem', textTransform: 'lowercase',
+                      }}
+                    >submit</button>
+                    {feedbackSubmitted === track.id && (
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', opacity: 0.7, color: 'rgba(255, 255, 255, 0.8)' }}>
+                        ✓ feedback submitted. thank you!
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+            {lockedTracks.length > 0 && (
+              <>
+                {lockedTracks.map(track => (
+                  <div
+                    key={track.id}
+                    style={{
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      padding: '1rem',
+                      opacity: 0.5,
+                      position: 'relative',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      navigateTo('/connect')
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div>{track.title}</div>
+                        {track.version && (
+                          <div style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.25rem' }}>
+                            {track.version} {track.date && `• ${track.date}`}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>sign up</div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
         </div>
+
+        {currentTrack && (
+          <div style={{ border: '1px solid rgba(255, 255, 255, 0.3)', padding: '1.5rem', marginBottom: '2rem' }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>{currentTrack.title}</div>
+              {currentTrack.audioSource.type === 'direct' && (
+                <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </div>
+              )}
+              {trackLoadError && (
+                <div style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                  ⚠ {trackLoadError}
+                </div>
+              )}
+            </div>
+
+            {currentTrack.audioSource.type === 'direct' && (
+              <>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+                  <button
+                    onClick={handlePlayPause}
+                    style={{
+                      background: 'transparent', border: '2px solid var(--color-text)', color: 'var(--color-text)',
+                      cursor: 'pointer', fontSize: '1.5rem', width: '3rem', height: '3rem',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', textTransform: 'lowercase',
+                    }}
+                  >{isPlaying ? '⏸' : '▶'}</button>
+                  <div style={{ flex: 1, height: '4px', background: 'rgba(255, 255, 255, 0.2)', position: 'relative' }}>
+                    <div
+                      style={{
+                        height: '100%', background: 'var(--color-text)',
+                        width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%',
+                        transition: 'width 0.1s linear',
+                      }}
+                    />
+                  </div>
+                </div>
+                <audio
+                  ref={audioRef}
+                  onTimeUpdate={handleTimeUpdate}
+                  onLoadedMetadata={handleTimeUpdate}
+                  onEnded={() => setIsPlaying(false)}
+                  style={{ display: 'none' }}
+                />
+              </>
+            )}
+
+            {currentTrack.audioSource.type === 'soundcloud' && (
+              <div style={{ marginTop: '1rem' }}>
+                <div style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '0.5rem', textAlign: 'center', fontStyle: 'italic' }}>
+                  click the circle to play
+                </div>
+                <iframe
+                  ref={soundcloudIframeRef}
+                  width="100%"
+                  height="166"
+                  scrolling="no"
+                  frameBorder="no"
+                  allow="autoplay"
+                  src={getSoundCloudEmbedUrl(
+                    currentTrack.audioSource.trackId,
+                    currentTrack.audioSource.trackUrl,
+                    currentTrack.audioSource.setId,
+                    currentTrack.audioSource.secretToken
+                  )}
+                  style={{ border: 'none', borderRadius: '0' }}
+                  title={`SoundCloud player for ${currentTrack.title}`}
+                />
+                <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '0.5rem', textAlign: 'center' }}>
+                  powered by soundcloud
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <a
           href="/"
-          onClick={(e) => {
-            e.preventDefault()
-            navigateTo('/')
-          }}
+          onClick={(e) => { e.preventDefault(); navigateTo('/') }}
           style={{
-            position: 'fixed',
-            bottom: '1rem',
-            left: '1rem',
-            color: 'rgba(255, 255, 255, 0.5)',
-            textDecoration: 'none',
-            fontSize: '0.9rem',
-            letterSpacing: '0.05em',
-            transition: 'color 0.3s ease',
+            position: 'fixed', bottom: '1rem', left: '1rem',
+            color: 'rgba(255, 255, 255, 0.5)', textDecoration: 'none', fontSize: '0.9rem',
+            letterSpacing: '0.05em', transition: 'color 0.3s ease',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'rgba(255, 255, 255, 1)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
-          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255, 255, 255, 1)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)' }}
         >
           ← home
         </a>

@@ -1,6 +1,6 @@
 # SoundCloud Sets Quick Start 🎵
 
-You have two SoundCloud sets with secret tracks. Here's how to add them to your Player.
+You have two SoundCloud sets with secret tracks. Here's how to add them to your Listen page.
 
 ## Your Sets
 
@@ -22,9 +22,9 @@ For each track in your sets:
    - Click **Share** on the track
    - Copy the **secret token** (starts with `s-`)
 
-### Step 2: Add to Player.tsx
+### Step 2: Add to tracks config
 
-Open `src/Player.tsx` and update `MOCK_TRACKS`:
+Open `src/config/tracks.ts` and update `TRACKS` (used by Listen.tsx):
 
 ```typescript
 const MOCK_TRACKS: Track[] = [

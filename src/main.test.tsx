@@ -24,8 +24,8 @@ vi.mock('./Connect', () => ({
   default: () => <div>Connect Component</div>,
 }))
 
-vi.mock('./Player', () => ({
-  default: () => <div>Player Component</div>,
+vi.mock('./Listen', () => ({
+  default: () => <div>Listen Component</div>,
 }))
 
 describe('Router', () => {

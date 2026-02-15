@@ -8,7 +8,7 @@ Get your Player page working with SoundCloud in 5 minutes.
 2. **Enable embedding** in track settings
 3. **Get secret token** from Share → Secret link
 4. **Get track ID** from URL or embed code
-5. **Add to `src/Player.tsx`** in `MOCK_TRACKS` array
+5. **Add to `src/config/tracks.ts`** in `TRACKS` array (used by Listen.tsx)
 
 ## Example
 

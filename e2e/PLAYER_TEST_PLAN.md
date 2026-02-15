@@ -1,4 +1,4 @@
-# Player Page Test Plan
+# Listen Page Test Plan (formerly Player)
 
 This document outlines the comprehensive test cases for the `/player` page, including broken cases that need to be fixed.
 
@@ -165,7 +165,7 @@ This document outlines the comprehensive test cases for the `/player` page, incl
 
 ## Test Implementation Status
 
-- ✅ Test file created: `e2e/player.spec.ts`
+- ✅ Test file created: `e2e/listen.spec.ts`
 - ✅ Access control tests written
 - ✅ Track selection tests written
 - ✅ SoundCloud integration tests written
@@ -177,16 +177,16 @@ This document outlines the comprehensive test cases for the `/player` page, incl
 
 ```bash
 # Run all player tests
-npm run test:e2e -- e2e/player.spec.ts
+npm run test:e2e -- e2e/listen.spec.ts
 
 # Run specific test suite
-npm run test:e2e -- e2e/player.spec.ts -g "Access Control"
+npm run test:e2e -- e2e/listen.spec.ts -g "Access Control"
 
 # Run with UI (headed mode)
-npm run test:e2e -- e2e/player.spec.ts --headed
+npm run test:e2e -- e2e/listen.spec.ts --headed
 
 # Generate test report
-npm run test:e2e -- e2e/player.spec.ts --reporter=html
+npm run test:e2e -- e2e/listen.spec.ts --reporter=html
 ```
 
 ## Next Steps
@@ -232,9 +232,9 @@ npm run test:e2e -- e2e/player.spec.ts --reporter=html
 ### Issue 2: Page Not Scrollable Vertically
 **Problem:** Player page content cannot be scrolled vertically, making some content inaccessible
 
-**Root Cause:** Player component's content div was missing `overflowY: 'auto'` and `maxHeight: '100vh'` styles that other pages (Listen, App) have
+**Root Cause:** Listen component's content div was missing `overflowY: 'auto'` and `maxHeight: '100vh'` styles that other pages (Listen, App) have
 
-**Fix:** Added scrolling styles to Player component's content container:
+**Fix:** Added scrolling styles to Listen component's content container:
 - `maxHeight: '100vh'`
 - `overflowY: 'auto'`
 - `userSelect: 'text'` (for text selection)

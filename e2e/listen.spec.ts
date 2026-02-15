@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test'
 
 /**
- * Player Page Tests
- * 
- * Tests for the /player page including:
+ * Listen Page Tests
+ *
+ * Tests for the /listen page (music player / tracks) including:
  * - Access control (guest, free subscriber, paid subscriber)
  * - Track selection and playback
  * - SoundCloud integration
@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test'
  * - Error handling
  */
 
-test.describe('Player Page - Access Control', () => {
+test.describe('Listen page - Access Control', () => {
   test('guest user sees only first track', async ({ page }) => {
     // Mock subscription check to return 'not_subscriber'
     await page.route('**/members/api/member/', (route) => {
@@ -22,11 +22,11 @@ test.describe('Player Page - Access Control', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Should see "checking access..." then player content
-    await expect(page.getByText(/player/i)).toBeVisible()
+    await expect(page.getByText(/listen/i)).toBeVisible()
     
     // Should see status message for guest
     await expect(page.getByText(/guest.*first track only/i)).toBeVisible()
@@ -61,7 +61,7 @@ test.describe('Player Page - Access Control', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Should see status message for free subscriber
@@ -78,7 +78,7 @@ test.describe('Player Page - Access Control', () => {
     await expect(page.getByText('Nova')).toBeVisible()
     const lockedNova = page.locator('text=Nova').locator('..').filter({ hasText: /locked/i })
     // Nova should be in locked section
-    await expect(page.getByText(/upgrade to paid/i)).toBeVisible()
+    await expect(page.getByText('sign up').first()).toBeVisible()
   })
 
   test('paid subscriber sees all tracks', async ({ page }) => {
@@ -103,7 +103,7 @@ test.describe('Player Page - Access Control', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Should see status message for paid subscriber
@@ -115,7 +115,9 @@ test.describe('Player Page - Access Control', () => {
     await expect(page.getByText('Nova')).toBeVisible()
     
     // Should NOT see locked tracks section
-    await expect(page.getByText(/upgrade to paid/i)).not.toBeVisible()
+    // No locked tracks for paid (no "sign up" in track list)
+    const signUpInTracks = page.locator('text=sign up')
+    await expect(signUpInTracks).toHaveCount(0)
     
     // Wait for tracks to load
     await page.waitForSelector('text=Vision', { state: 'visible' })
@@ -140,18 +142,18 @@ test.describe('Player Page - Access Control', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
-    // Should still show player (not crash)
-    await expect(page.getByText(/player/i)).toBeVisible()
+    // Should still show listen page (not crash)
+    await expect(page.getByText(/listen/i)).toBeVisible()
     
     // Should default to guest access (first track only)
     await expect(page.getByText('Vision')).toBeVisible()
   })
 })
 
-test.describe('Player Page - Track Selection', () => {
+test.describe('Listen page - Track Selection', () => {
   test.beforeEach(async ({ page }) => {
     // Default to paid subscriber for track selection tests
     await page.route('**/members/api/member/', (route) => {
@@ -176,7 +178,7 @@ test.describe('Player Page - Track Selection', () => {
   })
 
   test('clicking track selects it and shows player', async ({ page }) => {
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
     
     // Wait for tracks to be visible
@@ -218,7 +220,7 @@ test.describe('Player Page - Track Selection', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Try to click locked track (Nova - third track)
@@ -234,7 +236,7 @@ test.describe('Player Page - Track Selection', () => {
   })
 
   test('switching between tracks updates player', async ({ page }) => {
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Select first track
@@ -251,7 +253,7 @@ test.describe('Player Page - Track Selection', () => {
   })
 })
 
-test.describe('Player Page - SoundCloud Integration', () => {
+test.describe('Listen page - SoundCloud Integration', () => {
   test.beforeEach(async ({ page }) => {
     await page.route('**/members/api/member/', (route) => {
       route.fulfill({
@@ -275,7 +277,7 @@ test.describe('Player Page - SoundCloud Integration', () => {
   })
 
   test('SoundCloud iframe loads with correct URL', async ({ page }) => {
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Select first track
@@ -295,7 +297,7 @@ test.describe('Player Page - SoundCloud Integration', () => {
   })
 
   test('SoundCloud iframe does not show invalid URL error', async ({ page }) => {
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Select first track
@@ -318,7 +320,7 @@ test.describe('Player Page - SoundCloud Integration', () => {
   })
 
   test('SoundCloud widget shows for all tracks', async ({ page }) => {
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     const tracks = ['Vision', 'Overpriced Airbnb', 'Nova']
@@ -335,7 +337,7 @@ test.describe('Player Page - SoundCloud Integration', () => {
   })
 
   test('SoundCloud player has hint text for play button', async ({ page }) => {
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Select first track
@@ -351,7 +353,7 @@ test.describe('Player Page - SoundCloud Integration', () => {
   })
 })
 
-test.describe('Player Page - Voting and Feedback', () => {
+test.describe('Listen page - Voting and Feedback', () => {
   test.beforeEach(async ({ page }) => {
     await page.route('**/members/api/member/', (route) => {
       route.fulfill({
@@ -375,7 +377,7 @@ test.describe('Player Page - Voting and Feedback', () => {
   })
 
   test('voting buttons only visible for paid subscribers', async ({ page }) => {
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Should see upvote and downvote buttons
@@ -402,7 +404,7 @@ test.describe('Player Page - Voting and Feedback', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Should NOT see voting buttons
@@ -411,7 +413,7 @@ test.describe('Player Page - Voting and Feedback', () => {
   })
 
   test('clicking vote button toggles vote state', async ({ page }) => {
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
     
     // Wait for tracks to load
@@ -442,7 +444,7 @@ test.describe('Player Page - Voting and Feedback', () => {
   })
 
   test('feedback form opens and closes', async ({ page }) => {
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
     
     // Wait for tracks to load
@@ -491,7 +493,7 @@ test.describe('Player Page - Voting and Feedback', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Should NOT see feedback buttons
@@ -500,7 +502,7 @@ test.describe('Player Page - Voting and Feedback', () => {
   })
 })
 
-test.describe('Player Page - Error Cases', () => {
+test.describe('Listen page - Error Cases', () => {
   test('handles subscription API timeout gracefully', async ({ page }) => {
     // Mock subscription check to timeout
     await page.route('**/members/api/member/', (route) => {
@@ -510,11 +512,11 @@ test.describe('Player Page - Error Cases', () => {
       }, 100)
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     
     // Should eventually show content (defaults to guest)
     await page.waitForTimeout(2000)
-    await expect(page.getByText(/player/i)).toBeVisible()
+    await expect(page.getByText(/listen/i)).toBeVisible()
   })
 
   test('handles missing tracks gracefully', async ({ page }) => {
@@ -540,15 +542,15 @@ test.describe('Player Page - Error Cases', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Page should load without errors
-    await expect(page.getByText(/player/i)).toBeVisible()
+    await expect(page.getByText(/listen/i)).toBeVisible()
   })
 })
 
-test.describe('Player Page - UI Elements', () => {
+test.describe('Listen page - UI Elements', () => {
   test('public nav is present and works', async ({ page }) => {
     await page.route('**/members/api/member/', (route) => {
       route.fulfill({
@@ -558,15 +560,16 @@ test.describe('Player Page - UI Elements', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
-    // Nav links should be visible
-    await expect(page.getByRole('link', { name: 'player' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'connect' })).toBeVisible()
+    // Home link should be visible (Listen page has ← home)
+    await expect(page.getByRole('link', { name: /home/i })).toBeVisible()
 
-    // Clicking should navigate
+    // Navigate home then check nav is there
+    await page.getByRole('link', { name: /home/i }).click()
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByRole('link', { name: 'listen' })).toBeVisible()
     await page.getByRole('link', { name: 'watch' }).click()
     await expect(page).toHaveURL(/.*\/watch/)
   })
@@ -592,7 +595,7 @@ test.describe('Player Page - UI Elements', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Check that the content container has overflow-y: auto
@@ -635,7 +638,7 @@ test.describe('Player Page - UI Elements', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
     // Verify all tracks are visible (should be scrollable to see all)
@@ -647,7 +650,7 @@ test.describe('Player Page - UI Elements', () => {
     await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
   })
 
-  test('upgrade button works for free subscribers', async ({ page }) => {
+  test('clicking locked track navigates to connect', async ({ page }) => {
     // Mock as free subscriber
     await page.route('**/members/api/member/', (route) => {
       route.fulfill({
@@ -663,17 +666,15 @@ test.describe('Player Page - UI Elements', () => {
       })
     })
 
-    await page.goto('/player')
+    await page.goto('/listen')
     await page.waitForLoadState('networkidle')
 
-    // Should see upgrade button
-    const upgradeButton = page.getByRole('button', { name: /upgrade/i })
-    await expect(upgradeButton).toBeVisible()
-    
-    // Clicking should trigger portal (check hash change)
-    await upgradeButton.click()
-    
-    // Should navigate to portal
-    await expect(page).toHaveURL(/.*#\/portal\/account/)
+    // Locked track shows "sign up"; click the locked track container (Nova)
+    const lockedTrack = page.locator('text=Nova').locator('..').first()
+    await expect(lockedTrack).toBeVisible()
+    await lockedTrack.click()
+
+    // Should navigate to connect page
+    await expect(page).toHaveURL(/.*\/connect/)
   })
 })
