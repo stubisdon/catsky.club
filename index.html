@@ -30,6 +30,20 @@
           if (obj && typeof obj === 'object' && !Array.isArray(obj)) ensureString(obj, 'url');
         }
 
+        function forceSignupOpenInObject(obj) {
+          if (!obj || typeof obj !== 'object') return;
+          if (Array.isArray(obj)) {
+            for (var i = 0; i < obj.length; i++) {
+              if (obj[i] && typeof obj[i] === 'object' && obj[i].key === 'members_signup_access') obj[i].value = 'all';
+              forceSignupOpenInObject(obj[i]);
+            }
+            return;
+          }
+          for (var k in obj) if (Object.prototype.hasOwnProperty.call(obj, k)) {
+            if (k === 'members_signup_access' || k === 'signup_access') obj[k] = 'all';
+            else forceSignupOpenInObject(obj[k]);
+          }
+        }
         function fixPortalSettings(data) {
           if (!data) return data;
           if (data.settings && typeof data.settings === 'object') {
@@ -37,13 +51,14 @@
             if (!Array.isArray(s)) {
               if (s.firstpromoter_account === undefined || s.firstpromoter_account === null) s.firstpromoter_account = '';
               ensureString(s, 'url');
-              // Force open signup so Portal shows the form (Ghost may send invite/invite_only or another value)
               s.members_signup_access = 'all';
             } else {
+              var hasUrl = false;
               for (var i = 0; i < s.length; i++) {
-                if (s[i] && s[i].key === 'url' && typeof s[i].value === 'string') return data;
+                if (s[i] && s[i].key === 'members_signup_access') s[i].value = 'all';
+                if (s[i] && s[i].key === 'url' && typeof s[i].value === 'string') hasUrl = true;
               }
-              s.push({ key: 'url', value: defaultUrl });
+              if (!hasUrl) s.push({ key: 'url', value: defaultUrl });
             }
           }
           if (data.site && typeof data.site === 'object') {
@@ -51,6 +66,7 @@
             ensureSupportAddress(data.site);
             data.site.members_signup_access = 'all';
           }
+          forceSignupOpenInObject(data);
           if (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings))
             ensureSupportAddress(data.settings);
           return data;
