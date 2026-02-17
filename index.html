@@ -243,9 +243,12 @@
         });
         }
         if (apiKey) {
-          fetch(settingsUrl, { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(data) {
-            window.__PORTAL_SETTINGS_CACHE__ = data;
-            loadPortal();
+          fetch(settingsUrl, { cache: 'no-store' }).then(function(r) {
+            if (!r.ok) return loadPortal();
+            return r.json().then(function(data) {
+              window.__PORTAL_SETTINGS_CACHE__ = data;
+              loadPortal();
+            });
           }).catch(function() { loadPortal(); });
         } else {
           loadPortal();

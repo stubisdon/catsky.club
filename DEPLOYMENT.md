@@ -190,6 +190,18 @@ If Ghost runs under PM2: `pm2 restart ghost` (or the process name you use).
 
 Use an incognito/private window and open `https://catsky.club/connect`, then click **Sign up**. If it still shows invite-only, double-check that no tier is set to invite-only and that you saved the Access setting.
 
+**4. 401 on `/ghost/api/content/settings/` (Network tab)**
+
+If the Network tab shows the settings request returning **401 Unauthorized**, Ghost is rejecting the **Content API key**. The Portal then has no valid settings and shows "invite-only".
+
+- In **Ghost Admin** go to **Settings** → **Integrations** (or **Apps & integrations**). Find the integration that has the **Content API key** (the public key used for Portal). Copy the key, or create a new custom integration and copy its Content API key.
+- On the **server**, set the key in `.env.server`:  
+  `VITE_GHOST_CONTENT_API_KEY=your_full_key_here`  
+  (The key is the long hex string; do not add `key=` or quotes around the value.)
+- **Redeploy** so the build runs with the new key (e.g. run `./deploy.sh` on the server again). The key is baked into the built `index.html` at build time.
+
+Do not commit the key to the repo; keep it only in `.env.server` on the server.
+
 ### Debugging Ghost (members, magic link, email)
 
 The **Portal** (sign up / log in) and **magic link** emails are handled by **Ghost**, not by this app. A 500 on `POST /members/api/send-magic-link/` means Ghost is failing when sending the login email.

@@ -4,6 +4,10 @@
 
 set -e  # Exit on error
 
+# Use the directory containing this script as project root (so .env.server is found even if you run from elsewhere)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
 echo "🚀 Starting deployment for Catsky Club..."
 
 # Check if we're in the right directory
@@ -19,15 +23,16 @@ if [ -d ".git" ]; then
 fi
 
 # Load server-only environment variables (not committed to git)
-# Create /opt/catsky-club/.env.server on the server with lines like:
+# Create .env.server in the same directory as this script with lines like:
 # GHOST_URL="https://catsky.club"
 # GHOST_ADMIN_API_KEY="id:secret"
+# VITE_GHOST_CONTENT_API_KEY="your_content_api_key"
 # SIGNUPS_API_TOKEN="..."
 if [ -f ".env.server" ]; then
     echo "🔐 Loading server environment from .env.server"
     set -a
     # shellcheck disable=SC1091
-    . ".env.server"
+    . "./.env.server"
     set +a
 else
     echo "ℹ️  .env.server not found (ok if Ghost signups not enabled yet)"
@@ -35,11 +40,15 @@ fi
 
 # Set Ghost Portal environment variables for production build
 # (Dev uses .env.development when you run `npm run dev`.)
-# These are required for the Ghost Portal embed in index.html
+# These are required for the Ghost Portal embed in index.html.
+# Content API key: set in .env.server (from Ghost Admin → Settings → Integrations). If missing, Portal will get 401 on settings and show "invite-only".
 export VITE_GHOST_URL="${VITE_GHOST_URL:-https://catsky.club}"
-export VITE_GHOST_CONTENT_API_KEY="${VITE_GHOST_CONTENT_API_KEY:-f6dd5a28bd25bdc6e849457dd2}"
+export VITE_GHOST_CONTENT_API_KEY="${VITE_GHOST_CONTENT_API_KEY:-}"
 
 echo "🔑 Using Ghost URL: $VITE_GHOST_URL"
+if [ -z "$VITE_GHOST_CONTENT_API_KEY" ]; then
+    echo "⚠️  VITE_GHOST_CONTENT_API_KEY is empty; add it to .env.server or Portal may show invite-only (401 on settings)."
+fi
 
 # Check Node.js version (Vite requires Node 18+, but 20+ is recommended)
 NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
