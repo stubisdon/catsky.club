@@ -164,6 +164,32 @@ sudo lsof -i :3001
 - Make sure your nginx config still has all the Ghost location blocks
 - Check that Ghost is running: `ghost status`
 
+### Portal still shows "This site is invite-only" after enabling sign-up
+
+If **Settings → Membership → Access** is set to **"Anyone can sign up"** but the Portal still shows the invite-only message after a hard refresh:
+
+**1. Check tier-level settings**
+
+Ghost can have **invite-only per tier**. If every tier (including the free tier) is set to invite-only, Portal will still show "invite only".
+
+- In Ghost Admin go to **Settings** → **Membership** (or **Tiers** / **Plans**).
+- Open each tier (Free and any Paid tiers). Ensure **at least one tier** allows open sign-up (e.g. the Free tier should **not** be "Invite only" or "Private"). If you only have one tier and it’s invite-only, create or edit a tier so that it’s publicly signable.
+
+**2. Restart Ghost (clear cache)**
+
+Settings are sometimes cached. On the server:
+
+```bash
+cd /var/www/ghost   # or your Ghost install path
+ghost restart
+```
+
+If Ghost runs under PM2: `pm2 restart ghost` (or the process name you use).
+
+**3. Retest**
+
+Use an incognito/private window and open `https://catsky.club/connect`, then click **Sign up**. If it still shows invite-only, double-check that no tier is set to invite-only and that you saved the Access setting.
+
 ### Debugging Ghost (members, magic link, email)
 
 The **Portal** (sign up / log in) and **magic link** emails are handled by **Ghost**, not by this app. A 500 on `POST /members/api/send-magic-link/` means Ghost is failing when sending the login email.
