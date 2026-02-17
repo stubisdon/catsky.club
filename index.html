@@ -157,10 +157,16 @@
           });
         }
 
+        function isGhostSettingsUrl(u) {
+          return typeof u === 'string' && (u.indexOf('/content/settings') !== -1 || u.indexOf('/ghost/api/content/settings') !== -1);
+        }
         var originalFetch = window.fetch;
         window.fetch = function(url, options) {
           var reqUrl = (url && (typeof url === 'string' ? url : url.url)) || '';
           if (isGhostApiUrl(reqUrl)) _portalFixLog('fetch: ' + reqUrl.split('?')[0]);
+          if (isGhostSettingsUrl(reqUrl) && window.__PORTAL_SETTINGS_CACHE__) {
+            return Promise.resolve(new Response(JSON.stringify(window.__PORTAL_SETTINGS_CACHE__), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+          }
           var args;
           if (isGhostApiUrl(reqUrl)) {
             var opts = (options && typeof options === 'object') ? Object.assign({}, options) : {};
@@ -216,6 +222,8 @@
         var apiKey = (config && config.getAttribute('data-key')) || '';
         window.__GHOST_SITE__ = { url: ghostUrl.replace(/\/$/, ''), firstpromoter_account: '' };
         var portalSrc = 'https://cdn.jsdelivr.net/npm/@tryghost/portal@latest/umd/portal.min.js';
+        var settingsUrl = ghostUrl.replace(/\/$/, '') + '/ghost/api/content/settings/?key=' + encodeURIComponent(apiKey);
+        function loadPortal() {
         fetch(portalSrc, { cache: 'no-store' }).then(function(r) { return r.text(); }).then(function(code) {
           var safe = code.replace(/(\w+)\.url\.replace\(/g, function(_, v) {
             return '((typeof ' + v + '!=="undefined"&&' + v + '&&' + v + '.url)?' + v + '.url:(window.__GHOST_SITE__&&window.__GHOST_SITE__.url)||"").replace(';
@@ -233,6 +241,15 @@
           s.defer = true;
           document.head.appendChild(s);
         });
+        }
+        if (apiKey) {
+          fetch(settingsUrl, { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(data) {
+            window.__PORTAL_SETTINGS_CACHE__ = data;
+            loadPortal();
+          }).catch(function() { loadPortal(); });
+        } else {
+          loadPortal();
+        }
       })();
     </script>
   </head>
