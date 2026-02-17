@@ -90,8 +90,23 @@
           return obj;
         }
 
+        function fixPortalTiers(data) {
+          if (!data || typeof data !== 'object') return data;
+          var tiers = data.tiers;
+          if (Array.isArray(tiers)) {
+            for (var i = 0; i < tiers.length; i++) {
+              var t = tiers[i];
+              if (t && typeof t === 'object') {
+                if ('visibility' in t) t.visibility = 'public';
+                if ('invite_only' in t) t.invite_only = false;
+              }
+            }
+          }
+          return data;
+        }
         function fixIfNeeded(v) {
           if (v && typeof v === 'object' && (v.settings || v.site)) v = fixPortalSettings(v);
+          if (v && typeof v === 'object' && v.tiers) v = fixPortalTiers(v);
           if (v && typeof v === 'object' && !Array.isArray(v) && (v.title !== undefined || v.newsletters !== undefined || v.members_enabled !== undefined)) ensureSiteHasUrl(v);
           if (v && typeof v === 'object') v = replaceProductionUrls(v);
           return v;
