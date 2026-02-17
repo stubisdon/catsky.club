@@ -1,13 +1,14 @@
 # Run Ghost diagnostics on the production server and post the report to the job summary.
 # Requires the same SSH secrets as deploy: PROD_HOST, PROD_USER, PROD_SSH_KEY.
 #
-# To run: Actions → "Ghost diagnostics" → "Run workflow".
+# Runs weekly (Monday 09:00 UTC) and manually via Actions → "Ghost diagnostics" → "Run workflow".
+# Does NOT run on push to main, so each push only triggers "Deploy to Production".
 
 name: Ghost diagnostics
 
 on:
-  push:
-    branches: [main]
+  schedule:
+    - cron: '0 9 * * 1'
   workflow_dispatch:
 
 jobs:
