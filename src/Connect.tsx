@@ -60,9 +60,15 @@ function handlePortalClick(e: React.MouseEvent<HTMLAnchorElement>) {
 
 const PORTAL_HASH_REGEX = /^#\/portal\/(signup|signin|account)/
 
+const MAGIC_LINK_API = '/members/api/send-magic-link/'
+
 export default function Connect() {
   const [portalHashActive, setPortalHashActive] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
+  const [showSignupForm, setShowSignupForm] = useState(false)
+  const [signupEmail, setSignupEmail] = useState('')
+  const [signupStatus, setSignupStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [signupError, setSignupError] = useState<string | null>(null)
 
   useEffect(() => {
     const check = () => setPortalHashActive(PORTAL_HASH_REGEX.test(window.location.hash))
@@ -107,6 +113,39 @@ export default function Connect() {
     setTimeout(refreshMemberStatus, 500)
   }, [refreshMemberStatus])
 
+  const handleSignupSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      const email = signupEmail.trim()
+      if (!email || !email.includes('@')) {
+        setSignupError('Please enter a valid email.')
+        setSignupStatus('error')
+        return
+      }
+      setSignupError(null)
+      setSignupStatus('loading')
+      try {
+        const res = await fetch(MAGIC_LINK_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email }),
+        })
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        if (!res.ok) {
+          setSignupError(data?.error || res.statusText || 'Something went wrong.')
+          setSignupStatus('error')
+          return
+        }
+        setSignupStatus('success')
+      } catch (err) {
+        setSignupError(err instanceof Error ? err.message : 'Network error.')
+        setSignupStatus('error')
+      }
+    },
+    [signupEmail]
+  )
+
   useEffect(() => {
     document.body.classList.add(CONNECT_BODY_CLASS)
     const triggers = document.getElementById('ghost-portal-triggers')
@@ -135,14 +174,47 @@ export default function Connect() {
         <div className="connect-portal-buttons">
           {isLoggedIn !== true && (
             <>
-              <a
-                href="#/portal/signup"
-                data-portal="signup"
-                className="connect-portal-btn"
-                onClick={handlePortalClick}
-              >
-                sign up →
-              </a>
+              {!showSignupForm ? (
+                <button
+                  type="button"
+                  className="connect-portal-btn"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit', textDecoration: 'underline', padding: 0 }}
+                  onClick={() => setShowSignupForm(true)}
+                >
+                  sign up →
+                </button>
+              ) : (
+                <form onSubmit={handleSignupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem', maxWidth: '20rem' }}>
+                  <input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                    disabled={signupStatus === 'loading'}
+                    autoFocus
+                    style={{ padding: '0.5rem', fontSize: '1rem' }}
+                  />
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button type="submit" className="connect-portal-btn" disabled={signupStatus === 'loading'} style={{ padding: '0.35rem 0.75rem' }}>
+                      {signupStatus === 'loading' ? 'Sending…' : 'Send magic link'}
+                    </button>
+                    <button
+                      type="button"
+                      className="connect-portal-btn"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', opacity: 0.8 }}
+                      onClick={() => { setShowSignupForm(false); setSignupStatus('idle'); setSignupError(null); }}
+                    >
+                      cancel
+                    </button>
+                  </div>
+                  {signupStatus === 'success' && (
+                    <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>Check your email for the sign-in link.</p>
+                  )}
+                  {signupStatus === 'error' && signupError && (
+                    <p style={{ fontSize: '0.9rem', color: 'rgba(255,180,180,0.95)' }}>{signupError}</p>
+                  )}
+                </form>
+              )}
               <a
                 href="#/portal/signin"
                 data-portal="signin"
