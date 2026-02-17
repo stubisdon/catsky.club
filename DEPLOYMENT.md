@@ -107,6 +107,37 @@ git pull  # if using git
 ./deploy.sh
 ```
 
+## Multi-tab workflow (Cursor)
+
+When multiple Cursor agent tabs are working on different features or bugs, follow this so committing in one tab doesn’t overwrite another tab’s work.
+
+### One branch per tab
+
+- Each tab should use its **own branch** (e.g. `feature/auth-modal`, `fix/login-redirect`).
+- Committing in Tab A only affects that branch; other tabs on other branches are unaffected.
+- Don’t have two tabs on the same branch when both have uncommitted or unpushed work.
+
+### Before you commit in this tab
+
+1. **Check branch:** `git branch --show-current` — confirm you’re on this tab’s branch, not `main` or another tab’s branch.
+2. **Check scope:** `git status` — only stage and commit files this tab was supposed to change. If you see files another tab was editing, don’t add them in this commit; let the other tab commit them on its branch.
+
+### Avoid destructive Git in any tab
+
+- **No `git push --force`** on branches other tabs might be using (or that `main` is based on).
+- **No `git reset --hard`** on a branch another tab is using, or on `main` if other branches depend on it.
+
+### If two tabs used the same branch
+
+- Have one tab create a **new branch** from the current state and continue there; the other keeps the original branch. From then on, use one branch per tab.
+- Or one tab **stashes** its work (`git stash push -m "tab B WIP"`), the other commits and pushes; then the first tab can apply the stash and commit (preferably on its own new branch).
+
+### Safe-to-commit checklist
+
+1. `git branch --show-current` → this tab’s branch?
+2. `git status` → only this tab’s files changed?
+3. If yes → `git add` only those files, commit, and push that branch (no force).
+
 ## Troubleshooting
 
 ### App not loading
