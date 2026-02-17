@@ -37,10 +37,8 @@
             if (!Array.isArray(s)) {
               if (s.firstpromoter_account === undefined || s.firstpromoter_account === null) s.firstpromoter_account = '';
               ensureString(s, 'url');
-              // Workaround: if Ghost still returns invite-only (e.g. cache) but Admin is set to "Anyone can sign up", force open signup so Portal shows the form
-              if (s.members_signup_access === 'invite' || s.members_signup_access === 'invite_only') {
-                s.members_signup_access = 'all';
-              }
+              // Force open signup so Portal shows the form (Ghost may send invite/invite_only or another value)
+              s.members_signup_access = 'all';
             } else {
               for (var i = 0; i < s.length; i++) {
                 if (s[i] && s[i].key === 'url' && typeof s[i].value === 'string') return data;
@@ -51,9 +49,7 @@
           if (data.site && typeof data.site === 'object') {
             ensureString(data.site, 'url');
             ensureSupportAddress(data.site);
-            if (data.site.members_signup_access === 'invite' || data.site.members_signup_access === 'invite_only') {
-              data.site.members_signup_access = 'all';
-            }
+            data.site.members_signup_access = 'all';
           }
           if (data.settings && typeof data.settings === 'object' && !Array.isArray(data.settings))
             ensureSupportAddress(data.settings);
