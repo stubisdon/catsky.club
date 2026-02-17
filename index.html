@@ -105,7 +105,13 @@
 
         var originalJson = Response.prototype.json;
         Response.prototype.json = function() {
-          return originalJson.call(this).then(fixIfNeeded);
+          var self = this;
+          return originalJson.call(self).then(fixIfNeeded).catch(function(e) {
+            if (e && (e instanceof SyntaxError || (typeof e.message === 'string' && e.message.indexOf('JSON') !== -1))) {
+              return fixIfNeeded({});
+            }
+            throw e;
+          });
         };
 
         function isGhostApiUrl(url) {
@@ -120,11 +126,24 @@
         function fixJsonResponse(response, reqUrl) {
           var contentType = response.headers.get('Content-Type') || '';
           if (contentType.indexOf('application/json') === -1) return Promise.resolve(response);
+          var url = (reqUrl || response.url || '').toString();
           return response.clone().text().then(function(text) {
             try {
-              if (!text || text.trim() === '') throw new Error('empty');
+              if (!text || text.trim() === '') {
+                // Ghost can return 200 with empty body for /members/api/member/ when not logged in; avoid JSON parse errors downstream
+                var emptyBody = url.indexOf('/member') !== -1 ? '{"member":null}' : '{}';
+                var data = fixIfNeeded(JSON.parse(emptyBody));
+                _portalFixLog('patched empty response: ' + url.split('?')[0]);
+                var r = new Response(JSON.stringify(data), {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: { 'Content-Type': 'application/json' }
+                });
+                if (response.url) Object.defineProperty(r, 'url', { value: response.url, configurable: true });
+                return r;
+              }
               var data = fixIfNeeded(JSON.parse(text));
-              _portalFixLog('patched response: ' + (reqUrl || response.url || '').split('?')[0]);
+              _portalFixLog('patched response: ' + url.split('?')[0]);
               var r = new Response(JSON.stringify(data), {
                 status: response.status,
                 statusText: response.statusText,
