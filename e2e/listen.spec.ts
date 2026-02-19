@@ -219,7 +219,6 @@ test.describe('Listen page - Track Selection', () => {
     await novaTrack.click()
     
     // Track should not be selected (no player should appear for Nova)
-    const playerSection = page.locator('text=Nova').filter({ hasText: /^Nova$/ })
     // The player section should not show Nova as selected
     // We can check that the player section doesn't contain Nova title
     const playerTitle = page.locator('[style*="font-weight: bold"]').filter({ hasText: 'Nova' })
@@ -424,9 +423,6 @@ test.describe('Listen page - Voting and Feedback', () => {
     await page.waitForTimeout(300)
     
     // Button should be highlighted (check color or style)
-    const buttonColor = await upvoteButton.evaluate((el) => {
-      return window.getComputedStyle(el).color
-    })
     // The active state should have different styling
     
     // Click again to toggle off

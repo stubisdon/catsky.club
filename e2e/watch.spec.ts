@@ -71,7 +71,6 @@ test.describe('Watch Page - YouTube Video', () => {
 
     // The iframe should be in a responsive container with 16:9 aspect ratio
     const iframe = page.locator('iframe[src*="youtube.com/embed"]')
-    const parent = iframe.locator('..')
     
     // Check that iframe fills the container
     const iframeStyle = await iframe.evaluate((el) => {
