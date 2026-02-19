@@ -1,18 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import './index.css'
+import { PageContainer, PageTitle, Link } from './components'
+import { navigateTo } from './router'
 import { checkSubscriptionStatus, type SubscriptionStatus } from './utils/subscription'
-import {
-  getDirectAudioUrl,
-  getSoundCloudEmbedUrl
-} from './utils/audioHelpers'
-import { clearLocalSessionFlags, openPortalAccount, openPortalSignIn, triggerPortalSignOut } from './utils/memberSession.ts'
+import { getDirectAudioUrl, getSoundCloudEmbedUrl } from './utils/audioHelpers'
+import { clearLocalSessionFlags, openPortalAccount, openPortalSignIn, triggerPortalSignOut } from './utils/memberSession'
 import { TRACKS } from './config/tracks'
-
-// Internal navigation helper
-const navigateTo = (path: string) => {
-  window.history.pushState({}, '', path)
-  window.dispatchEvent(new PopStateEvent('popstate'))
-}
 
 export default function Listen() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('unknown')
@@ -172,11 +164,11 @@ export default function Listen() {
 
   if (checking) {
     return (
-      <div className="app-container">
+      <PageContainer showHomeLink={false}>
         <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.9 }}>
           checking access…
         </div>
-      </div>
+      </PageContainer>
     )
   }
 
@@ -196,20 +188,9 @@ export default function Listen() {
           overflowY: 'auto',
           userSelect: 'text',
           WebkitUserSelect: 'text',
-          MozUserSelect: 'text',
-          msUserSelect: 'text',
         }}
       >
-        <h1
-          style={{
-            fontSize: 'clamp(1.8rem, 4vw, 3rem)',
-            marginBottom: '1.25rem',
-            letterSpacing: '0.1em',
-            textTransform: 'lowercase',
-          }}
-        >
-          listen
-        </h1>
+        <PageTitle>listen</PageTitle>
 
         <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', opacity: 0.8 }}>
           <a
@@ -486,19 +467,13 @@ export default function Listen() {
           </div>
         )}
 
-        <a
+        <Link
           href="/"
-          onClick={(e) => { e.preventDefault(); navigateTo('/') }}
-          style={{
-            position: 'fixed', bottom: '1rem', left: '1rem',
-            color: 'rgba(255, 255, 255, 0.5)', textDecoration: 'none', fontSize: '0.9rem',
-            letterSpacing: '0.05em', transition: 'color 0.3s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'rgba(255, 255, 255, 1)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)' }}
+          variant="subtle"
+          style={{ position: 'fixed', bottom: '1rem', left: '1rem' }}
         >
           ← home
-        </a>
+        </Link>
       </div>
     </div>
   )
