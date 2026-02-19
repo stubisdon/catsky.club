@@ -8,7 +8,7 @@ Single-page app for membership, music (tracks), and video. **Auth and membership
 
 - **Build:** Vite + React 18 + TypeScript
 - **Entry:** `index.html` → `src/main.tsx` (creates root, renders `Router`)
-- **Routing:** Client-side only. No React Router; a small router in `main.tsx` uses `window.location.pathname` and `popstate`. Links use `navigateTo(path)` (pushState + dispatch popstate).
+- **Routing:** Client-side only. Custom router in `src/router/Router.tsx` uses `window.location.pathname` and `popstate`. Navigation uses `navigateTo(path)` from `src/router/navigation.ts`.
 - **Production server:** Express in `server.js` (port 3001): serves `dist/` and `public/`, plus API routes under `/api/`. Nginx in front proxies `/ghost` and `/members` to Ghost.
 
 ---
@@ -95,16 +95,61 @@ Ghost’s own routes (`/members/api/*`, `/ghost/*`) are **not** implemented in s
 
 | Concern              | File(s) |
 |----------------------|--------|
-| Routes, views        | `src/main.tsx` (Router, resolveView) |
+| Routes, views        | `src/router/Router.tsx` (routing logic), `src/main.tsx` (entry) |
+| Navigation           | `src/router/navigation.ts` (navigateTo, replaceState, goBack) |
 | Home                 | `src/App.tsx` |
 | Connect (sign up / login) | `src/Connect.tsx` (inline signup form, Portal for login/account) |
 | Listen (tracks)      | `src/Listen.tsx`, `src/config/tracks.ts` |
+| Watch (video)        | `src/Watch.tsx` |
+| Mission (hidden)     | `src/Mission.tsx` |
+| Shared components    | `src/components/` (Link, PageContainer, PageTitle) |
+| Shared styles        | `src/styles/` (common inline style objects) |
+| Utilities            | `src/utils/` (subscription, memberSession, audioHelpers, soundcloudTracks) |
 | Subscription status  | `src/utils/subscription.ts` |
 | Portal triggers, logout | `src/utils/memberSession.ts` |
+| Audio helpers        | `src/utils/audioHelpers.ts`, `src/utils/soundcloudTracks.ts` |
+| Track config         | `src/config/tracks.ts` |
 | Portal + API patches | `index.html` (inline script, then Portal loader; hidden triggers in body) |
 | Our API + static     | `server.js` |
 | Deploy               | `deploy.sh`, `.github/workflows/deploy.yml` |
 | Env (prod build)     | `VITE_GHOST_URL`, `VITE_GHOST_CONTENT_API_KEY` in `.env.server` on server; baked into `dist/index.html` at build time. |
+
+---
+
+## 6.1 Directory Structure
+
+```
+src/
+├── components/           # Reusable UI components
+│   ├── Link.tsx         # Navigation link with variants
+│   ├── PageContainer.tsx # Standard page wrapper with home link
+│   ├── PageTitle.tsx    # Styled page header
+│   └── index.ts         # Barrel exports
+├── config/
+│   └── tracks.ts        # Track data configuration
+├── router/              # Client-side routing
+│   ├── Router.tsx       # Main router component
+│   ├── navigation.ts    # Navigation utilities
+│   └── index.ts         # Barrel exports
+├── styles/              # Shared style objects
+│   ├── common.ts        # Common inline styles
+│   └── index.ts         # Barrel exports
+├── types/
+│   └── experience.ts    # Type definitions
+├── utils/               # Utility functions
+│   ├── audioHelpers.ts  # Audio source & playback helpers
+│   ├── memberSession.ts # Ghost Portal session utilities
+│   ├── soundcloudTracks.ts # SoundCloud track parsing
+│   ├── subscription.ts  # Subscription status checking
+│   └── index.ts         # Barrel exports
+├── App.tsx              # Landing page
+├── Connect.tsx          # Sign up / login page
+├── Listen.tsx           # Audio player page
+├── Watch.tsx            # Video page
+├── Mission.tsx          # Mission statement (hidden page)
+├── main.tsx             # App entry point
+└── index.css            # Global styles
+```
 
 ---
 
