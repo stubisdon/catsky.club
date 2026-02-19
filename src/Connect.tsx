@@ -1,7 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { PageTitle, Link } from './components'
-import { clearLocalSessionFlags, triggerPortalSignOut } from './utils/memberSession'
-import { isSubscriber, setDevMemberOverride } from './utils/subscription'
+import {
+  clearLocalSessionFlags,
+  triggerPortalSignOut,
+  isSubscriber,
+  setDevMemberOverride,
+} from './utils'
 
 const CONNECT_BODY_CLASS = 'route-connect'
 
