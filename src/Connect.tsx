@@ -1,13 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import './index.css'
-import { clearLocalSessionFlags, triggerPortalSignOut } from './utils/memberSession.ts'
-import { isSubscriber, setDevMemberOverride } from './utils/subscription.ts'
-
-// Internal navigation helper - ensures all navigation stays within the app
-const navigateTo = (path: string) => {
-  window.history.pushState({}, '', path)
-  window.dispatchEvent(new PopStateEvent('popstate'))
-}
+import { PageTitle, Link } from './components'
+import { clearLocalSessionFlags, triggerPortalSignOut } from './utils/memberSession'
+import { isSubscriber, setDevMemberOverride } from './utils/subscription'
 
 const CONNECT_BODY_CLASS = 'route-connect'
 
@@ -159,16 +153,7 @@ export default function Connect() {
   return (
     <div className="app-container">
       <div className="connect-content">
-        <h1
-          style={{
-            fontSize: 'clamp(1.8rem, 4vw, 3rem)',
-            marginBottom: '1.25rem',
-            letterSpacing: '0.1em',
-            textTransform: 'lowercase',
-          }}
-        >
-          connect
-        </h1>
+        <PageTitle>connect</PageTitle>
 
         {/* Portal links: set hash so Ghost Portal opens; if it didn’t init, fallback opens Ghost in new tab */}
         <div className="connect-portal-buttons">
@@ -263,25 +248,17 @@ export default function Connect() {
           </div>
 
           <div style={{ marginTop: '1.5rem' }}>
-            <a
+            <Link
               href="/listen"
-              onClick={(e) => {
-                e.preventDefault()
-                navigateTo('/listen')
-              }}
               style={{
                 color: 'rgba(255, 255, 255, 0.6)',
-                textDecoration: 'none',
                 fontSize: '0.95rem',
-                letterSpacing: '0.05em',
                 borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
                 paddingBottom: '0.1rem',
-                cursor: 'pointer',
-                textTransform: 'lowercase',
               }}
             >
               continue →
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -338,31 +315,13 @@ export default function Connect() {
           </div>
         )}
 
-        <a
+        <Link
           href="/"
-          onClick={(e) => {
-            e.preventDefault()
-            navigateTo('/')
-          }}
-          style={{
-            position: 'fixed',
-            bottom: '1rem',
-            left: '1rem',
-            color: 'rgba(255, 255, 255, 0.5)',
-            textDecoration: 'none',
-            fontSize: '0.9rem',
-            letterSpacing: '0.05em',
-            transition: 'color 0.3s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'rgba(255, 255, 255, 1)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
-          }}
+          variant="subtle"
+          style={{ position: 'fixed', bottom: '1rem', left: '1rem' }}
         >
           ← home
-        </a>
+        </Link>
       </div>
     </div>
   )
