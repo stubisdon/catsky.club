@@ -98,6 +98,8 @@ All documentation is available in the `public/docs/` folder, organized into `biz
 - [Brand Guidelines](./public/docs/biz/branding.md) - Brand colors and design system
 - [Mission](./public/docs/biz/mission.md) - Mission statement
 - [Todo](./public/docs/biz/todo.md) - Todo list
+- [Personal Equity Strategy](./public/docs/biz/personal-equity-strategy.md) - Strategy for 25% equity acquisition in 2026
+- [Equity Tracking Log](./public/docs/biz/equity-tracking-log.md) - Weekly contribution tracking template
 
 **Technical Documentation:**
 - [Continue Development](./public/docs/tech/CONTINUE_DEVELOPMENT.md) - How to resume development
