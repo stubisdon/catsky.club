@@ -13,13 +13,17 @@ jobs:
     steps:
       - name: Deploy to production server
         uses: appleboy/ssh-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
+          envs: GITHUB_TOKEN
           script: |
             set -e
             cd /opt/catsky-club
+            git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
             git pull origin main
             chmod +x deploy.sh
             ./deploy.sh
