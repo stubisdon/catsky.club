@@ -24,12 +24,26 @@ jobs:
             set -e
             cd /opt/catsky-club
             
-            # Configure git authentication using PAT if available
+            # Configure git authentication for private repository
+            # Option 1: Use GIT_PAT secret if configured
+            # Option 2: Fallback to SSH if remote is already using SSH URL
+            REMOTE_URL=$(git remote get-url origin)
+            
             if [ -n "$GIT_PAT" ]; then
+              # Use PAT for HTTPS authentication
               git config --global url."https://${GIT_PAT}@github.com/".insteadOf "https://github.com/"
+              git pull origin main
+            elif [[ "$REMOTE_URL" == git@* ]]; then
+              # SSH URL already configured, pull directly
+              git pull origin main
+            else
+              echo "ERROR: Cannot authenticate git pull."
+              echo "For private repos, either:"
+              echo "  1. Add GIT_PAT secret with a Personal Access Token (repo scope)"
+              echo "  2. Configure SSH deploy key on production server"
+              exit 1
             fi
             
-            git pull origin main
             chmod +x deploy.sh
             ./deploy.sh
           timeout: 10m
