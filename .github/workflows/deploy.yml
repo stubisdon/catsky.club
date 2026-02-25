@@ -14,16 +14,21 @@ jobs:
       - name: Deploy to production server
         uses: appleboy/ssh-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_PAT: ${{ secrets.GIT_PAT }}
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
-          envs: GITHUB_TOKEN
+          envs: GIT_PAT
           script: |
             set -e
             cd /opt/catsky-club
-            git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+            
+            # Configure git authentication using PAT if available
+            if [ -n "$GIT_PAT" ]; then
+              git config --global url."https://${GIT_PAT}@github.com/".insteadOf "https://github.com/"
+            fi
+            
             git pull origin main
             chmod +x deploy.sh
             ./deploy.sh
