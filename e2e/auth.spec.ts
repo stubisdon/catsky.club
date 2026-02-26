@@ -58,22 +58,40 @@ test.describe('Connect Page - Basic Elements', () => {
     await expect(logInLink).toBeVisible()
   })
 
-  test('connect page has account link', async ({ page }) => {
+  test('connect page has account link when logged in', async ({ page }) => {
+    // Mock as logged in
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ member: { id: '1', email: 'test@example.com', name: 'Test User' } }),
+      })
+    })
+
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    // Should see account link
+    // Should see account link when logged in
     const accountLink = page.getByRole('link', { name: /account/i })
     await expect(accountLink).toBeVisible()
   })
 
-  test('connect page has log out link', async ({ page }) => {
+  test('connect page has log out button when logged in', async ({ page }) => {
+    // Mock as logged in
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ member: { id: '1', email: 'test@example.com', name: 'Test User' } }),
+      })
+    })
+
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    // Should see log out link
-    const logOutLink = page.getByRole('link', { name: /log out/i })
-    await expect(logOutLink).toBeVisible()
+    // Should see log out button when logged in
+    const logOutBtn = page.getByRole('button', { name: /log out/i })
+    await expect(logOutBtn).toBeVisible()
   })
 
   test('connect page has home navigation link', async ({ page }) => {
@@ -388,23 +406,46 @@ test.describe('Sign In Flow', () => {
 })
 
 test.describe('Log Out Flow', () => {
-  test('log out link is always visible', async ({ page }) => {
+  test('log out button is visible when logged in', async ({ page }) => {
+    // Mock as logged in
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: {
+            id: 'test-member',
+            email: 'test@example.com',
+            subscriptions: [],
+          },
+        }),
+      })
+    })
+
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    // Log out should be visible
-    const logOutLink = page.getByRole('link', { name: /log out/i })
-    await expect(logOutLink).toBeVisible()
+    // Log out should be visible when logged in
+    const logOutBtn = page.getByRole('button', { name: /log out/i })
+    await expect(logOutBtn).toBeVisible()
   })
 
-  test('log out link has correct data attribute', async ({ page }) => {
+  test('log out button is not visible when logged out', async ({ page }) => {
+    // Mock as not logged in
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ member: null }),
+      })
+    })
+
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    // Log out should have data-members-signout attribute (boolean attribute)
-    const logOutLink = page.getByRole('link', { name: /log out/i })
-    const hasAttr = await logOutLink.evaluate((el) => el.hasAttribute('data-members-signout'))
-    expect(hasAttr).toBe(true)
+    // Log out should NOT be visible when logged out
+    const logOutBtn = page.getByRole('button', { name: /log out/i })
+    await expect(logOutBtn).not.toBeVisible()
   })
 
   test('clicking log out triggers sign out handler', async ({ page }) => {
@@ -426,9 +467,9 @@ test.describe('Log Out Flow', () => {
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    // Log out link should be clickable
-    const logOutLink = page.getByRole('link', { name: /log out/i })
-    await expect(logOutLink).toBeVisible()
+    // Log out button should be clickable
+    const logOutBtn = page.getByRole('button', { name: /log out/i })
+    await expect(logOutBtn).toBeVisible()
 
     // Set up a flag to track if the click handler was called
     let clicked = false
@@ -438,16 +479,16 @@ test.describe('Log Out Flow', () => {
 
     // Add click listener before clicking
     await page.evaluate(() => {
-      const logoutLink = document.querySelector('[data-members-signout]')
-      if (logoutLink) {
-        logoutLink.addEventListener('click', () => {
+      const logoutBtn = document.querySelector('button.connect-portal-btn-text')
+      if (logoutBtn && logoutBtn.textContent?.includes('log out')) {
+        logoutBtn.addEventListener('click', () => {
           (window as unknown as { trackLogout: () => void }).trackLogout()
         })
       }
     })
 
     // Click log out
-    await logOutLink.click()
+    await logOutBtn.click()
 
     // Verify click was registered
     await page.waitForTimeout(100)
