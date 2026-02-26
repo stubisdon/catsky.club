@@ -66,6 +66,35 @@ This will:
 
 **Note:** CI / automated tests are currently disabled and deployments do not run tests.
 
+### Private repository authentication (GitHub Actions)
+
+If the repo is **private**, the deploy job must be able to run `git pull` on the production server. Use one of these:
+
+**Option 1: GitHub Personal Access Token (recommended)**
+
+1. Create a [Personal Access Token](https://github.com/settings/tokens) with **repo** scope.
+2. In the repo: **Settings → Secrets and variables → Actions**.
+3. Click **New repository secret**.
+4. Name: `GIT_PAT`, Value: paste your token.
+5. Re-run the failed workflow (or push to `main` again).
+
+The workflow uses `GIT_PAT` to configure HTTPS auth for `git pull` when the server’s remote is `https://github.com/...`.
+
+**Option 2: SSH deploy key on the server**
+
+1. On the production server, ensure the clone uses SSH:
+   ```bash
+   cd /opt/catsky-club
+   git remote get-url origin   # should be git@github.com:USER/REPO.git
+   ```
+   If it shows `https://github.com/...`, switch it:
+   ```bash
+   git remote set-url origin git@github.com:stubisdon/catsky.club.git
+   ```
+2. Add the server’s SSH public key as a **Deploy key** in the repo (**Settings → Deploy keys**). Grant write access only if you need to push from the server.
+
+After applying one of these, the deployment job should authenticate successfully.
+
 ### 4. Configure Nginx
 
 **Important:** Since Ghost is already running, you may need to update your existing nginx config rather than replacing it.

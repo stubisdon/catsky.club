@@ -26,7 +26,12 @@ Last updated: 2026-01-18
    - Private key added as GitHub secret `PROD_SSH_KEY`
    - GitHub secrets configured: `PROD_HOST`, `PROD_USER`, `PROD_SSH_KEY`
 
-5. **Other fixes**
+5. **Private repo auth (if repo is private)**
+   - Add GitHub Actions secret **`GIT_PAT`**: a Personal Access Token with **repo** scope (Settings → Secrets and variables → Actions → New repository secret).
+   - Alternatively, on the server use an SSH remote (`git@github.com:...`) and add the server’s public key as a Deploy key in the repo.
+   - See DEPLOYMENT.md section “Private repository authentication” for details.
+
+6. **Other fixes**
    - Fixed MIME types for static files in `server.js`
    - Added missing `vite.svg` favicon
    - Updated Portal script to use CDN (Ghost 6.0 requirement)
