@@ -137,6 +137,55 @@ body {
   letter-spacing: 0.03em;
 }
 
+/* Signup form styling */
+.connect-signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  max-width: 24rem;
+}
+
+.connect-signup-input {
+  background: transparent;
+  border: 2px solid var(--color-text);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  padding: 0.9rem 1.5rem;
+  letter-spacing: 0.05em;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.connect-signup-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  opacity: 1;
+}
+
+.connect-signup-input:focus {
+  border-color: var(--color-accent);
+}
+
+.connect-signup-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.connect-signup-message {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  letter-spacing: 0.05em;
+}
+
+.connect-signup-error {
+  font-size: 0.95rem;
+  color: rgba(255, 180, 180, 0.95);
+  letter-spacing: 0.05em;
+}
+
 /* Portal triggers: only on /connect, over the slot. Must sit above #root so buttons aren’t covered by text. */
 .ghost-portal-triggers {
   display: none;
