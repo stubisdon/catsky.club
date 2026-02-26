@@ -41,7 +41,6 @@ function handlePortalClick(e: React.MouseEvent<HTMLAnchorElement>) {
         current.hostname === 'www.' + fallback.hostname ||
         fallback.hostname === 'www.' + current.hostname
       const alreadyOnConnect = current.pathname.replace(/\/+$/, '') === '/connect'
-      // Never open a new tab on localhost (Portal loads in-page via proxy); same origin/site or already on /connect: stay
       if (isLocalhost || sameOrigin || (sameSite && alreadyOnConnect)) return
       const root = document.getElementById('ghost-portal-root')
       const hasPortal = root?.querySelector('[class*="popup"], [class*="modal"], iframe') != null
@@ -64,9 +63,13 @@ export default function Connect() {
   const [portalHashActive, setPortalHashActive] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
   const [showSignupForm, setShowSignupForm] = useState(false)
+  const [showSigninForm, setShowSigninForm] = useState(false)
   const [signupEmail, setSignupEmail] = useState('')
+  const [signinEmail, setSigninEmail] = useState('')
   const [signupStatus, setSignupStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [signinStatus, setSigninStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [signupError, setSignupError] = useState<string | null>(null)
+  const [signinError, setSigninError] = useState<string | null>(null)
 
   useEffect(() => {
     const check = () => setPortalHashActive(PORTAL_HASH_REGEX.test(window.location.hash))
@@ -87,14 +90,12 @@ export default function Connect() {
     return () => { cancelled = true }
   }, [])
 
-  // After closing the Portal (e.g. after sign-in), re-check so we hide sign up / log in
   const wasPortalActive = React.useRef(false)
   useEffect(() => {
     if (portalHashActive) {
       wasPortalActive.current = true
     } else if (wasPortalActive.current) {
       wasPortalActive.current = false
-      // Brief delay so cookie from login response is set before we refetch
       const t = setTimeout(refreshMemberStatus, 300)
       return () => clearTimeout(t)
     }
@@ -102,12 +103,10 @@ export default function Connect() {
 
   const handleLogout = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
-    // Trigger Ghost Portal sign out first (clears member cookie); hidden trigger is in DOM at load so Portal bound to it
     triggerPortalSignOut()
     clearLocalSessionFlags()
-    setDevMemberOverride(false) // clear dev override so localhost stays in sync
+    setDevMemberOverride(false)
     setIsLoggedIn(false)
-    // Re-check after Ghost has processed signout so UI stays in sync
     setTimeout(refreshMemberStatus, 500)
   }, [refreshMemberStatus])
 
@@ -116,7 +115,7 @@ export default function Connect() {
       e.preventDefault()
       const email = signupEmail.trim()
       if (!email || !email.includes('@')) {
-        setSignupError('Please enter a valid email.')
+        setSignupError('please enter a valid email.')
         setSignupStatus('error')
         return
       }
@@ -131,17 +130,50 @@ export default function Connect() {
         })
         const data = (await res.json().catch(() => ({}))) as { error?: string }
         if (!res.ok) {
-          setSignupError(data?.error || res.statusText || 'Something went wrong.')
+          setSignupError(data?.error || res.statusText || 'something went wrong.')
           setSignupStatus('error')
           return
         }
         setSignupStatus('success')
       } catch (err) {
-        setSignupError(err instanceof Error ? err.message : 'Network error.')
+        setSignupError(err instanceof Error ? err.message : 'network error.')
         setSignupStatus('error')
       }
     },
     [signupEmail]
+  )
+
+  const handleSigninSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      const email = signinEmail.trim()
+      if (!email || !email.includes('@')) {
+        setSigninError('please enter a valid email.')
+        setSigninStatus('error')
+        return
+      }
+      setSigninError(null)
+      setSigninStatus('loading')
+      try {
+        const res = await fetch(MAGIC_LINK_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email }),
+        })
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        if (!res.ok) {
+          setSigninError(data?.error || res.statusText || 'something went wrong.')
+          setSigninStatus('error')
+          return
+        }
+        setSigninStatus('success')
+      } catch (err) {
+        setSigninError(err instanceof Error ? err.message : 'network error.')
+        setSigninStatus('error')
+      }
+    },
+    [signinEmail]
   )
 
   useEffect(() => {
@@ -159,7 +191,6 @@ export default function Connect() {
       <div className="connect-content">
         <PageTitle>connect</PageTitle>
 
-        {/* Portal links: set hash so Ghost Portal opens; if it didn’t init, fallback opens Ghost in new tab */}
         <div className="connect-portal-buttons">
           {isLoggedIn !== true && (
             <>
@@ -167,13 +198,12 @@ export default function Connect() {
                 <button
                   type="button"
                   className="connect-portal-btn"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit', textDecoration: 'underline', padding: 0 }}
-                  onClick={() => setShowSignupForm(true)}
+                  onClick={() => { setShowSignupForm(true); setShowSigninForm(false); }}
                 >
                   sign up →
                 </button>
               ) : (
-                <form onSubmit={handleSignupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem', maxWidth: '20rem' }}>
+                <form onSubmit={handleSignupSubmit} className="connect-auth-form">
                   <input
                     type="email"
                     placeholder="your@email.com"
@@ -181,37 +211,67 @@ export default function Connect() {
                     onChange={(e) => setSignupEmail(e.target.value)}
                     disabled={signupStatus === 'loading'}
                     autoFocus
-                    style={{ padding: '0.5rem', fontSize: '1rem' }}
+                    className="connect-auth-input"
                   />
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button type="submit" className="connect-portal-btn" disabled={signupStatus === 'loading'} style={{ padding: '0.35rem 0.75rem' }}>
-                      {signupStatus === 'loading' ? 'Sending…' : 'Send magic link'}
+                  <div className="connect-auth-actions">
+                    <button type="submit" className="connect-portal-btn" disabled={signupStatus === 'loading'}>
+                      {signupStatus === 'loading' ? 'sending…' : 'send magic link'}
                     </button>
                     <button
                       type="button"
-                      className="connect-portal-btn"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', opacity: 0.8 }}
+                      className="connect-portal-btn connect-portal-btn-text"
                       onClick={() => { setShowSignupForm(false); setSignupStatus('idle'); setSignupError(null); }}
                     >
                       cancel
                     </button>
                   </div>
                   {signupStatus === 'success' && (
-                    <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>Check your email for the sign-in link.</p>
+                    <p className="connect-auth-message">check your email for the sign-in link.</p>
                   )}
                   {signupStatus === 'error' && signupError && (
-                    <p style={{ fontSize: '0.9rem', color: 'rgba(255,180,180,0.95)' }}>{signupError}</p>
+                    <p className="connect-auth-message connect-auth-error">{signupError}</p>
                   )}
                 </form>
               )}
-              <a
-                href="#/portal/signin"
-                data-portal="signin"
-                className="connect-portal-btn"
-                onClick={handlePortalClick}
-              >
-                log in →
-              </a>
+              {!showSigninForm ? (
+                <button
+                  type="button"
+                  className="connect-portal-btn"
+                  onClick={() => { setShowSigninForm(true); setShowSignupForm(false); }}
+                >
+                  log in →
+                </button>
+              ) : (
+                <form onSubmit={handleSigninSubmit} className="connect-auth-form">
+                  <input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={signinEmail}
+                    onChange={(e) => setSigninEmail(e.target.value)}
+                    disabled={signinStatus === 'loading'}
+                    autoFocus
+                    className="connect-auth-input"
+                  />
+                  <div className="connect-auth-actions">
+                    <button type="submit" className="connect-portal-btn" disabled={signinStatus === 'loading'}>
+                      {signinStatus === 'loading' ? 'sending…' : 'send magic link'}
+                    </button>
+                    <button
+                      type="button"
+                      className="connect-portal-btn connect-portal-btn-text"
+                      onClick={() => { setShowSigninForm(false); setSigninStatus('idle'); setSigninError(null); }}
+                    >
+                      cancel
+                    </button>
+                  </div>
+                  {signinStatus === 'success' && (
+                    <p className="connect-auth-message">check your email for the sign-in link.</p>
+                  )}
+                  {signinStatus === 'error' && signinError && (
+                    <p className="connect-auth-message connect-auth-error">{signinError}</p>
+                  )}
+                </form>
+              )}
             </>
           )}
           <a

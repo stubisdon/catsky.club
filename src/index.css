@@ -190,6 +190,70 @@ body.route-connect #ghost-portal-triggers.ghost-portal-triggers {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+/* Auth form styles for Connect page */
+.connect-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.connect-auth-input {
+  background: transparent;
+  border: 2px solid var(--color-text);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  padding: 0.9rem 1.5rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.connect-auth-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  opacity: 1;
+}
+
+.connect-auth-input:focus {
+  border-color: var(--color-accent);
+}
+
+.connect-auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.connect-portal-btn-text {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  text-decoration: underline;
+  opacity: 0.7;
+}
+
+.connect-portal-btn-text:hover {
+  background: transparent !important;
+  color: var(--color-text) !important;
+  opacity: 1;
+}
+
+.connect-auth-message {
+  font-family: var(--font-mono);
+  font-size: clamp(0.85rem, 1.5vw, 1rem);
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+  text-transform: lowercase;
+}
+
+.connect-auth-error {
+  color: rgba(255, 180, 180, 0.95);
+}
+
 /* Allow text selection on landing page */
 .app-container > div {
   user-select: text !important;
