@@ -256,6 +256,9 @@
             return '((typeof ' + v + '!=="undefined"&&' + v + '&&' + v + '.url)?' + v + '.url:(window.__GHOST_SITE__&&window.__GHOST_SITE__.url)||"").replace(';
           });
           safe = safe.replace(/==="invite"/g, '==="\u200binvite"');
+          safe = safe.replace(/You('|')ve successfully signed in/gi, 'successfully signed in');
+          safe = safe.replace(/You('|')re now signed in/gi, 'successfully signed in');
+          safe = safe.replace(/Welcome back!/gi, 'welcome back.');
           var s = document.createElement('script');
           s.textContent = safe;
           s.setAttribute('data-ghost', ghostUrl);
