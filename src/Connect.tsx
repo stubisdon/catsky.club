@@ -167,13 +167,12 @@ export default function Connect() {
                 <button
                   type="button"
                   className="connect-portal-btn"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit', textDecoration: 'underline', padding: 0 }}
                   onClick={() => setShowSignupForm(true)}
                 >
                   sign up →
                 </button>
               ) : (
-                <form onSubmit={handleSignupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem', maxWidth: '20rem' }}>
+                <form onSubmit={handleSignupSubmit} className="connect-signup-form">
                   <input
                     type="email"
                     placeholder="your@email.com"
@@ -181,26 +180,25 @@ export default function Connect() {
                     onChange={(e) => setSignupEmail(e.target.value)}
                     disabled={signupStatus === 'loading'}
                     autoFocus
-                    style={{ padding: '0.5rem', fontSize: '1rem' }}
+                    className="connect-signup-input"
                   />
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button type="submit" className="connect-portal-btn" disabled={signupStatus === 'loading'} style={{ padding: '0.35rem 0.75rem' }}>
-                      {signupStatus === 'loading' ? 'Sending…' : 'Send magic link'}
+                  <div className="connect-signup-buttons">
+                    <button type="submit" className="connect-portal-btn" disabled={signupStatus === 'loading'}>
+                      {signupStatus === 'loading' ? 'sending…' : 'send magic link'}
                     </button>
                     <button
                       type="button"
                       className="connect-portal-btn"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', opacity: 0.8 }}
                       onClick={() => { setShowSignupForm(false); setSignupStatus('idle'); setSignupError(null); }}
                     >
                       cancel
                     </button>
                   </div>
                   {signupStatus === 'success' && (
-                    <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>Check your email for the sign-in link.</p>
+                    <p className="connect-signup-message">check your email for the sign-in link.</p>
                   )}
                   {signupStatus === 'error' && signupError && (
-                    <p style={{ fontSize: '0.9rem', color: 'rgba(255,180,180,0.95)' }}>{signupError}</p>
+                    <p className="connect-signup-error">{signupError}</p>
                   )}
                 </form>
               )}
@@ -214,14 +212,16 @@ export default function Connect() {
               </a>
             </>
           )}
-          <a
-            href="#/portal/account"
-            data-portal="account"
-            className="connect-portal-btn"
-            onClick={handlePortalClick}
-          >
-            account
-          </a>
+          {isLoggedIn === true && (
+            <a
+              href="#/portal/account"
+              data-portal="account"
+              className="connect-portal-btn"
+              onClick={handlePortalClick}
+            >
+              account
+            </a>
+          )}
         </div>
 
         {portalHashActive && typeof window !== 'undefined' && window.location?.hostname !== 'catsky.club' && (
