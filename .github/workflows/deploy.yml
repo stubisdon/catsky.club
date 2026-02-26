@@ -43,9 +43,8 @@ jobs:
                 }
                 GIT_PAT_SAFE=$(urlencode "$GIT_PAT")
               fi
-              git config --global credential.helper ""
-              git config --global url."https://${GIT_PAT_SAFE}@github.com/".insteadOf "https://github.com/"
-              git pull origin main
+              # Apply PAT auth only for this command (no persistent/global git config changes).
+              git -c url."https://x-access-token:${GIT_PAT_SAFE}@github.com/".insteadOf="https://github.com/" pull origin main
             elif [[ "$REMOTE_URL" == git@* ]]; then
               git pull origin main
             else
