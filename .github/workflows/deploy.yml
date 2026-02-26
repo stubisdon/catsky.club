@@ -43,8 +43,14 @@ jobs:
                 }
                 GIT_PAT_SAFE=$(urlencode "$GIT_PAT")
               fi
-              # Apply PAT auth only for this command (no persistent/global git config changes).
-              git -c url."https://x-access-token:${GIT_PAT_SAFE}@github.com/".insteadOf="https://github.com/" pull origin main
+              # Build an explicit authenticated GitHub URL so stale server-side git config cannot interfere.
+              REPO_PATH=$(printf "%s" "$REMOTE_URL" | sed -E 's#^git@github\.com:##; s#^https://([^@/]+@)?github\.com/##; s#\.git$##')
+              if [ -z "$REPO_PATH" ] || [ "$REPO_PATH" = "$REMOTE_URL" ]; then
+                echo "ERROR: Could not parse origin remote URL: $REMOTE_URL"
+                exit 1
+              fi
+              AUTH_REMOTE_URL="https://x-access-token:${GIT_PAT_SAFE}@github.com/${REPO_PATH}.git"
+              git pull "$AUTH_REMOTE_URL" main
             elif [[ "$REMOTE_URL" == git@* ]]; then
               git pull origin main
             else
