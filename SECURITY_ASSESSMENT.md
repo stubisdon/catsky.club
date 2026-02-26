@@ -234,7 +234,21 @@ if ($block_request = 1) {
 
 ## Dependency Audit
 
-Run the following commands to check for known vulnerabilities:
+### Current NPM Vulnerabilities
+
+As of the assessment date, `npm audit` reports the following vulnerabilities in the frontend project:
+
+| Package | Severity | Issue | Fix Available |
+|---------|----------|-------|---------------|
+| `ajv` | Moderate | ReDoS with `$data` option | `npm audit fix` |
+| `esbuild` | Moderate | Development server access control | `npm audit fix --force` (breaking) |
+| `minimatch` | High | ReDoS via wildcards | `npm audit fix` |
+| `qs` | High | DoS via memory exhaustion | `npm audit fix` |
+| `rollup` | High | Arbitrary File Write | `npm audit fix` |
+
+**Recommendation:** Run `npm audit fix` to address non-breaking fixes. For the `esbuild` vulnerability, note this only affects the development server and not production builds.
+
+### Audit Commands
 
 ```bash
 # Check npm dependencies
@@ -242,6 +256,9 @@ npm audit
 
 # Fix automatically fixable issues
 npm audit fix
+
+# Fix all issues (may include breaking changes)
+npm audit fix --force
 
 # Check Ghost (on server)
 cd /var/www/ghost
