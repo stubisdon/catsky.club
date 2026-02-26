@@ -298,6 +298,94 @@ In **Ghost Admin** go to **Settings → Labs** and use the “Send test email”
 
 **If logs show `535 Authentication failed` / `EAUTH`:** The `mail` section exists but the SMTP **username or password is wrong** (or not allowed). Use an **app password** for Gmail; fix typos; or switch to a provider that allows SMTP (Mailgun, SendGrid, etc.).
 
+### Emails going to spam (deliverability issues)
+
+If sign-up/sign-in emails are being delivered but land in **spam**, this is usually a **sender authentication** problem. Common symptoms in Gmail:
+
+- Email shows **"via mailgun.org"** next to the sender name
+- Gmail warning: **"This message is similar to messages that were identified as spam"**
+- Email headers show mismatched `mailed-by` and `signed-by` domains
+
+**Root cause:** The "From" address domain doesn't match the sending domain's authentication (SPF/DKIM). For example, sending from `catsky.music@gmail.com` via Mailgun with `mail.catsky.club` causes a domain mismatch.
+
+**Fix 1: Use a matching sender email address**
+
+In Ghost Admin, go to **Settings → General → Publication identity** (or **Settings → Email**) and set the **Support email address** to an address on your own domain:
+
+- **Use:** `hello@catsky.club`, `noreply@catsky.club`, or `catsky@catsky.club`
+- **Don't use:** `catsky.music@gmail.com` (Gmail addresses sent via Mailgun will fail authentication)
+
+Ghost uses this email as the "From" address for magic links and transactional emails.
+
+**Fix 2: Verify domain authentication in Mailgun**
+
+If you're using Mailgun, ensure your domain (`catsky.club` or `mail.catsky.club`) is properly authenticated:
+
+1. Log in to [Mailgun Dashboard](https://app.mailgun.com/)
+2. Go to **Sending → Domains**
+3. Select your domain (e.g., `mail.catsky.club`)
+4. Under **DNS records**, ensure all records are verified:
+   - **SPF record** (TXT): Allows Mailgun to send on behalf of your domain
+   - **DKIM records** (TXT): Cryptographically signs emails
+   - **MX records** (optional): For receiving email
+5. Click **Verify DNS Settings** to check status
+
+All records should show green checkmarks. If not, add the missing DNS records in your domain registrar (e.g., Namecheap, GoDaddy, Cloudflare).
+
+**Fix 3: Update Ghost config with correct sender domain**
+
+In `/var/www/ghost/config.production.json`, ensure the `mail` section uses your verified domain:
+
+```json
+"mail": {
+  "transport": "SMTP",
+  "from": "'Catsky Club' <hello@catsky.club>",
+  "options": {
+    "host": "smtp.mailgun.org",
+    "port": 587,
+    "secure": false,
+    "auth": {
+      "user": "postmaster@mail.catsky.club",
+      "pass": "your-mailgun-smtp-password"
+    }
+  }
+}
+```
+
+Key points:
+- The `from` address domain should match your authenticated Mailgun domain
+- The `auth.user` should be the SMTP login from Mailgun (usually `postmaster@yourdomain`)
+- The `auth.pass` is the SMTP password from Mailgun (not your account password)
+
+After editing: `cd /var/www/ghost && ghost restart`
+
+**Fix 4: Check email capitalization**
+
+The domain in the "From" address should be lowercase. `Catsky.Club` may cause issues; use `catsky.club`.
+
+**Testing deliverability**
+
+After making changes:
+
+1. Send a test email from Ghost Admin (**Settings → Labs → Send test email**)
+2. Check that the email arrives in your inbox (not spam)
+3. Click "Show original" in Gmail to verify:
+   - `SPF: PASS`
+   - `DKIM: PASS`
+   - `DMARC: PASS` (if configured)
+
+If you still see "via mailgun.org", the DKIM setup may be incomplete or you need to wait for DNS propagation (up to 48 hours).
+
+**Run the deliverability check script**
+
+From the server or via CI, run:
+
+```bash
+./scripts/check-email-deliverability.sh
+```
+
+This checks Mailgun DNS records and Ghost email configuration.
+
 **Automated check from CI:** A script runs on the server and reports Ghost path, mail config, process status, and recent log errors. From the repo:
 
 - **Script:** `scripts/check-ghost.sh` (run on the server, or via CI).

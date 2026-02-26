@@ -184,3 +184,7 @@ final notes:
 - [ ] fix contact support email
 - [ ] fix sign-in email capitalization (Catsky.Club)
 - [ ] can't CMD+A inside the log-in pop-up to edit the email address
+- [ ] **fix emails going to spam** — see DEPLOYMENT.md "Emails going to spam" section
+  - change Ghost "from" address from gmail.com to catsky.club domain
+  - verify Mailgun DNS records (SPF, DKIM) are properly set up
+  - run `./scripts/check-email-deliverability.sh` on server to diagnose
