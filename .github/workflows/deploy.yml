@@ -21,31 +21,28 @@ jobs:
           key: ${{ secrets.PROD_SSH_KEY }}
           envs: GIT_PAT
           script: |
+            #!/bin/bash
             set -e
             cd /opt/catsky-club
             
-            # Prevent git from prompting for credentials (non-interactive)
             export GIT_TERMINAL_PROMPT=0
-            
-            # URL-encode PAT so special chars (@ # % etc.) don't break the git URL
-            urlencode() {
-              local LC_ALL=C
-              local length="${#1}"
-              for (( i = 0; i < length; i++ )); do
-                local c="${1:$i:1}"
-                case "$c" in
-                  [a-zA-Z0-9.~_-]) printf '%s' "$c" ;;
-                  *) printf '%%%02X' "'$c" ;;
-                esac
-              done
-            }
-            
-            # Configure git authentication for private repository
             REMOTE_URL=$(git remote get-url origin)
             
             if [ -n "$GIT_PAT" ]; then
               echo "Using GIT_PAT (length=${#GIT_PAT}) for git pull."
-              GIT_PAT_SAFE=$(urlencode "$GIT_PAT")
+              # URL-encode PAT so special chars don't break the git URL (use Python from env to avoid PAT in argv)
+              if command -v python3 >/dev/null 2>&1; then
+                GIT_PAT_SAFE=$(python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ.get('GIT_PAT', ''), safe=''))")
+              else
+                urlencode() {
+                  local LC_ALL=C length="${#1}" i c
+                  for (( i = 0; i < length; i++ )); do
+                    c="${1:$i:1}"
+                    case "$c" in [a-zA-Z0-9.~_-]) printf '%s' "$c" ;; *) printf '%%%02X' "'$c" ;; esac
+                  done
+                }
+                GIT_PAT_SAFE=$(urlencode "$GIT_PAT")
+              fi
               git config --global credential.helper ""
               git config --global url."https://${GIT_PAT_SAFE}@github.com/".insteadOf "https://github.com/"
               git pull origin main
