@@ -39,6 +39,51 @@ report "**Server:** $(hostname -f 2>/dev/null || hostname)"
 report "**Date:** $(date -Iseconds 2>/dev/null || date)"
 report ""
 
+# --- CVE-2026-26980 vulnerability check ---
+check_cve_2026_26980() {
+  local version="$1"
+  if [ -z "$version" ]; then
+    return 1
+  fi
+  
+  # Extract major.minor.patch
+  local major minor patch
+  major=$(echo "$version" | cut -d. -f1)
+  minor=$(echo "$version" | cut -d. -f2)
+  patch=$(echo "$version" | cut -d. -f3)
+  
+  # Vulnerable: 3.24.0 through 6.19.0
+  # Safe: < 3.24.0 or >= 6.19.1
+  
+  # If major < 3, safe (unlikely but handle it)
+  if [ "$major" -lt 3 ]; then
+    return 1
+  fi
+  
+  # If major == 3 and minor < 24, safe
+  if [ "$major" -eq 3 ] && [ "$minor" -lt 24 ]; then
+    return 1
+  fi
+  
+  # If major > 6, safe (future version)
+  if [ "$major" -gt 6 ]; then
+    return 1
+  fi
+  
+  # If major == 6 and minor > 19, safe
+  if [ "$major" -eq 6 ] && [ "$minor" -gt 19 ]; then
+    return 1
+  fi
+  
+  # If major == 6 and minor == 19 and patch >= 1, safe
+  if [ "$major" -eq 6 ] && [ "$minor" -eq 19 ] && [ "$patch" -ge 1 ]; then
+    return 1
+  fi
+  
+  # Otherwise vulnerable
+  return 0
+}
+
 if [ -z "$GHOST_ROOT" ] || [ ! -d "$GHOST_ROOT" ]; then
   report "### Ghost install"
   report ""
@@ -52,7 +97,52 @@ fi
 report "### Ghost install"
 report ""
 report "- **Path:** \`$GHOST_ROOT\`"
+
+# Try to get Ghost version
+GHOST_VERSION=""
+if [ -f "$GHOST_ROOT/package.json" ]; then
+  if command -v jq >/dev/null 2>&1; then
+    GHOST_VERSION=$(jq -r '.version // empty' "$GHOST_ROOT/package.json" 2>/dev/null || true)
+  else
+    GHOST_VERSION=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$GHOST_ROOT/package.json" 2>/dev/null | head -1 | sed 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || true)
+  fi
+fi
+if [ -z "$GHOST_VERSION" ] && command -v ghost >/dev/null 2>&1; then
+  GHOST_VERSION=$(cd "$GHOST_ROOT" && ghost version 2>/dev/null | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || true)
+fi
+
+if [ -n "$GHOST_VERSION" ]; then
+  report "- **Version:** \`$GHOST_VERSION\`"
+fi
 report ""
+
+# --- Security vulnerability check ---
+report "### Security vulnerabilities"
+report ""
+
+if [ -n "$GHOST_VERSION" ]; then
+  if check_cve_2026_26980 "$GHOST_VERSION"; then
+    report "🚨 **CRITICAL: CVE-2026-26980 - SQL Injection Vulnerability**"
+    report ""
+    report "Your Ghost version ($GHOST_VERSION) is vulnerable to a critical SQL injection attack."
+    report "- **Affected versions:** 3.24.0 through 6.19.0"
+    report "- **Patched version:** 6.19.1+"
+    report "- **CVSS Score:** 9.4 (Critical)"
+    report "- **Impact:** Unauthenticated attackers can read arbitrary data from the database"
+    report ""
+    report "**Immediate action required:**"
+    report "1. Apply WAF mitigation (block requests with \`slug:[..]\` in query string)"
+    report "2. Update Ghost to version 6.19.1 or later: \`ghost update\`"
+    report ""
+  else
+    report "✅ **CVE-2026-26980:** Not vulnerable (version $GHOST_VERSION)"
+    report ""
+  fi
+else
+  report "⚠️ Could not determine Ghost version. Manual CVE-2026-26980 check required."
+  report "   Run \`ghost version\` and verify version is 6.19.1 or later."
+  report ""
+fi
 
 # --- Config and mail ---
 CONFIG="$GHOST_ROOT/config.production.json"
