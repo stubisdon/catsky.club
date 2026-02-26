@@ -17,6 +17,23 @@ server {
     listen 80;
     listen [::]:80;
     server_name catsky.club www.catsky.club;
+
+    # =============================================================
+    # SECURITY HEADERS
+    # =============================================================
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # =============================================================
+    # CVE-2026-26980 MITIGATION - Ghost SQL Injection WAF Rule
+    # Remove this block after upgrading Ghost to 6.19.1+
+    # =============================================================
+    # Block SQL injection attempts targeting Ghost Content API slug filter
+    location ~* "slug(%3A|:)(%5B|\[)" {
+        return 403;
+    }
     
     # Frontend React App (served by Express on port 3001)
     location / {
