@@ -52,6 +52,60 @@ const GHOST_ADMIN_API_KEY = process.env.GHOST_ADMIN_API_KEY || ''
 const GHOST_ADMIN_API_VERSION = process.env.GHOST_ADMIN_API_VERSION || 'v5.0'
 const SIGNUPS_API_TOKEN = process.env.SIGNUPS_API_TOKEN || ''
 
+// Security headers middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN')
+  res.setHeader('X-XSS-Protection', '1; mode=block')
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  next()
+})
+
+// Simple in-memory rate limiter for API endpoints
+const rateLimitMap = new Map()
+const RATE_LIMIT_WINDOW_MS = 60 * 1000 // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 30 // max 30 requests per minute per IP
+
+function getRateLimitKey(req) {
+  return req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown'
+}
+
+function rateLimiter(req, res, next) {
+  const key = getRateLimitKey(req)
+  const now = Date.now()
+  
+  if (!rateLimitMap.has(key)) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS })
+    return next()
+  }
+  
+  const entry = rateLimitMap.get(key)
+  
+  if (now > entry.resetTime) {
+    entry.count = 1
+    entry.resetTime = now + RATE_LIMIT_WINDOW_MS
+    return next()
+  }
+  
+  entry.count++
+  
+  if (entry.count > RATE_LIMIT_MAX_REQUESTS) {
+    return res.status(429).json({ error: 'Too many requests, please try again later' })
+  }
+  
+  next()
+}
+
+// Clean up old rate limit entries periodically
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, entry] of rateLimitMap.entries()) {
+    if (now > entry.resetTime + RATE_LIMIT_WINDOW_MS) {
+      rateLimitMap.delete(key)
+    }
+  }
+}, 5 * 60 * 1000) // Clean up every 5 minutes
+
 app.use(cors())
 app.use(express.json())
 
@@ -134,7 +188,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }))
 
 // API endpoint for form submissions
-app.post('/api/submit', async (req, res) => {
+app.post('/api/submit', rateLimiter, async (req, res) => {
   const { name, contact } = req.body
   const email = typeof contact === 'string' ? contact.trim() : ''
   const safeName = typeof name === 'string' ? name.trim() : ''
@@ -204,7 +258,7 @@ app.post('/api/submit', async (req, res) => {
 
 // Protected endpoint: fetch recent signups (Ghost members)
 // Provide SIGNUPS_API_TOKEN on the server and call with header: x-signups-token: <token>
-app.get('/api/signups', async (req, res) => {
+app.get('/api/signups', rateLimiter, async (req, res) => {
   if (!SIGNUPS_API_TOKEN) return res.status(404).json({ error: 'Not enabled' })
   const token = req.header('x-signups-token')
   if (!token || token !== SIGNUPS_API_TOKEN) return res.status(401).json({ error: 'Unauthorized' })
