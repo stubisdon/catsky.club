@@ -6,10 +6,7 @@ import {
   type MembershipTier,
   getDirectAudioUrl,
   getSoundCloudEmbedUrl,
-  clearLocalSessionFlags,
   openPortalAccount,
-  openPortalSignIn,
-  triggerPortalSignOut,
 } from './utils'
 import { TRACKS, type Track } from './config/tracks'
 
@@ -192,31 +189,8 @@ export default function Listen() {
       >
         <PageTitle>listen</PageTitle>
 
-        <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', opacity: 0.8 }}>
-          {!isGhostMember && (
-            <a
-              href="#/portal/signin"
-              data-portal="signin"
-              onClick={(e) => {
-                e.preventDefault()
-                openPortalSignIn()
-              }}
-              style={{
-                color: 'rgba(255, 255, 255, 0.7)',
-                textDecoration: 'none',
-                fontSize: '0.95rem',
-                letterSpacing: '0.05em',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
-                paddingBottom: '0.1rem',
-                cursor: 'pointer',
-                textTransform: 'lowercase',
-              }}
-            >
-              log in
-            </a>
-          )}
-
-          {isGhostMember && (
+        {isGhostMember && (
+          <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', opacity: 0.8 }}>
             <a
               href="#/portal/account"
               data-portal="account"
@@ -237,34 +211,8 @@ export default function Listen() {
             >
               account
             </a>
-          )}
-
-          <a
-            href="#"
-            data-members-signout
-            onClick={(e) => {
-              e.preventDefault()
-              triggerPortalSignOut()
-              clearLocalSessionFlags()
-              setMembershipTier('none')
-              setCurrentTrackId(null)
-              setIsPlaying(false)
-              setTimeout(() => refreshStatus(), 500)
-            }}
-            style={{
-              color: 'rgba(255, 255, 255, 0.7)',
-              textDecoration: 'none',
-              fontSize: '0.95rem',
-              letterSpacing: '0.05em',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
-              paddingBottom: '0.1rem',
-              cursor: 'pointer',
-              textTransform: 'lowercase',
-            }}
-          >
-            log out
-          </a>
-        </div>
+          </div>
+        )}
 
         <div style={{ marginBottom: '2rem' }}>
           {TRACKS.length === 0 && (
