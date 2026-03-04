@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageContainer, PageTitle, Link } from './components'
 import { navigateTo } from './router'
 import {
-  checkSubscriptionStatus,
-  type SubscriptionStatus,
+  getMembershipTier,
+  type MembershipTier,
   getDirectAudioUrl,
   getSoundCloudEmbedUrl,
   clearLocalSessionFlags,
@@ -11,10 +11,10 @@ import {
   openPortalSignIn,
   triggerPortalSignOut,
 } from './utils'
-import { TRACKS } from './config/tracks'
+import { TRACKS, type Track } from './config/tracks'
 
 export default function Listen() {
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>('unknown')
+  const [membershipTier, setMembershipTier] = useState<MembershipTier>('none')
   const [checking, setChecking] = useState(true)
   const [currentTrackId, setCurrentTrackId] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -35,26 +35,18 @@ export default function Listen() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const soundcloudIframeRef = useRef<HTMLIFrameElement | null>(null)
 
-  const hasLocalSignup = (() => {
-    try {
-      return window.localStorage.getItem('catsky_signed_up') === '1'
-    } catch {
-      return false
-    }
-  })()
-
   const refreshStatus = useCallback(async () => {
     setChecking(true)
     try {
-      const timeoutPromise = new Promise<SubscriptionStatus>((_, reject) => {
+      const timeoutPromise = new Promise<MembershipTier>((_, reject) => {
         setTimeout(() => reject(new Error('Subscription check timeout')), 10000)
       })
-      const statusPromise = checkSubscriptionStatus()
-      const status = await Promise.race([statusPromise, timeoutPromise])
-      setSubscriptionStatus(status)
+      const tierPromise = getMembershipTier()
+      const tier = await Promise.race([tierPromise, timeoutPromise])
+      setMembershipTier(tier)
     } catch (error) {
       console.error('Error checking subscription:', error)
-      setSubscriptionStatus('not_subscriber')
+      setMembershipTier('none')
     } finally {
       setChecking(false)
     }
@@ -64,20 +56,28 @@ export default function Listen() {
     refreshStatus()
   }, [refreshStatus])
 
-  const effectiveStatus: SubscriptionStatus =
-    subscriptionStatus === 'not_subscriber' && hasLocalSignup ? 'free_subscriber' : subscriptionStatus
+  const hasLocalSignup = (() => {
+    try {
+      return window.localStorage.getItem('catsky_signed_up') === '1'
+    } catch {
+      return false
+    }
+  })()
 
-  const isPaid = effectiveStatus === 'paid_subscriber'
-  const isGhostMember = subscriptionStatus === 'free_subscriber' || subscriptionStatus === 'paid_subscriber'
+  const effectiveTier: MembershipTier = membershipTier === 'none' && hasLocalSignup ? 'free' : membershipTier
 
-  const getAccessibleTracks = useCallback(() => {
-    if (isPaid) return TRACKS
-    if (effectiveStatus === 'free_subscriber') return TRACKS.slice(0, 2)
-    return TRACKS.slice(0, 1)
-  }, [effectiveStatus, isPaid])
+  const isPaid = effectiveTier === 'paid_5' || effectiveTier === 'paid_20'
+  const isGhostMember = effectiveTier !== 'none'
 
-  const accessibleTracks = getAccessibleTracks()
-  const lockedTracks = isPaid ? [] : TRACKS.slice(accessibleTracks.length)
+  const hasTrackAccess = useCallback((track: Track) => {
+    if (track.accessTier === 'public') return true
+    if (track.accessTier === 'free_member') return effectiveTier !== 'none'
+    if (track.accessTier === 'paid_5') return effectiveTier === 'paid_5' || effectiveTier === 'paid_20'
+    return effectiveTier === 'paid_20'
+  }, [effectiveTier])
+
+  const accessibleTracks = TRACKS.filter(hasTrackAccess)
+  const lockedTracks = TRACKS.filter((track) => !hasTrackAccess(track))
 
   useEffect(() => {
     try {
@@ -93,16 +93,9 @@ export default function Listen() {
       setTrackLoadError('Track not found')
       return
     }
-    const trackIndex = TRACKS.findIndex(t => t.id === trackId)
-    if (!isPaid) {
-      if (effectiveStatus === 'free_subscriber' && trackIndex >= 2) {
-        navigateTo('/connect')
-        return
-      }
-      if (effectiveStatus !== 'free_subscriber' && trackIndex >= 1) {
-        navigateTo('/connect')
-        return
-      }
+    if (!hasTrackAccess(track)) {
+      navigateTo('/connect')
+      return
     }
     setTrackLoadError(null)
     setCurrentTrackId(trackId)
@@ -128,7 +121,7 @@ export default function Listen() {
         audioRef.current.src = ''
       }
     }
-  }, [effectiveStatus, isPaid])
+  }, [hasTrackAccess])
 
   const handlePlayPause = useCallback(() => {
     if (!audioRef.current) return
@@ -251,7 +244,7 @@ export default function Listen() {
               e.preventDefault()
               triggerPortalSignOut()
               clearLocalSessionFlags()
-              setSubscriptionStatus('not_subscriber')
+              setMembershipTier('none')
               setCurrentTrackId(null)
               setIsPlaying(false)
               setTimeout(() => refreshStatus(), 500)

@@ -20,7 +20,9 @@ export {
 // Subscription utilities
 export {
   type SubscriptionStatus,
+  type MembershipTier,
   checkSubscriptionStatus,
+  getMembershipTier,
   isPaidSubscriber,
   isSubscriber,
   setDevMemberOverride,
