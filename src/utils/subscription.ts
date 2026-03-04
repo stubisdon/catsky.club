@@ -30,6 +30,17 @@ interface GhostMemberResponse {
   member?: GhostMember | null
 }
 
+function looksLikeGhostMember(value: unknown): value is GhostMember {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as GhostMember
+  return (
+    typeof candidate.id === 'string' ||
+    typeof candidate.email === 'string' ||
+    typeof candidate.name === 'string' ||
+    Array.isArray(candidate.subscriptions)
+  )
+}
+
 const DEV_MEMBER_KEY = 'catsky_dev_member'
 const DEV_PAID_KEY = 'catsky_dev_paid'
 
@@ -166,9 +177,17 @@ async function fetchMember(): Promise<GhostMember | null> {
   if (!raw || !raw.trim()) return null
 
   try {
-    const data = JSON.parse(raw) as GhostMemberResponse
+    const data = JSON.parse(raw) as GhostMemberResponse | GhostMember
+
+    // Ghost has returned both shapes depending on version/config:
+    // 1) { member: { ... } }
+    // 2) { ...memberFields }
     if (typeof data === 'object' && data !== null && 'member' in data) {
       return data.member ?? null
+    }
+
+    if (looksLikeGhostMember(data)) {
+      return data
     }
   } catch {
     return null
