@@ -75,10 +75,11 @@ If the repo is **private**, the deploy job must be able to run `git pull` on the
 1. Create a [Personal Access Token](https://github.com/settings/tokens) with **repo** scope.
 2. In the repo: **Settings → Secrets and variables → Actions**.
 3. Click **New repository secret**.
-4. Name: `GIT_PAT`, Value: paste your token.
-5. Re-run the failed workflow (or push to `main` again).
+4. Name: `GIT_PAT_2` (preferred), Value: paste your token.
+5. (Optional fallback) keep `GIT_PAT` as well during transition.
+6. Re-run the failed workflow (or push to `main` again).
 
-The workflow uses `GIT_PAT` to configure HTTPS auth for `git pull` when the server’s remote is `https://github.com/...`.
+The workflow prefers `GIT_PAT_2` and falls back to `GIT_PAT` to configure HTTPS auth for `git pull` when the server’s remote is `https://github.com/...`.
 
 **Option 2: SSH deploy key on the server**
 

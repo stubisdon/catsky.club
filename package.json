@@ -1,5 +1,5 @@
 {
-  "name": "catsky-club",
+  "name": "catsky.club",
   "version": "1.0.0",
   "description": "Custom minimalistic frontend for Ghost CMS",
   "type": "module",
@@ -48,5 +48,13 @@
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
     "vitest": "^4.0.17"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/catsky-social/catsky.club.git"
+  },
+  "homepage": "https://catsky.club",
+  "bugs": {
+    "url": "https://github.com/catsky-social/catsky.club/issues"
   }
 }
