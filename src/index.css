@@ -130,6 +130,63 @@ body {
   color: var(--color-bg);
 }
 
+.connect-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: min(32rem, 100%);
+}
+
+.connect-auth-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2px solid var(--color-text);
+  color: #101010;
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  letter-spacing: 0.05em;
+  padding: 0.9rem 1rem;
+  box-sizing: border-box;
+}
+
+.connect-auth-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.connect-portal-buttons .connect-portal-btn-text {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  padding-bottom: 0.2rem;
+  text-transform: lowercase;
+  background: transparent;
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  cursor: pointer;
+  font-family: var(--font-mono);
+}
+
+.connect-auth-message,
+.connect-auth-error {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+
+.connect-auth-message {
+  opacity: 0.85;
+}
+
+.connect-auth-error {
+  color: rgba(255, 180, 180, 0.95);
+}
+
 .connect-portal-hint {
   margin: -0.5rem 0 1.5rem;
   font-size: 0.85rem;
