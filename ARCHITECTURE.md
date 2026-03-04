@@ -53,6 +53,18 @@ Single-page app for membership, music (tracks), and video. **Auth and membership
 - **`openPortalSignIn()`**, **`openPortalSignUp()`**, **`openPortalAccount()`** – click the corresponding hidden trigger or set hash `#/portal/signin` etc.
 - **`clearLocalSessionFlags()`** – removes `catsky_signed_up`, `catsky_activated` from localStorage.
 
+
+### 3.5 Connect auth-state refresh after magic-link callbacks
+
+The `/connect` page has extra logic to avoid stale logged-out buttons immediately after Ghost redirects back from a magic-link login/signup:
+
+- Callback detection: if URL has `?action=signin|signup&success=true`, `Connect.tsx` treats this as a post-auth callback and runs a retry-based member refresh.
+- Retry/backoff checks: auth state is re-checked multiple times over short delays because Ghost can take a few moments to persist/read member cookies after redirect.
+- Tab-return refresh: Connect also re-checks member state on `focus`, `pageshow`, and visible `visibilitychange` so users returning from email clients get updated buttons (`account` instead of `sign up` / `log in`).
+- Defensive member parsing: `subscription.ts` accepts both Ghost response shapes (`{ member: {...} }` and direct member objects) and tolerates empty/invalid `200` bodies while cookies settle.
+
+When debugging “signed in toast appears but buttons stay logged out”, start with this refresh path and the `/members/api/member/` network responses.
+
 ---
 
 ## 4. index.html – critical before Portal
@@ -168,5 +180,6 @@ src/
 3. **Empty /members/api/member/:** Ghost can return 200 with an empty body when not logged in. Our fetch patch in `index.html` turns that into `{"member":null}` so `subscription.ts` doesn’t throw on `.json()`.
 4. **index.html order:** The patch script must run before the Portal script. Preload runs first, then Portal is loaded; when Portal fetches settings, the cache is returned.
 5. **deploy.sh:** It `cd`s into the script directory so `.env.server` is found next to it. Run with `bash deploy.sh` (or `./deploy.sh`); ensure `.env.server` exists on the server with `VITE_GHOST_CONTENT_API_KEY` for the build.
+6. **Auth E2E prerequisites:** `npm run test:e2e:auth` now runs `npm run test:e2e:setup` first (`playwright install --with-deps chromium`) so the suite self-heals in fresh containers where Playwright browser/system deps are missing.
 
 Use this doc to re-establish routing, Ghost/Portal behavior, subscription checks, logout flow, and the sign-up bypass when context has reset.
