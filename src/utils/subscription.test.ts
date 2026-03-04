@@ -23,4 +23,14 @@ describe('checkSubscriptionStatus', () => {
 
     await expect(checkSubscriptionStatus()).resolves.toBe('free_subscriber')
   })
+
+  it('detects free member when Ghost returns the direct member payload shape', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ email: 'dmitry@example.com', subscriptions: [] }), {
+        status: 200,
+      })
+    )
+
+    await expect(checkSubscriptionStatus()).resolves.toBe('free_subscriber')
+  })
 })
