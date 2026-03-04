@@ -24,7 +24,7 @@ test.describe('Connect Page - Basic Elements', () => {
 
   test('connect page has sign up button when logged out', async ({ page }) => {
     // Mock as not logged in
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -42,7 +42,7 @@ test.describe('Connect Page - Basic Elements', () => {
 
   test('connect page has log in button when logged out', async ({ page }) => {
     // Mock as not logged in
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -59,7 +59,7 @@ test.describe('Connect Page - Basic Elements', () => {
   })
 
   test('connect page has account link when logged in', async ({ page }) => {
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -78,7 +78,7 @@ test.describe('Connect Page - Basic Elements', () => {
   })
 
   test('connect page has log out link when logged in', async ({ page }) => {
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -118,7 +118,7 @@ test.describe('Connect Page - Basic Elements', () => {
 test.describe('Sign Up Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Mock as not logged in for sign up tests
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -223,7 +223,7 @@ test.describe('Sign Up Flow', () => {
     await page.getByRole('button', { name: /send magic link/i }).click()
 
     // Should show success message
-    const successMsg = page.getByText(/check your email for the sign-in link/i)
+    const successMsg = page.getByText(/check your email for the sign-up link/i)
     await expect(successMsg).toBeVisible()
   })
 
@@ -349,7 +349,7 @@ test.describe('Sign Up Flow', () => {
 test.describe('Log In Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Mock as not logged in
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -370,7 +370,7 @@ test.describe('Log In Flow', () => {
   })
 
   test('account link has correct portal href when logged in', async ({ page }) => {
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -389,6 +389,20 @@ test.describe('Log In Flow', () => {
   })
 
   test('clicking account link sets hash for portal', async ({ page }) => {
+    await page.route('**/members/api/member**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: {
+            id: 'test-member',
+            email: 'test@example.com',
+            subscriptions: [],
+          },
+        }),
+      })
+    })
+
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
@@ -405,7 +419,7 @@ test.describe('Log In Flow', () => {
 
 test.describe('Log Out Flow', () => {
   test('log out link is visible when logged in', async ({ page }) => {
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -424,7 +438,7 @@ test.describe('Log Out Flow', () => {
   })
 
   test('log out link is hidden when logged out', async ({ page }) => {
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -441,7 +455,7 @@ test.describe('Log Out Flow', () => {
 
   test('clicking log out triggers sign out handler', async ({ page }) => {
     // Mock as logged in
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -490,7 +504,7 @@ test.describe('Log Out Flow', () => {
 test.describe('Logged In State', () => {
   test('hides sign up and log in when logged in', async ({ page }) => {
     // Mock as logged in
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -512,13 +526,13 @@ test.describe('Logged In State', () => {
     await expect(signUpBtn).not.toBeVisible()
 
     // Log in link should NOT be visible
-    const logInLink = page.getByRole('link', { name: /log in/i })
-    await expect(logInLink).not.toBeVisible()
+    const logInBtn = page.getByRole('button', { name: /log in/i })
+    await expect(logInBtn).not.toBeVisible()
   })
 
   test('shows account link when logged in', async ({ page }) => {
     // Mock as logged in
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -538,6 +552,40 @@ test.describe('Logged In State', () => {
     // Account link should be visible
     const accountLink = page.getByRole('link', { name: /account/i })
     await expect(accountLink).toBeVisible()
+  })
+
+  test('magic-link success callback refreshes buttons to logged-in state', async ({ page }) => {
+    let memberChecks = 0
+
+    await page.route('**/members/api/member**', (route) => {
+      memberChecks += 1
+
+      if (memberChecks < 3) {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ member: null }),
+        })
+        return
+      }
+
+      // Ghost may return the member directly instead of wrapping under { member }.
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'test-member',
+          email: 'test@example.com',
+          subscriptions: [],
+        }),
+      })
+    })
+
+    await page.goto('/connect?action=signin&success=true')
+
+    await expect(page.getByRole('link', { name: /account/i })).toBeVisible({ timeout: 15000 })
+    await expect(page.getByRole('button', { name: /sign up/i })).not.toBeVisible()
+    expect(memberChecks).toBeGreaterThanOrEqual(3)
   })
 })
 
@@ -570,7 +618,7 @@ test.describe('Navigation from Connect', () => {
 test.describe('Connect Page - Error Handling', () => {
   test('handles member API error gracefully', async ({ page }) => {
     // Mock member API to fail
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 500,
         contentType: 'application/json',
@@ -592,7 +640,7 @@ test.describe('Connect Page - Error Handling', () => {
 
   test('handles member API timeout gracefully', async ({ page }) => {
     // Mock member API to timeout
-    await page.route('**/members/api/member/', async (route) => {
+    await page.route('**/members/api/member**', async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 100))
       route.abort()
     })
@@ -621,7 +669,7 @@ test.describe('Connect Page - Accessibility', () => {
 
   test('buttons and links are keyboard accessible', async ({ page }) => {
     // Mock as not logged in
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -650,7 +698,7 @@ test.describe('Connect Page - Accessibility', () => {
 
   test('form inputs have proper labels', async ({ page }) => {
     // Mock as not logged in
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -673,6 +721,20 @@ test.describe('Connect Page - Accessibility', () => {
 
 test.describe('Connect Page - Responsive Design', () => {
   test('page works on mobile viewport', async ({ page }) => {
+    await page.route('**/members/api/member**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: {
+            id: 'test-member',
+            email: 'test@example.com',
+            subscriptions: [],
+          },
+        }),
+      })
+    })
+
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 })
 
@@ -688,7 +750,7 @@ test.describe('Connect Page - Responsive Design', () => {
 
   test('sign up form works on mobile', async ({ page }) => {
     // Mock as not logged in
-    await page.route('**/members/api/member/', (route) => {
+    await page.route('**/members/api/member**', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
