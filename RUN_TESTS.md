@@ -35,6 +35,38 @@ npm run test:e2e:ui
 npm run test:e2e:headed
 ```
 
+### E2E Blast Radius Test Groups
+
+Use these to run only tests related to the area you changed:
+
+```bash
+npm run test:e2e:auth
+npm run test:e2e:landing
+npm run test:e2e:listen
+npm run test:e2e:watch
+npm run test:e2e:navigation
+npm run test:e2e:pages
+npm run test:e2e:regression
+```
+
+Automatic blast-radius selection from git diff:
+
+```bash
+# Show selected groups/specs based on changed files since origin/main
+npm run test:e2e:blast
+
+# Compute blast radius and run only those specs
+npm run test:e2e:blast:run
+
+# Compare against a different base branch/commit
+node scripts/e2e-blast-radius.mjs origin/staging
+```
+
+How this works:
+- Maps changed files to test groups (e.g. `src/Listen.tsx` -> `listen`, `src/router/*` -> `navigation + pages`).
+- Converts selected groups into specific `e2e/*.spec.ts` files.
+- Falls back to `regression` when files changed but no mapping rule matches.
+
 ### Production Build Tests
 
 To test against production build:

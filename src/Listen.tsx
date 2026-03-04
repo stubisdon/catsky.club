@@ -193,26 +193,28 @@ export default function Listen() {
         <PageTitle>listen</PageTitle>
 
         <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', opacity: 0.8 }}>
-          <a
-            href="#/portal/signin"
-            data-portal="signin"
-            onClick={(e) => {
-              e.preventDefault()
-              openPortalSignIn()
-            }}
-            style={{
-              color: 'rgba(255, 255, 255, 0.7)',
-              textDecoration: 'none',
-              fontSize: '0.95rem',
-              letterSpacing: '0.05em',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
-              paddingBottom: '0.1rem',
-              cursor: 'pointer',
-              textTransform: 'lowercase',
-            }}
-          >
-            log in
-          </a>
+          {!isGhostMember && (
+            <a
+              href="#/portal/signin"
+              data-portal="signin"
+              onClick={(e) => {
+                e.preventDefault()
+                openPortalSignIn()
+              }}
+              style={{
+                color: 'rgba(255, 255, 255, 0.7)',
+                textDecoration: 'none',
+                fontSize: '0.95rem',
+                letterSpacing: '0.05em',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+                paddingBottom: '0.1rem',
+                cursor: 'pointer',
+                textTransform: 'lowercase',
+              }}
+            >
+              log in
+            </a>
+          )}
 
           {isGhostMember && (
             <a

@@ -63,10 +63,11 @@ const MAGIC_LINK_API = '/members/api/send-magic-link/'
 export default function Connect() {
   const [portalHashActive, setPortalHashActive] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
-  const [showSignupForm, setShowSignupForm] = useState(false)
-  const [signupEmail, setSignupEmail] = useState('')
-  const [signupStatus, setSignupStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [signupError, setSignupError] = useState<string | null>(null)
+  const [showAuthForm, setShowAuthForm] = useState(false)
+  const [authEntryPoint, setAuthEntryPoint] = useState<'signup' | 'signin'>('signup')
+  const [authEmail, setAuthEmail] = useState('')
+  const [authStatus, setAuthStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [authError, setAuthError] = useState<string | null>(null)
 
   useEffect(() => {
     const check = () => setPortalHashActive(PORTAL_HASH_REGEX.test(window.location.hash))
@@ -111,17 +112,30 @@ export default function Connect() {
     setTimeout(refreshMemberStatus, 500)
   }, [refreshMemberStatus])
 
-  const handleSignupSubmit = useCallback(
+  const openAuthForm = useCallback((entryPoint: 'signup' | 'signin') => {
+    setAuthEntryPoint(entryPoint)
+    setShowAuthForm(true)
+    setAuthStatus('idle')
+    setAuthError(null)
+  }, [])
+
+  const closeAuthForm = useCallback(() => {
+    setShowAuthForm(false)
+    setAuthStatus('idle')
+    setAuthError(null)
+  }, [])
+
+  const handleAuthSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
-      const email = signupEmail.trim()
+      const email = authEmail.trim()
       if (!email || !email.includes('@')) {
-        setSignupError('Please enter a valid email.')
-        setSignupStatus('error')
+        setAuthError('Please enter a valid email.')
+        setAuthStatus('error')
         return
       }
-      setSignupError(null)
-      setSignupStatus('loading')
+      setAuthError(null)
+      setAuthStatus('loading')
       try {
         const res = await fetch(MAGIC_LINK_API, {
           method: 'POST',
@@ -131,17 +145,17 @@ export default function Connect() {
         })
         const data = (await res.json().catch(() => ({}))) as { error?: string }
         if (!res.ok) {
-          setSignupError(data?.error || res.statusText || 'Something went wrong.')
-          setSignupStatus('error')
+          setAuthError(data?.error || res.statusText || 'Something went wrong.')
+          setAuthStatus('error')
           return
         }
-        setSignupStatus('success')
+        setAuthStatus('success')
       } catch (err) {
-        setSignupError(err instanceof Error ? err.message : 'Network error.')
-        setSignupStatus('error')
+        setAuthError(err instanceof Error ? err.message : 'Network error.')
+        setAuthStatus('error')
       }
     },
-    [signupEmail]
+    [authEmail]
   )
 
   useEffect(() => {
@@ -163,65 +177,80 @@ export default function Connect() {
         <div className="connect-portal-buttons">
           {isLoggedIn !== true && (
             <>
-              {!showSignupForm ? (
-                <button
-                  type="button"
-                  className="connect-portal-btn"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit', textDecoration: 'underline', padding: 0 }}
-                  onClick={() => setShowSignupForm(true)}
-                >
-                  sign up →
-                </button>
+              {!showAuthForm ? (
+                <>
+                  <button
+                    type="button"
+                    className="connect-portal-btn"
+                    onClick={() => openAuthForm('signup')}
+                  >
+                    sign up →
+                  </button>
+                  <button
+                    type="button"
+                    className="connect-portal-btn"
+                    onClick={() => openAuthForm('signin')}
+                  >
+                    log in →
+                  </button>
+                </>
               ) : (
-                <form onSubmit={handleSignupSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem', maxWidth: '20rem' }}>
+                <form className="connect-auth-form" onSubmit={handleAuthSubmit}>
                   <input
                     type="email"
                     placeholder="your@email.com"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    disabled={signupStatus === 'loading'}
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    disabled={authStatus === 'loading'}
                     autoFocus
-                    style={{ padding: '0.5rem', fontSize: '1rem' }}
+                    className="connect-auth-input"
                   />
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                    <button type="submit" className="connect-portal-btn" disabled={signupStatus === 'loading'} style={{ padding: '0.35rem 0.75rem' }}>
-                      {signupStatus === 'loading' ? 'Sending…' : 'Send magic link'}
+                  <div className="connect-auth-actions">
+                    <button type="submit" className="connect-portal-btn" disabled={authStatus === 'loading'}>
+                      {authStatus === 'loading' ? 'sending…' : 'send magic link'}
                     </button>
                     <button
                       type="button"
-                      className="connect-portal-btn"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', opacity: 0.8 }}
-                      onClick={() => { setShowSignupForm(false); setSignupStatus('idle'); setSignupError(null); }}
+                      className="connect-portal-btn-text"
+                      onClick={closeAuthForm}
                     >
                       cancel
                     </button>
                   </div>
-                  {signupStatus === 'success' && (
-                    <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>Check your email for the sign-in link.</p>
+                  {authStatus === 'success' && (
+                    <p className="connect-auth-message">
+                      {authEntryPoint === 'signin'
+                        ? 'check your email for the log-in link.'
+                        : 'check your email for the sign-up link.'}
+                    </p>
                   )}
-                  {signupStatus === 'error' && signupError && (
-                    <p style={{ fontSize: '0.9rem', color: 'rgba(255,180,180,0.95)' }}>{signupError}</p>
+                  {authStatus === 'error' && authError && (
+                    <p className="connect-auth-error">{authError}</p>
                   )}
                 </form>
               )}
+            </>
+          )}
+          {isLoggedIn === true && (
+            <>
               <a
-                href="#/portal/signin"
-                data-portal="signin"
+                href="#/portal/account"
+                data-portal="account"
                 className="connect-portal-btn"
                 onClick={handlePortalClick}
               >
-                log in →
+                account
+              </a>
+              <a
+                href="#"
+                data-members-signout
+                onClick={handleLogout}
+                className="connect-portal-btn-text"
+              >
+                log out
               </a>
             </>
           )}
-          <a
-            href="#/portal/account"
-            data-portal="account"
-            className="connect-portal-btn"
-            onClick={handlePortalClick}
-          >
-            account
-          </a>
         </div>
 
         {portalHashActive && typeof window !== 'undefined' && window.location?.hostname !== 'catsky.club' && (
@@ -231,26 +260,6 @@ export default function Connect() {
         )}
 
         <div style={{ marginBottom: '2rem', opacity: 0.9 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
-            <a
-              href="#"
-              data-members-signout
-              onClick={handleLogout}
-              style={{
-                color: 'rgba(255, 255, 255, 0.7)',
-                textDecoration: 'none',
-                fontSize: '0.95rem',
-                letterSpacing: '0.05em',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
-                paddingBottom: '0.1rem',
-                cursor: 'pointer',
-                textTransform: 'lowercase',
-              }}
-            >
-              log out
-            </a>
-          </div>
-
           <div style={{ marginTop: '1.5rem' }}>
             <Link
               href="/listen"

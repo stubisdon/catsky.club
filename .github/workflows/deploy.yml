@@ -15,11 +15,12 @@ jobs:
         uses: appleboy/ssh-action@master
         env:
           GIT_PAT: ${{ secrets.GIT_PAT }}
+          GIT_PAT_2: ${{ secrets.GIT_PAT_2 }}
         with:
           host: ${{ secrets.PROD_HOST }}
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
-          envs: GIT_PAT
+          envs: GIT_PAT,GIT_PAT_2
           script: |
             #!/bin/bash
             set -e
@@ -28,11 +29,17 @@ jobs:
             export GIT_TERMINAL_PROMPT=0
             REMOTE_URL=$(git remote get-url origin)
             
-            if [ -n "$GIT_PAT" ]; then
-              echo "Using GIT_PAT (length=${#GIT_PAT}) for git pull."
+            AUTH_PAT="${GIT_PAT_2:-$GIT_PAT}"
+
+            if [ -n "$AUTH_PAT" ]; then
+              if [ -n "$GIT_PAT_2" ]; then
+                echo "Using GIT_PAT_2 (length=${#GIT_PAT_2}) for git pull."
+              else
+                echo "Using GIT_PAT (length=${#GIT_PAT}) for git pull."
+              fi
               # URL-encode PAT so special chars don't break the git URL (use Python from env to avoid PAT in argv)
               if command -v python3 >/dev/null 2>&1; then
-                GIT_PAT_SAFE=$(python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ.get('GIT_PAT', ''), safe=''))")
+                GIT_PAT_SAFE=$(AUTH_PAT="$AUTH_PAT" python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ.get('AUTH_PAT', ''), safe=''))")
               else
                 urlencode() {
                   local LC_ALL=C length="${#1}" i c
@@ -41,7 +48,7 @@ jobs:
                     case "$c" in [a-zA-Z0-9.~_-]) printf '%s' "$c" ;; *) printf '%%%02X' "'$c" ;; esac
                   done
                 }
-                GIT_PAT_SAFE=$(urlencode "$GIT_PAT")
+                GIT_PAT_SAFE=$(urlencode "$AUTH_PAT")
               fi
               # Build an explicit authenticated GitHub URL so stale server-side git config cannot interfere.
               REPO_PATH=$(printf "%s" "$REMOTE_URL" | sed -E 's#^git@github\.com:##; s#^https://([^@/]+@)?github\.com/##; s#\.git$##')
@@ -55,9 +62,9 @@ jobs:
               git pull origin main
             else
               echo "ERROR: Cannot authenticate git pull."
-              echo "GIT_PAT is unset or empty on server (check Actions secret GIT_PAT and envs pass-through)."
+              echo "No PAT found. Set GIT_PAT_2 (preferred) or GIT_PAT in GitHub Actions secrets."
               echo "For private repos, either:"
-              echo "  1. Add GIT_PAT secret with a Personal Access Token (repo scope)"
+              echo "  1. Add GIT_PAT_2 (or GIT_PAT) secret with a Personal Access Token (repo scope)"
               echo "  2. Configure SSH deploy key on production server"
               exit 1
             fi

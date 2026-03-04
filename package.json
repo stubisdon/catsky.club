@@ -1,5 +1,5 @@
 {
-  "name": "catsky-club",
+  "name": "catsky.club",
   "version": "1.0.0",
   "description": "Custom minimalistic frontend for Ghost CMS",
   "type": "module",
@@ -19,7 +19,16 @@
     "test:e2e:ui": "NODE_OPTIONS=\"--import tsx\" playwright test --ui --config=playwright.config.cjs",
     "test:e2e:headed": "NODE_OPTIONS=\"--import tsx\" playwright test --headed --config=playwright.config.cjs",
     "test:all": "npm run test && npm run test:e2e",
-    "test:ci": "npm run test && npm run test:e2e"
+    "test:ci": "npm run test && npm run test:e2e",
+    "test:e2e:auth": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/auth.spec.ts --config=playwright.config.cjs",
+    "test:e2e:landing": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/landing.spec.ts --config=playwright.config.cjs",
+    "test:e2e:listen": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/listen.spec.ts --config=playwright.config.cjs",
+    "test:e2e:watch": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/watch.spec.ts --config=playwright.config.cjs",
+    "test:e2e:navigation": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/navigation.spec.ts --config=playwright.config.cjs",
+    "test:e2e:pages": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/pages.spec.ts --config=playwright.config.cjs",
+    "test:e2e:regression": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/regression.spec.ts --config=playwright.config.cjs",
+    "test:e2e:blast": "node scripts/e2e-blast-radius.mjs",
+    "test:e2e:blast:run": "node scripts/e2e-blast-radius.mjs --run"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -48,5 +57,13 @@
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
     "vitest": "^4.0.17"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/catsky-social/catsky.club.git"
+  },
+  "homepage": "https://catsky.club",
+  "bugs": {
+    "url": "https://github.com/catsky-social/catsky.club/issues"
   }
 }
