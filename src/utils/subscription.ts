@@ -8,6 +8,7 @@
  */
 
 export type SubscriptionStatus = 'unknown' | 'not_subscriber' | 'free_subscriber' | 'paid_subscriber'
+export type MembershipTier = 'none' | 'free' | 'paid_5' | 'paid_20'
 
 interface GhostMember {
   id?: string
@@ -40,6 +41,24 @@ function getDevOverride(): SubscriptionStatus | null {
     }
   }
   return null
+}
+
+function getHighestPaidTier(member: GhostMember): MembershipTier {
+  const subscriptions = member.subscriptions || []
+  let highestAmount = 0
+
+  for (const sub of subscriptions) {
+    if (sub.status !== 'active') continue
+    const amount = sub.price?.amount
+    if (typeof amount === 'number' && amount > highestAmount) {
+      highestAmount = amount
+    }
+  }
+
+  if (highestAmount >= 2000) return 'paid_20'
+  if (highestAmount >= 500) return 'paid_5'
+  if (highestAmount > 0) return 'paid_5'
+  return 'free'
 }
 
 export function setDevMemberOverride(loggedIn: boolean, paid = false): void {
@@ -105,6 +124,33 @@ export async function checkSubscriptionStatus(): Promise<SubscriptionStatus> {
     console.error('Error checking subscription status:', error)
     return 'not_subscriber'
   }
+}
+
+export async function getMembershipTier(): Promise<MembershipTier> {
+  const devOverride = getDevOverride()
+  if (devOverride === 'paid_subscriber') return 'paid_20'
+  if (devOverride === 'free_subscriber') return 'free'
+
+  try {
+    const res = await fetch('/members/api/member/', {
+      credentials: 'include'
+    })
+
+    if (!res.ok) {
+      return 'none'
+    }
+
+    const data = (await res.json()) as unknown
+    if (typeof data === 'object' && data !== null && 'member' in data) {
+      const member = (data as { member: GhostMember | null }).member
+      if (!member) return 'none'
+      return getHighestPaidTier(member)
+    }
+  } catch (error) {
+    console.error('Error checking membership tier:', error)
+  }
+
+  return 'none'
 }
 
 /**
