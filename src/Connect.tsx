@@ -114,7 +114,7 @@ export default function Connect() {
     if (!isMagicLinkSuccess) return
 
     let cancelled = false
-    const retryDelaysMs = [0, 300, 900, 1800]
+    const retryDelaysMs = [0, 400, 1200, 2500, 5000, 8000]
 
     const run = async () => {
       for (const delay of retryDelaysMs) {

@@ -10,6 +10,8 @@
 export type SubscriptionStatus = 'unknown' | 'not_subscriber' | 'free_subscriber' | 'paid_subscriber'
 export type MembershipTier = 'none' | 'free' | 'paid_5' | 'paid_20'
 
+const MEMBER_ENDPOINT = '/members/api/member/'
+
 interface GhostMember {
   id?: string
   email?: string
@@ -87,8 +89,13 @@ export async function checkSubscriptionStatus(): Promise<SubscriptionStatus> {
   if (devOverride !== null) return devOverride
 
   try {
-    const res = await fetch('/members/api/member/', { 
-      credentials: 'include' 
+    const res = await fetch(`${MEMBER_ENDPOINT}?_=${Date.now()}`, {
+      credentials: 'include',
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+      },
     })
     
     if (!res.ok) {
@@ -132,8 +139,13 @@ export async function getMembershipTier(): Promise<MembershipTier> {
   if (devOverride === 'free_subscriber') return 'free'
 
   try {
-    const res = await fetch('/members/api/member/', {
-      credentials: 'include'
+    const res = await fetch(`${MEMBER_ENDPOINT}?_=${Date.now()}`, {
+      credentials: 'include',
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+      },
     })
 
     if (!res.ok) {
