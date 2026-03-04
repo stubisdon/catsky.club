@@ -40,7 +40,7 @@ test.describe('Connect Page - Basic Elements', () => {
     await expect(signUpBtn).toBeVisible()
   })
 
-  test('connect page has log in link when logged out', async ({ page }) => {
+  test('connect page has log in button when logged out', async ({ page }) => {
     // Mock as not logged in
     await page.route('**/members/api/member/', (route) => {
       route.fulfill({
@@ -53,12 +53,22 @@ test.describe('Connect Page - Basic Elements', () => {
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    // Should see log in link
-    const logInLink = page.getByRole('link', { name: /log in/i })
-    await expect(logInLink).toBeVisible()
+    // Should see log in button
+    const logInBtn = page.getByRole('button', { name: /log in/i })
+    await expect(logInBtn).toBeVisible()
   })
 
-  test('connect page has account link', async ({ page }) => {
+  test('connect page has account link when logged in', async ({ page }) => {
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: { id: 'test-member', email: 'test@example.com', subscriptions: [] },
+        }),
+      })
+    })
+
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
@@ -67,7 +77,17 @@ test.describe('Connect Page - Basic Elements', () => {
     await expect(accountLink).toBeVisible()
   })
 
-  test('connect page has log out link', async ({ page }) => {
+  test('connect page has log out link when logged in', async ({ page }) => {
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: { id: 'test-member', email: 'test@example.com', subscriptions: [] },
+        }),
+      })
+    })
+
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
@@ -326,7 +346,7 @@ test.describe('Sign Up Flow', () => {
   })
 })
 
-test.describe('Sign In Flow', () => {
+test.describe('Log In Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Mock as not logged in
     await page.route('**/members/api/member/', (route) => {
@@ -338,35 +358,31 @@ test.describe('Sign In Flow', () => {
     })
   })
 
-  test('log in link has correct portal href', async ({ page }) => {
+  test('log in button opens shared auth form', async ({ page }) => {
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    // Check log in link
-    const logInLink = page.getByRole('link', { name: /log in/i })
-    await expect(logInLink).toHaveAttribute('href', '#/portal/signin')
-    await expect(logInLink).toHaveAttribute('data-portal', 'signin')
+    const logInBtn = page.getByRole('button', { name: /log in/i })
+    await logInBtn.click()
+
+    const emailInput = page.getByPlaceholder(/your@email.com/i)
+    await expect(emailInput).toBeVisible()
   })
 
-  test('clicking log in sets hash for portal', async ({ page }) => {
+  test('account link has correct portal href when logged in', async ({ page }) => {
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: { id: 'test-member', email: 'test@example.com', subscriptions: [] },
+        }),
+      })
+    })
+
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    // Click log in
-    const logInLink = page.getByRole('link', { name: /log in/i })
-    await logInLink.click()
-
-    // Hash should be set
-    await page.waitForTimeout(100)
-    const hash = await page.evaluate(() => window.location.hash)
-    expect(hash).toBe('#/portal/signin')
-  })
-
-  test('account link has correct portal href', async ({ page }) => {
-    await page.goto('/connect')
-    await page.waitForLoadState('networkidle')
-
-    // Check account link
     const accountLink = page.getByRole('link', { name: /account/i })
     await expect(accountLink).toHaveAttribute('href', '#/portal/account')
     await expect(accountLink).toHaveAttribute('data-portal', 'account')
@@ -388,7 +404,17 @@ test.describe('Sign In Flow', () => {
 })
 
 test.describe('Log Out Flow', () => {
-  test('log out link is always visible', async ({ page }) => {
+  test('log out link is visible when logged in', async ({ page }) => {
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: { id: 'test-member', email: 'test@example.com', subscriptions: [] },
+        }),
+      })
+    })
+
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
@@ -397,14 +423,20 @@ test.describe('Log Out Flow', () => {
     await expect(logOutLink).toBeVisible()
   })
 
-  test('log out link has correct data attribute', async ({ page }) => {
+  test('log out link is hidden when logged out', async ({ page }) => {
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ member: null }),
+      })
+    })
+
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    // Log out should have data-members-signout attribute (boolean attribute)
     const logOutLink = page.getByRole('link', { name: /log out/i })
-    const hasAttr = await logOutLink.evaluate((el) => el.hasAttribute('data-members-signout'))
-    expect(hasAttr).toBe(true)
+    await expect(logOutLink).not.toBeVisible()
   })
 
   test('clicking log out triggers sign out handler', async ({ page }) => {
