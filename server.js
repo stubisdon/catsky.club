@@ -46,14 +46,73 @@ loadEnvFile('.env')
 
 const app = express()
 const PORT = process.env.PORT || 3001
+app.disable('x-powered-by')
+app.set('trust proxy', 1)
 
 const GHOST_URL = (process.env.GHOST_URL || process.env.VITE_GHOST_URL || 'https://catsky.club').replace(/\/+$/, '')
 const GHOST_ADMIN_API_KEY = process.env.GHOST_ADMIN_API_KEY || ''
 const GHOST_ADMIN_API_VERSION = process.env.GHOST_ADMIN_API_VERSION || 'v5.0'
 const SIGNUPS_API_TOKEN = process.env.SIGNUPS_API_TOKEN || ''
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
 
-app.use(cors())
+const RATE_LIMIT_MAX = Number(process.env.RATE_LIMIT_MAX || 20)
+const RATE_LIMIT_WINDOW_MS = Number(process.env.RATE_LIMIT_WINDOW_MS || 10 * 60 * 1000)
+
+const rateLimitStore = new Map()
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow non-browser/SSR requests and same-origin when no explicit allowlist is configured.
+      if (!origin) return callback(null, true)
+      if (ALLOWED_ORIGINS.length === 0) return callback(null, true)
+      return callback(ALLOWED_ORIGINS.includes(origin) ? null : new Error('Not allowed by CORS'), ALLOWED_ORIGINS.includes(origin))
+    },
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'x-signups-token'],
+  })
+)
 app.use(express.json())
+
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+  next()
+})
+
+function rateLimit(req, res, next) {
+  const key = req.ip || req.socket.remoteAddress || 'unknown'
+  const now = Date.now()
+  const current = rateLimitStore.get(key)
+
+  if (!current || now > current.expiresAt) {
+    rateLimitStore.set(key, { count: 1, expiresAt: now + RATE_LIMIT_WINDOW_MS })
+    return next()
+  }
+
+  if (current.count >= RATE_LIMIT_MAX) {
+    const retryAfterSec = Math.ceil((current.expiresAt - now) / 1000)
+    res.setHeader('Retry-After', String(Math.max(retryAfterSec, 1)))
+    return res.status(429).json({ error: 'Too many requests. Please try again later.' })
+  }
+
+  current.count += 1
+  rateLimitStore.set(key, current)
+  return next()
+}
+
+function safeTokenEqual(a, b) {
+  const aBuf = Buffer.from(String(a || ''), 'utf8')
+  const bBuf = Buffer.from(String(b || ''), 'utf8')
+  if (aBuf.length !== bBuf.length) return false
+  return crypto.timingSafeEqual(aBuf, bBuf)
+}
 
 function base64url(input) {
   const buf = Buffer.isBuffer(input) ? input : Buffer.from(String(input), 'utf8')
@@ -134,7 +193,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }))
 
 // API endpoint for form submissions
-app.post('/api/submit', async (req, res) => {
+app.post('/api/submit', rateLimit, async (req, res) => {
   const { name, contact } = req.body
   const email = typeof contact === 'string' ? contact.trim() : ''
   const safeName = typeof name === 'string' ? name.trim() : ''
@@ -204,10 +263,10 @@ app.post('/api/submit', async (req, res) => {
 
 // Protected endpoint: fetch recent signups (Ghost members)
 // Provide SIGNUPS_API_TOKEN on the server and call with header: x-signups-token: <token>
-app.get('/api/signups', async (req, res) => {
+app.get('/api/signups', rateLimit, async (req, res) => {
   if (!SIGNUPS_API_TOKEN) return res.status(404).json({ error: 'Not enabled' })
   const token = req.header('x-signups-token')
-  if (!token || token !== SIGNUPS_API_TOKEN) return res.status(401).json({ error: 'Unauthorized' })
+  if (!token || !safeTokenEqual(token, SIGNUPS_API_TOKEN)) return res.status(401).json({ error: 'Unauthorized' })
   if (!GHOST_ADMIN_API_KEY) return res.status(500).json({ error: 'Ghost Admin API is not configured' })
 
   const limit = Math.min(Number(req.query.limit || 50) || 50, 200)
@@ -245,4 +304,3 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
 })
-
