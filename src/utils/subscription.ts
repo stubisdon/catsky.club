@@ -26,6 +26,10 @@ interface GhostMember {
   }>
 }
 
+interface GhostMemberResponse {
+  member?: GhostMember | null
+}
+
 const DEV_MEMBER_KEY = 'catsky_dev_member'
 const DEV_PAID_KEY = 'catsky_dev_paid'
 
@@ -89,44 +93,21 @@ export async function checkSubscriptionStatus(): Promise<SubscriptionStatus> {
   if (devOverride !== null) return devOverride
 
   try {
-    const res = await fetch(`${MEMBER_ENDPOINT}?_=${Date.now()}`, {
-      credentials: 'include',
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-      },
-    })
-    
-    if (!res.ok) {
-      return 'not_subscriber'
+    const member = await fetchMember()
+    if (!member) return 'not_subscriber'
+
+    // Check if member has active paid subscriptions
+    const subscriptions = member.subscriptions || []
+    const hasActivePaidSubscription = subscriptions.some(
+      sub => sub.status === 'active' && sub.price && sub.price.amount !== undefined && sub.price.amount > 0
+    )
+
+    if (hasActivePaidSubscription) {
+      return 'paid_subscriber'
     }
-    
-    const data = (await res.json()) as unknown
-    
-    // Ghost returns { member: {...} } when logged in, or { member: null } otherwise
-    if (typeof data === 'object' && data !== null && 'member' in data) {
-      const member = (data as { member: GhostMember | null }).member
-      
-      if (!member) {
-        return 'not_subscriber'
-      }
-      
-      // Check if member has active paid subscriptions
-      const subscriptions = member.subscriptions || []
-      const hasActivePaidSubscription = subscriptions.some(
-        sub => sub.status === 'active' && sub.price && sub.price.amount !== undefined && sub.price.amount > 0
-      )
-      
-      if (hasActivePaidSubscription) {
-        return 'paid_subscriber'
-      }
-      
-      // Member exists (has name/email) but no paid subscription = free subscriber
-      return 'free_subscriber'
-    }
-    
-    return 'not_subscriber'
+
+    // Member exists (has name/email) but no paid subscription = free subscriber
+    return 'free_subscriber'
   } catch (error) {
     console.error('Error checking subscription status:', error)
     return 'not_subscriber'
@@ -139,25 +120,9 @@ export async function getMembershipTier(): Promise<MembershipTier> {
   if (devOverride === 'free_subscriber') return 'free'
 
   try {
-    const res = await fetch(`${MEMBER_ENDPOINT}?_=${Date.now()}`, {
-      credentials: 'include',
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        Pragma: 'no-cache',
-      },
-    })
-
-    if (!res.ok) {
-      return 'none'
-    }
-
-    const data = (await res.json()) as unknown
-    if (typeof data === 'object' && data !== null && 'member' in data) {
-      const member = (data as { member: GhostMember | null }).member
-      if (!member) return 'none'
-      return getHighestPaidTier(member)
-    }
+    const member = await fetchMember()
+    if (!member) return 'none'
+    return getHighestPaidTier(member)
   } catch (error) {
     console.error('Error checking membership tier:', error)
   }
@@ -179,4 +144,35 @@ export async function isPaidSubscriber(): Promise<boolean> {
 export async function isSubscriber(): Promise<boolean> {
   const status = await checkSubscriptionStatus()
   return status === 'free_subscriber' || status === 'paid_subscriber'
+}
+
+async function fetchMember(): Promise<GhostMember | null> {
+  const res = await fetch(`${MEMBER_ENDPOINT}?_=${Date.now()}`, {
+    credentials: 'include',
+    cache: 'no-store',
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
+    },
+  })
+
+  if (!res.ok) {
+    return null
+  }
+
+  // Ghost can occasionally return 200 with an empty body and/or missing JSON content-type.
+  // Parse defensively so auth state can still recover after magic-link callbacks.
+  const raw = await res.text()
+  if (!raw || !raw.trim()) return null
+
+  try {
+    const data = JSON.parse(raw) as GhostMemberResponse
+    if (typeof data === 'object' && data !== null && 'member' in data) {
+      return data.member ?? null
+    }
+  } catch {
+    return null
+  }
+
+  return null
 }
