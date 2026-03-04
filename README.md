@@ -1,4 +1,6 @@
-# Ghost Headless Frontend - Immersive Black Screen Experience
+# catsky.club - Ghost Headless Frontend
+
+> Canonical repository identity: `catsky.club` (used by project/task integrations such as Linear).
 
 An immersive, minimalistic black screen frontend for Ghost CMS built with React, Vite, and TypeScript.
 
