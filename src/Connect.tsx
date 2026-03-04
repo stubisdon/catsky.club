@@ -76,8 +76,10 @@ export default function Connect() {
     return () => window.removeEventListener('hashchange', check)
   }, [])
 
-  const refreshMemberStatus = useCallback(() => {
-    isSubscriber().then(setIsLoggedIn)
+  const refreshMemberStatus = useCallback(async () => {
+    const loggedIn = await isSubscriber()
+    setIsLoggedIn(loggedIn)
+    return loggedIn
   }, [])
 
   useEffect(() => {
@@ -100,6 +102,60 @@ export default function Connect() {
       return () => clearTimeout(t)
     }
   }, [portalHashActive, refreshMemberStatus])
+
+  // Magic-link callbacks land on /connect?action=signin&success=true.
+  // Re-check the Ghost member session a few times so buttons update reliably.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const isMagicLinkSuccess =
+      (params.get('action') === 'signin' || params.get('action') === 'signup') &&
+      params.get('success') === 'true'
+
+    if (!isMagicLinkSuccess) return
+
+    let cancelled = false
+    const retryDelaysMs = [0, 300, 900, 1800]
+
+    const run = async () => {
+      for (const delay of retryDelaysMs) {
+        if (cancelled) return
+        if (delay > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delay))
+          if (cancelled) return
+        }
+
+        const loggedIn = await refreshMemberStatus()
+        if (loggedIn) {
+          setShowAuthForm(false)
+          return
+        }
+      }
+    }
+
+    run()
+
+    return () => {
+      cancelled = true
+    }
+  }, [refreshMemberStatus])
+
+  // Refresh auth state when returning to this tab (common after opening email links).
+  useEffect(() => {
+    const onFocus = () => {
+      if (document.visibilityState === 'hidden') return
+      void refreshMemberStatus()
+    }
+
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('pageshow', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('pageshow', onFocus)
+      document.removeEventListener('visibilitychange', onFocus)
+    }
+  }, [refreshMemberStatus])
 
   const handleLogout = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
