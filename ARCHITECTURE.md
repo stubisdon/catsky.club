@@ -1,185 +1,195 @@
-# Catsky Club – Architecture (for fresh context)
+# Catsky Club Architecture (2026 refresh)
 
-Single-page app for membership, music (tracks), and video. **Auth and membership are handled by Ghost** (Members API + Portal). This doc is the primary reference so an agent or developer with fresh context can understand the system quickly.
+This document reflects the **current** codebase architecture for `catsky.club` and replaces stale assumptions.
 
----
+## 1) System overview
 
-## 1. Stack and entry
+Catsky Club is a Vite + React single-page app with a lightweight Express server.
 
-- **Build:** Vite + React 18 + TypeScript
-- **Entry:** `index.html` → `src/main.tsx` (creates root, renders `Router`)
-- **Routing:** Client-side only. Custom router in `src/router/Router.tsx` uses `window.location.pathname` and `popstate`. Navigation uses `navigateTo(path)` from `src/router/navigation.ts`.
-- **Production server:** Express in `server.js` (port 3001): serves `dist/` and `public/`, plus API routes under `/api/`. Nginx in front proxies `/ghost` and `/members` to Ghost.
+- Frontend: route-based experience pages (`/`, `/listen`, `/watch`, `/connect`, `/mission`).
+- Membership/auth: Ghost Members API + Ghost Portal.
+- Runtime API server: Express serves static assets and a small Ghost Admin API bridge.
+- Deployment target: production host running PM2 + nginx in front.
 
----
+## 2) Runtime architecture
 
-## 2. Routes and views
+### Frontend app shell
 
-| Path       | View     | Component   |
-|-----------|----------|-------------|
-| `/`       | home     | `App.tsx`   |
-| `/listen` | listen   | `Listen.tsx` (tracks, subscription-gated) |
-| `/watch`  | watch    | `Watch.tsx` |
-| `/connect`| connect  | `Connect.tsx` (sign up, log in, account) |
-| `/mission`| mission  | `Mission.tsx` (hidden but reachable) |
-| *other*   | home     | Redirect to `/`, render `App` |
+- Entry: `index.html` bootstraps the app and Ghost Portal integration.
+- React mount: `src/main.tsx` renders `Router` inside `React.StrictMode`.
+- Router: `src/router/Router.tsx` maps pathname to views and normalizes trailing slashes.
+- Navigation: `src/router/navigation.ts` uses History API and dispatches `popstate`.
 
-- **Connect** is the only membership/signup surface. “Get access” from elsewhere should link to `/connect`.
+### Route map
 
----
+- `/` → `src/App.tsx` (landing page)
+- `/listen` → `src/Listen.tsx` (tier-gated tracks)
+- `/watch` → `src/Watch.tsx` (video teaser + connect CTA)
+- `/connect` → `src/Connect.tsx` (magic-link auth UI + account/logout)
+- `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
+- unknown paths → normalized to `/` in router
 
-## 3. Ghost: Members API + Portal
+### Styling model
 
-### 3.1 Backend (Ghost at catsky.club)
+- Global theme/layout tokens in `src/index.css`.
+- Shared reusable style objects in `src/styles/common.ts`.
+- Route components mostly use inline style objects for local presentation.
+- Reusable primitives in `src/components/` (`Link`, `PageContainer`, `PageTitle`).
 
-- **Members API:** `GET /members/api/member/` (with credentials) → `{ member: {...} | null }`. Used to decide subscription status and whether to show “logged in” UI.
-- **Magic link:** `POST /members/api/send-magic-link/` with `{ email }` sends the sign-in/signup email. No Admin API needed for this; it’s the public Members API.
-- **Portal:** Ghost’s embeddable UI for sign-in, account, and (when not invite-only) sign-up. Loaded from CDN in `index.html`; configured via `data-ghost` and `data-key` (Content API key).
+## 3) Ghost integration
 
-### 3.2 Sign-up flow (current design)
+### 3.1 Members API and session state
 
-- **New users:** On `/connect`, “sign up →” opens an **inline form** (email + “Send magic link”). Submit POSTs to **`/members/api/send-magic-link/`** (Ghost). This **bypasses Ghost Portal** so we avoid Portal’s “invite-only” screen. See `Connect.tsx`: `showSignupForm`, `handleSignupSubmit`, `MAGIC_LINK_API`.
-- **Existing users:** “log in →” and “account” still use **Ghost Portal** (hash `#/portal/signin`, `#/portal/account`). Portal is still used for login and account management.
-- **Logout:** Every logout must call **`triggerPortalSignOut()`** (in `memberSession.ts`) so Ghost clears the member cookie; otherwise the user stays logged in on prod.
+Primary member check flow:
 
-### 3.3 Subscription status
+- `src/utils/subscription.ts` calls `/members/api/member/` with `credentials: 'include'` and no-store headers.
+- Supports two Ghost response shapes:
+  - `{ member: {...} }`
+  - direct member object.
+- Converts member record to:
+  - status: `not_subscriber` / `free_subscriber` / `paid_subscriber`
+  - tier: `none` / `free` / `paid_5` / `paid_20` (based on active subscription amount).
 
-- **`src/utils/subscription.ts`:** `checkSubscriptionStatus()` → `fetch('/members/api/member/', { credentials: 'include' })` → returns `'not_subscriber' | 'free_subscriber' | 'paid_subscriber'`. `isSubscriber()`, `isPaidSubscriber()` use that.
-- **Dev only:** `getDevOverride()` / `setDevMemberOverride()` use `localStorage.catsky_dev_member` and `catsky_dev_paid` to simulate logged-in state on localhost (no prod cookie).
+Dev override support (local only):
 
-### 3.4 Member session helpers (`src/utils/memberSession.ts`)
+- `catsky_dev_member` + `catsky_dev_paid` in localStorage via `setDevMemberOverride()`.
 
-- **`triggerPortalSignOut()`** – clicks `#ghost-portal-trigger-signout`. Must be called on every logout (Connect, Listen).
-- **`openPortalSignIn()`**, **`openPortalSignUp()`**, **`openPortalAccount()`** – click the corresponding hidden trigger or set hash `#/portal/signin` etc.
-- **`clearLocalSessionFlags()`** – removes `catsky_signed_up`, `catsky_activated` from localStorage.
+### 3.2 Connect authentication UX
 
+Current behavior in `src/Connect.tsx`:
 
-### 3.5 Connect auth-state refresh after magic-link callbacks
+- Signup/login buttons open an inline email form (not Portal signup UI).
+- Form posts to `/members/api/send-magic-link/`.
+- Callback robustness:
+  - detects `?action=signin|signup&success=true`
+  - retries member refresh with backoff
+  - refreshes on `focus`, `pageshow`, `visibilitychange`.
+- Logged-in view shows:
+  - account link (`#/portal/account`)
+  - logout action that **must** call `triggerPortalSignOut()`.
 
-The `/connect` page has extra logic to avoid stale logged-out buttons immediately after Ghost redirects back from a magic-link login/signup:
+### 3.3 Ghost Portal wiring and hardening
 
-- Callback detection: if URL has `?action=signin|signup&success=true`, `Connect.tsx` treats this as a post-auth callback and runs a retry-based member refresh.
-- Retry/backoff checks: auth state is re-checked multiple times over short delays because Ghost can take a few moments to persist/read member cookies after redirect.
-- Tab-return refresh: Connect also re-checks member state on `focus`, `pageshow`, and visible `visibilitychange` so users returning from email clients get updated buttons (`account` instead of `sign up` / `log in`).
-- Defensive member parsing: `subscription.ts` accepts both Ghost response shapes (`{ member: {...} }` and direct member objects) and tolerates empty/invalid `200` bodies while cookies settle.
+`index.html` contains a large pre-Portal script that:
 
-When debugging “signed in toast appears but buttons stay logged out”, start with this refresh path and the `/members/api/member/` network responses.
+- patches JSON from Ghost endpoints to normalize signup access and tier visibility,
+- hardens `fetch` / `Response.json` / XHR behavior against empty JSON responses,
+- rewrites production URLs where needed,
+- prefetches and caches Ghost settings,
+- dynamically loads patched Portal script from jsDelivr,
+- inserts hidden trigger anchors used by `memberSession.ts`.
 
----
+Important: script order is intentional; this patch script runs before Portal load.
 
-## 4. index.html – critical before Portal
+## 4) Listen page and media model
 
-The **inline script at the top of `index.html`** runs before the Portal script and patches all Ghost API responses and the Portal script itself. Do not remove or reorder without understanding the flow.
+### 4.1 Track source of truth
 
-### 4.1 Response patches (fetch + Response.json + XHR)
+- Track catalog lives in `src/config/tracks.ts`.
+- Access tiers per track: `public`, `free_member`, `paid_5`, `paid_20`.
+- Current track list is SoundCloud-based.
 
-- **fixPortalSettings(data):** Forces `members_signup_access = 'all'` (and `data.site.members_signup_access`), ensures `url` and `members_support_address`, and recursively forces any `members_signup_access` / `signup_access` to `'all'` (including array-shaped settings).
-- **fixPortalTiers(data):** For any `data.tiers` array, sets each tier’s `visibility = 'public'` and `invite_only = false`.
-- **fixJsonResponse:** For Ghost/members URLs, parses JSON, runs `fixIfNeeded` (which calls the above), returns a new `Response` with the patched JSON. For empty body on `/member`, returns `{"member":null}` to avoid JSON parse errors.
-- **Response.prototype.json:** Wraps so that `fixIfNeeded` is applied to parsed JSON; on SyntaxError returns `fixIfNeeded({})` so subscription check doesn’t throw.
-- **replaceProductionUrls:** Rewrites `https://catsky.club` to `window.location.origin` in responses so localhost doesn’t redirect to prod after login.
+### 4.2 Playback behavior
 
-### 4.2 Settings preload and cache
+In `src/Listen.tsx`:
 
-- Before loading the Portal script, the app **preloads** `GET /ghost/api/content/settings/?key=...`. The response is patched (above) and stored in **`window.__PORTAL_SETTINGS_CACHE__`**.
-- When any request matches the Ghost **settings** URL, the fetch wrapper returns the cached patched response (so Portal always gets open signup in settings). Only 2xx responses are cached; 401 is not cached.
+- membership tier is loaded first (`getMembershipTier`).
+- accessible vs locked tracks computed client-side from tier.
+- selecting locked tracks redirects to `/connect`.
+- supports:
+  - direct audio element path (`audioRef`) for `direct` sources,
+  - SoundCloud embed iframe for `soundcloud` sources.
+- paid users get local vote/feedback UI (localStorage + in-memory submit acknowledgement).
 
-### 4.3 Portal script patch
+Helpers:
 
-- When loading `portal.min.js` from the CDN, the script body is patched: **`==="invite"`** is replaced with **`==="\u200binvite"`** (zero-width space) so the invite-only branch in the Portal script never matches. (In practice we still rely on the **inline signup form** on Connect to bypass Portal for sign-up.)
+- `src/utils/audioHelpers.ts` generates SoundCloud embed URLs and supports direct URLs.
+- `src/utils/soundcloudTracks.ts` offers parsing utilities for SoundCloud share links.
 
-### 4.4 Hidden Portal triggers
+## 5) Express server architecture (`server.js`)
 
-- In the DOM: `#ghost-portal-trigger-signup`, `#ghost-portal-trigger-signin`, `#ghost-portal-trigger-account`, **`#ghost-portal-trigger-signout`** (data-members-signout). Portal binds to these at load time. Logout in the app must call `triggerPortalSignOut()` so this element is clicked.
+The Node server is intentionally small:
 
----
+- Loads `.env.server` then `.env` (without overwriting existing env vars).
+- Serves static files from:
+  - `dist/` first,
+  - `public/` second.
+- Provides API routes:
+  - `POST /api/submit`:
+    - validates `{ name, contact }`
+    - creates/reuses Ghost member via Ghost Admin API JWT auth.
+  - `GET /api/signups`:
+    - token-protected with `x-signups-token`
+    - returns recent Ghost members.
+- SPA fallback:
+  - unknown extensionless routes return `dist/index.html`
+  - unknown file paths with extension return 404.
 
-## 5. Our API (server.js)
+Ghost routes like `/members/api/*` and `/ghost/*` are not implemented in Express; they are handled by Ghost/nginx (prod) or Vite proxy (dev).
 
-- **POST /api/submit** – Body: `{ name, contact }`. Creates a Ghost member via Admin API (or returns existing). Used for forms that create members server-side; not used by the inline signup form (that uses Ghost’s magic-link API from the client).
-- **GET /api/signups** – Protected by `x-signups-token`. Returns recent Ghost members (for admin/tools). Requires `SIGNUPS_API_TOKEN` and `GHOST_ADMIN_API_KEY` in env.
+## 6) Local development topology
 
-Ghost’s own routes (`/members/api/*`, `/ghost/*`) are **not** implemented in server.js; they are served by Ghost (or nginx proxies them to Ghost). The frontend calls `/members/api/send-magic-link/` and `/members/api/member/` directly (same origin on prod; in dev, Vite proxies `/members` and `/ghost` to Ghost).
+### Standard mode
 
----
+- `npm run dev` starts Vite (port 3000).
+- `npm run server` starts Express API/static server (port 3001).
 
-## 6. Key files (quick map)
+### Combined mode
 
-| Concern              | File(s) |
-|----------------------|--------|
-| Routes, views        | `src/router/Router.tsx` (routing logic), `src/main.tsx` (entry) |
-| Navigation           | `src/router/navigation.ts` (navigateTo, replaceState, goBack) |
-| Home                 | `src/App.tsx` |
-| Connect (sign up / login) | `src/Connect.tsx` (inline signup form, Portal for login/account) |
-| Listen (tracks)      | `src/Listen.tsx`, `src/config/tracks.ts` |
-| Watch (video)        | `src/Watch.tsx` |
-| Mission (hidden)     | `src/Mission.tsx` |
-| Shared components    | `src/components/` (Link, PageContainer, PageTitle) |
-| Shared styles        | `src/styles/` (common inline style objects) |
-| Utilities            | `src/utils/` (subscription, memberSession, audioHelpers, soundcloudTracks) |
-| Subscription status  | `src/utils/subscription.ts` |
-| Portal triggers, logout | `src/utils/memberSession.ts` |
-| Audio helpers        | `src/utils/audioHelpers.ts`, `src/utils/soundcloudTracks.ts` |
-| Track config         | `src/config/tracks.ts` |
-| Portal + API patches | `index.html` (inline script, then Portal loader; hidden triggers in body) |
-| Our API + static     | `server.js` |
-| Deploy               | `deploy.sh`, `.github/workflows/deploy.yml` |
-| Env (prod build)     | `VITE_GHOST_URL`, `VITE_GHOST_CONTENT_API_KEY` in `.env.server` on server; baked into `dist/index.html` at build time. |
+- `npm run dev:full` (`dev.mjs`) runs both processes together.
 
----
+### Proxy and cookie behavior
 
-## 6.1 Directory Structure
+`vite.config.ts` proxies:
 
-```
-src/
-├── components/           # Reusable UI components
-│   ├── Link.tsx         # Navigation link with variants
-│   ├── PageContainer.tsx # Standard page wrapper with home link
-│   ├── PageTitle.tsx    # Styled page header
-│   └── index.ts         # Barrel exports
-├── config/
-│   └── tracks.ts        # Track data configuration
-├── router/              # Client-side routing
-│   ├── Router.tsx       # Main router component
-│   ├── navigation.ts    # Navigation utilities
-│   └── index.ts         # Barrel exports
-├── styles/              # Shared style objects
-│   ├── common.ts        # Common inline styles
-│   └── index.ts         # Barrel exports
-├── types/
-│   └── experience.ts    # Type definitions
-├── utils/               # Utility functions
-│   ├── audioHelpers.ts  # Audio source & playback helpers
-│   ├── memberSession.ts # Ghost Portal session utilities
-│   ├── soundcloudTracks.ts # SoundCloud track parsing
-│   ├── subscription.ts  # Subscription status checking
-│   └── index.ts         # Barrel exports
-├── App.tsx              # Landing page
-├── Connect.tsx          # Sign up / login page
-├── Listen.tsx           # Audio player page
-├── Watch.tsx            # Video page
-├── Mission.tsx          # Mission statement (hidden page)
-├── main.tsx             # App entry point
-└── index.css            # Global styles
-```
+- `/api` → `http://localhost:3001`
+- `/ghost` and `/members` → `VITE_GHOST_API_PROXY` (default `https://catsky.club`)
 
----
+Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redirects for localhost flow compatibility.
 
-## 7. Environment and deployment
+## 7) Delivery and operations
 
-- **Production:** `./deploy.sh` on the server. Sources `.env.server`, exports `VITE_GHOST_URL` and `VITE_GHOST_CONTENT_API_KEY`, runs `npm run build`, then PM2. The Content API key is baked into the built `index.html`; if it’s wrong or missing, settings request returns 401 and Portal can show invite-only (we bypass that for sign-up with the inline form).
-- **Dev:** `npm run dev` (Vite). Uses `.env.development`; override with `.env.development.local` (gitignored) for the Content API key. Vite proxies `/ghost` and `/members` to Ghost; cookie/redirect handling in `vite.config.ts` so Portal works on localhost.
-- **Secrets:** Only the **Content API key** is in the client (by design). **Admin API key** and **SIGNUPS_API_TOKEN** are server-only (`.env.server`). Never commit keys.
+### Build and start
 
----
+- build: `npm run build` (TypeScript compile + Vite build)
+- prod server entry: `npm run server` (`node server.js`)
+- convenience: `npm run start` (build then server)
 
-## 8. Gotchas for future agents
+### Deploy workflow
 
-1. **Logout:** Always use **`triggerPortalSignOut()`** from `memberSession.ts` before clearing local state; otherwise the Ghost cookie remains and the user stays logged in on prod.
-2. **Sign-up:** New users use the **inline form** on Connect (POST to `/members/api/send-magic-link/`). Do not rely on Portal for sign-up; Portal can still show “invite-only” despite our patches. Log-in and account continue to use Portal.
-3. **Empty /members/api/member/:** Ghost can return 200 with an empty body when not logged in. Our fetch patch in `index.html` turns that into `{"member":null}` so `subscription.ts` doesn’t throw on `.json()`.
-4. **index.html order:** The patch script must run before the Portal script. Preload runs first, then Portal is loaded; when Portal fetches settings, the cache is returned.
-5. **deploy.sh:** It `cd`s into the script directory so `.env.server` is found next to it. Run with `bash deploy.sh` (or `./deploy.sh`); ensure `.env.server` exists on the server with `VITE_GHOST_CONTENT_API_KEY` for the build.
-6. **Auth E2E prerequisites:** `npm run test:e2e:auth` now runs `npm run test:e2e:setup` first (`playwright install --with-deps chromium`) so the suite self-heals in fresh containers where Playwright browser/system deps are missing.
+- GitHub Action `.github/workflows/deploy.yml` deploys on `main` push (or manual dispatch) via SSH, then runs `deploy.sh` on server.
+- `deploy.sh`:
+  - loads `.env.server`,
+  - exports `VITE_GHOST_*` values,
+  - installs deps,
+  - builds,
+  - restarts PM2 app.
 
-Use this doc to re-establish routing, Ghost/Portal behavior, subscription checks, logout flow, and the sign-up bypass when context has reset.
+### Diagnostics
+
+- `.github/workflows/check-ghost.yml` runs scheduled/manual remote Ghost diagnostics via `scripts/check-ghost.sh`.
+
+### Testing status
+
+- unit/integration: Vitest (`npm run test`).
+- E2E: Playwright suite in `e2e/`.
+- CI test workflow currently kept as a manual no-op placeholder (`.github/workflows/test.yml` says tests are temporarily disabled in CI).
+
+## 8) Repository structure (practical map)
+
+- `src/`: app code (routes, components, router, utils, config, styles, tests)
+- `public/`: static assets
+- `e2e/`: Playwright tests + test planning docs
+- `server.js`: Express runtime server
+- `vite.config.ts`: frontend tooling + proxy logic
+- `deploy.sh`: server-side deployment script
+- `.github/workflows/`: deploy/test/diagnostic automation
+- root docs: deployment/testing/soundcloud setup references
+
+## 9) Notable current-state caveats
+
+- `src/DocsViewer.tsx` exists but is not wired into current route rendering.
+- Membership gating in Listen is client-side UX gating; authoritative member state still comes from Ghost session/cookies.
+- Ghost Portal behavior depends heavily on the `index.html` patch script; accidental refactors there can break auth/signup UX.
+- `POST /api/submit` remains available for server-side member creation flows even though Connect currently uses client-side magic links.
+
