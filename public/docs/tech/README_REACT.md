@@ -14,8 +14,9 @@ This is a React application built with Vite, featuring an interactive audio-sync
 
 ### Music / Listen (New)
 - **Listen page** (`/listen`): Music player for subscribers (`/player` redirects here)
-  - Free subscribers: Access to first 2 tracks
-  - Paid subscribers: Full access to all tracks + voting & feedback
+  - Unregistered: released tracks only
+  - Registered (free): released + finished unreleased tracks
+  - Paid ($5/$20): adds unfinished demos
   - SoundCloud integration with secret links for private tracks
   - Support for individual tracks and playlists/sets
 
@@ -96,9 +97,10 @@ npm start
 
 - `/` - Home page (App.tsx)
 - `/listen` - Music player / tracks (Listen.tsx). `/player` redirects to `/listen`
-- `/watch` - Video content (Watch.tsx)
+- `/watch` - Video content: trailer public, unreleased video gated for paid tiers (Watch.tsx)
 - `/connect` - Sign up, log in, account (Connect.tsx)
 - `/mission` - Mission statement (Mission.tsx)
+- `/blog` - Public blog posts (if configured in Ghost/content layer)
 
 ## Customization
 
