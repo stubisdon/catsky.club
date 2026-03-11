@@ -4,6 +4,7 @@ import {
   clearLocalSessionFlags,
   triggerPortalSignOut,
   isSubscriber,
+  getCurrentMember,
   setDevMemberOverride,
 } from './utils'
 
@@ -126,6 +127,18 @@ export default function Connect() {
 
         const loggedIn = await refreshMemberStatus()
         if (loggedIn) {
+          if (params.get('action') === 'signup') {
+            const member = await getCurrentMember()
+            const memberId = member?.id || ''
+            const memberEmail = member?.email || ''
+            const qs = new URLSearchParams()
+            if (memberId) qs.set('memberId', memberId)
+            if (memberEmail) qs.set('email', memberEmail)
+            const target = '/welcome' + (qs.toString() ? `?${qs.toString()}` : '')
+            window.history.replaceState({}, '', target)
+            window.dispatchEvent(new PopStateEvent('popstate'))
+            return
+          }
           setShowAuthForm(false)
           return
         }

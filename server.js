@@ -202,6 +202,77 @@ app.post('/api/submit', async (req, res) => {
   }
 })
 
+
+app.post('/api/member-profile', async (req, res) => {
+  const memberId = typeof req.body?.memberId === 'string' ? req.body.memberId.trim() : ''
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim() : ''
+  const firstName = typeof req.body?.first_name === 'string' ? req.body.first_name.trim() : ''
+  const lastName = typeof req.body?.last_name === 'string' ? req.body.last_name.trim() : ''
+
+  if (!firstName) {
+    return res.status(400).json({ error: 'first_name is required' })
+  }
+  if (!memberId && !email) {
+    return res.status(400).json({ error: 'memberId or email is required' })
+  }
+  if (!GHOST_ADMIN_API_KEY) {
+    return res.status(500).json({ error: 'Ghost Admin API is not configured (missing GHOST_ADMIN_API_KEY)' })
+  }
+
+  try {
+    let member = null
+
+    if (memberId) {
+      const lookupById = await ghostAdminFetch(`members/${encodeURIComponent(memberId)}/`, { method: 'GET' })
+      if (lookupById.ok) {
+        const payload = await lookupById.json().catch(() => null)
+        const members = payload && payload.members
+        if (Array.isArray(members) && members.length > 0) {
+          member = members[0]
+        }
+      }
+    }
+
+    if (!member && email) {
+      member = await findMemberByEmail(email)
+    }
+
+    if (!member?.id) {
+      return res.status(404).json({ error: 'Member not found' })
+    }
+
+    if (email && typeof member.email === 'string' && member.email.toLowerCase() !== email.toLowerCase()) {
+      return res.status(400).json({ error: 'Member email mismatch' })
+    }
+
+    const fullName = [firstName, lastName].filter(Boolean).join(' ')
+    const nextNote = `first_name=${firstName};last_name=${lastName}`
+
+    const updateRes = await ghostAdminFetch(`members/${encodeURIComponent(member.id)}/`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        members: [
+          {
+            id: member.id,
+            name: fullName,
+            note: nextNote,
+          },
+        ],
+      }),
+    })
+
+    const payload = await updateRes.json().catch(() => null)
+    if (!updateRes.ok) {
+      return res.status(updateRes.status).json({ error: 'Failed to update member profile', details: payload })
+    }
+
+    const updated = Array.isArray(payload?.members) ? payload.members[0] : null
+    return res.status(200).json({ success: true, member: updated ? { id: updated.id, email: updated.email, name: updated.name } : null })
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to update member profile', details: String(e?.message || e) })
+  }
+})
+
 // Protected endpoint: fetch recent signups (Ghost members)
 // Provide SIGNUPS_API_TOKEN on the server and call with header: x-signups-token: <token>
 app.get('/api/signups', async (req, res) => {
