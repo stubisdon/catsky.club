@@ -157,6 +157,10 @@ export async function isSubscriber(): Promise<boolean> {
   return status === 'free_subscriber' || status === 'paid_subscriber'
 }
 
+export async function getCurrentMember(): Promise<GhostMember | null> {
+  return fetchMember()
+}
+
 async function fetchMember(): Promise<GhostMember | null> {
   const res = await fetch(`${MEMBER_ENDPOINT}?_=${Date.now()}`, {
     credentials: 'include',

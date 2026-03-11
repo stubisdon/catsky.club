@@ -144,6 +144,14 @@ The project includes:
 - Use `ENV_SERVER.example` as a template.
 - Restart the API server (`npm run server`).
 
+### Test the new signup onboarding flow locally
+
+1. In terminal A, run the API server: `npm run server`.
+2. In terminal B, run Vite: `npm run dev -- --host 0.0.0.0 --port 4173`.
+3. Open `http://localhost:4173/connect`, request a signup magic link, and use the callback URL with `action=signup&success=true`.
+4. After callback success, the app redirects to `/welcome`, where `first_name` (required) and `last_name` (optional) are collected.
+5. Submitting the form calls `POST /api/member-profile` and then continues to `/listen`.
+
 ## Troubleshooting
 
 ### Audio not playing?

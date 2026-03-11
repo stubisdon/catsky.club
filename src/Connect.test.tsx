@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen } from '@testing-library/react'
 import Connect from './Connect'
 
-const { isSubscriberMock } = vi.hoisted(() => ({
-  isSubscriberMock: vi.fn<() => Promise<boolean>>()
+const { isSubscriberMock, getCurrentMemberMock } = vi.hoisted(() => ({
+  isSubscriberMock: vi.fn<() => Promise<boolean>>(),
+  getCurrentMemberMock: vi.fn<() => Promise<{ id?: string; email?: string } | null>>()
 }))
 
 vi.mock('./utils', () => ({
@@ -11,6 +12,7 @@ vi.mock('./utils', () => ({
   triggerPortalSignOut: vi.fn(),
   setDevMemberOverride: vi.fn(),
   isSubscriber: isSubscriberMock,
+  getCurrentMember: getCurrentMemberMock,
 }))
 
 describe('Connect magic-link state refresh', () => {
@@ -23,6 +25,7 @@ describe('Connect magic-link state refresh', () => {
     vi.clearAllMocks()
     isSubscriberMock.mockResolvedValue(false)
     window.history.replaceState({}, '', '/connect')
+    getCurrentMemberMock.mockResolvedValue({ id: 'm_123', email: 'new@catsky.club' })
   })
 
   it('updates to logged-in buttons after magic-link success callback', async () => {
@@ -44,4 +47,23 @@ describe('Connect magic-link state refresh', () => {
     expect(screen.queryByRole('button', { name: 'sign up →' })).not.toBeInTheDocument()
     expect(isSubscriberMock).toHaveBeenCalled()
   })
+
+  it('routes signup magic-link callbacks to welcome onboarding', async () => {
+    isSubscriberMock
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true)
+
+    window.history.replaceState({}, '', '/connect?action=signup&success=true')
+
+    render(<Connect />)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+
+    expect(window.location.pathname).toBe('/welcome')
+    expect(window.location.search).toContain('memberId=m_123')
+    expect(window.location.search).toContain('email=new%40catsky.club')
+  })
+
 })

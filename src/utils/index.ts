@@ -25,6 +25,7 @@ export {
   getMembershipTier,
   isPaidSubscriber,
   isSubscriber,
+  getCurrentMember,
   setDevMemberOverride,
 } from './subscription'
 
