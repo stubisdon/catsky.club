@@ -1,4 +1,4 @@
-# Catsky Club Architecture (2026 refresh)
+# Catsky Club Architecture (March 11, 2026 refresh)
 
 This document reflects the **current** codebase architecture for `catsky.club` and replaces stale assumptions.
 
