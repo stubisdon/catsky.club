@@ -48,12 +48,73 @@ const app = express()
 const PORT = process.env.PORT || 3001
 
 const GHOST_URL = (process.env.GHOST_URL || process.env.VITE_GHOST_URL || 'https://catsky.club').replace(/\/+$/, '')
+const GHOST_INTERNAL_URL = (process.env.GHOST_INTERNAL_URL || 'http://127.0.0.1:2368').replace(/\/+$/, '')
 const GHOST_ADMIN_API_KEY = process.env.GHOST_ADMIN_API_KEY || ''
 const GHOST_ADMIN_API_VERSION = process.env.GHOST_ADMIN_API_VERSION || 'v5.0'
 const SIGNUPS_API_TOKEN = process.env.SIGNUPS_API_TOKEN || ''
 
 app.use(cors())
 app.use(express.json())
+
+function mapGhostLocationHeader(value) {
+  if (!value || typeof value !== 'string') return value
+  const normalized = value.trim()
+  if (!normalized) return value
+
+  const ghostInternal = GHOST_INTERNAL_URL
+  const ghostPublic = GHOST_URL
+  if (normalized.startsWith(ghostInternal)) {
+    return `${ghostPublic}${normalized.slice(ghostInternal.length)}`
+  }
+  return value
+}
+
+async function proxyUnsubscribeToGhost(req, res) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const targetPath = req.path === '/unsubscribe' ? '/unsubscribe/' : req.path
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''
+  const targetUrl = `${GHOST_INTERNAL_URL}${targetPath}${qs}`
+
+  try {
+    const ghostRes = await fetch(targetUrl, {
+      method: req.method,
+      headers: {
+        Accept: req.headers.accept || '*/*',
+        'Accept-Language': req.headers['accept-language'] || 'en',
+        'User-Agent': req.headers['user-agent'] || 'catsky-server',
+      },
+      redirect: 'manual',
+    })
+
+    res.status(ghostRes.status)
+
+    for (const [name, value] of ghostRes.headers.entries()) {
+      if (name.toLowerCase() === 'location') {
+        res.setHeader(name, mapGhostLocationHeader(value))
+      } else {
+        res.setHeader(name, value)
+      }
+    }
+
+    if (req.method === 'HEAD') return res.end()
+
+    const body = Buffer.from(await ghostRes.arrayBuffer())
+    return res.send(body)
+  } catch (error) {
+    return res.status(502).json({
+      error: 'Ghost unsubscribe upstream error',
+      details: String(error?.message || error),
+    })
+  }
+}
+
+app.get('/unsubscribe', proxyUnsubscribeToGhost)
+app.get('/unsubscribe/*', proxyUnsubscribeToGhost)
+app.head('/unsubscribe', proxyUnsubscribeToGhost)
+app.head('/unsubscribe/*', proxyUnsubscribeToGhost)
 
 function base64url(input) {
   const buf = Buffer.isBuffer(input) ? input : Buffer.from(String(input), 'utf8')
@@ -245,4 +306,3 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
 })
-
