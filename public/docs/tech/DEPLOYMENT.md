@@ -307,6 +307,8 @@ ghost restart
 6. **Ghost image asset:** Test a known Ghost image URL under `https://catsky.club/content/images/...`
 7. **Email redirect:** Test a known Ghost redirect URL under `https://catsky.club/r/...`
 
+Note: the Express app includes a defensive pass-through for `/content/images/*` and `/r/*` if nginx route blocks are stale, but production should still treat nginx as the canonical owner of those prefixes.
+
 ---
 
 ## Troubleshooting
