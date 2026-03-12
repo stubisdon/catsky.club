@@ -206,6 +206,26 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
     
+    # Ghost content images (used by Ghost Admin + email assets)
+    location /content/images/ {
+        proxy_pass http://127.0.0.1:2368/content/images/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Ghost email click/open tracking redirects
+    location /r/ {
+        proxy_pass http://127.0.0.1:2368/r/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     # Ghost Members (subscriptions, sign-in, etc.)
     location /members/ {
         proxy_pass http://127.0.0.1:2368/members/;
@@ -273,6 +293,8 @@ ghost restart
 2. **Ghost Admin:** Visit `https://catsky.club/ghost/` - should show Ghost admin
 3. **API:** Test `https://catsky.club/ghost/api/content/settings/?key=YOUR_KEY`
 4. **Members:** Test member signup/login at `https://catsky.club/members/`
+5. **Ghost image asset:** Test a known Ghost image URL under `https://catsky.club/content/images/...`
+6. **Email redirect:** Test a known Ghost redirect URL under `https://catsky.club/r/...`
 
 ---
 

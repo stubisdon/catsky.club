@@ -125,7 +125,7 @@ The Node server is intentionally small:
   - unknown extensionless routes return `dist/index.html`
   - unknown file paths with extension return 404.
 
-Ghost routes like `/members/api/*` and `/ghost/*` are not implemented in Express; they are handled by Ghost/nginx (prod) or Vite proxy (dev).
+Ghost routes like `/members/api/*`, `/ghost/*`, `/content/images/*`, and `/r/*` are not implemented in Express; they are handled by Ghost/nginx (prod) or Vite proxy (dev).
 
 ## 6) Local development topology
 
