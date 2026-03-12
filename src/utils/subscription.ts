@@ -157,6 +157,24 @@ export async function isSubscriber(): Promise<boolean> {
   return status === 'free_subscriber' || status === 'paid_subscriber'
 }
 
+export async function getCurrentMember(): Promise<GhostMember | null> {
+  const devOverride = getDevOverride()
+  if (devOverride === 'free_subscriber' || devOverride === 'paid_subscriber') {
+    return {
+      id: 'dev-member',
+      email: 'dev@localhost',
+      name: 'Dev Member',
+      subscriptions: devOverride === 'paid_subscriber' ? [{ status: 'active', price: { amount: 2000 } }] : [],
+    }
+  }
+
+  try {
+    return await fetchMember()
+  } catch {
+    return null
+  }
+}
+
 async function fetchMember(): Promise<GhostMember | null> {
   const res = await fetch(`${MEMBER_ENDPOINT}?_=${Date.now()}`, {
     credentials: 'include',

@@ -136,12 +136,18 @@ The project includes:
 - **Dev:** `npm run dev` uses `.env.development` (committed). Override with `.env.development.local` (gitignored) for Ghost Content API key so Portal works locally.
 - **Prod:** `./deploy.sh` on the server sources `.env.server` and exports `VITE_GHOST_URL` and `VITE_GHOST_CONTENT_API_KEY` before building. See `.env.example` for variable names.
 
-## Local dev: enabling `/connect` signup
+## Local dev: enabling `/connect` signup + `/welcome` onboarding
 
-`/connect` posts to `POST /api/submit`, which is served by the Express API in `server.js` (port `3001`) and proxied by Vite (port `3000`).
+`/connect` sends magic links via Ghost Members API (`/members/api/send-magic-link/`).
+After a successful signup callback (`/connect?action=signup&success=true`), the app now routes to `/welcome` where users provide:
+- `first_name` (required)
+- `last_name` (optional)
+
+The onboarding form posts to `POST /api/member-profile` on the Express server (`server.js`, port `3001`) and then continues to `/listen`.
 
 - Create a local secrets file (gitignored) named `.env.server` next to `server.js`.
 - Use `ENV_SERVER.example` as a template.
+- Include `GHOST_ADMIN_API_KEY` so `/api/member-profile` can update Ghost members.
 - Restart the API server (`npm run server`).
 
 ## Troubleshooting

@@ -6,7 +6,7 @@ This document reflects the **current** codebase architecture for `catsky.club` a
 
 Catsky Club is a Vite + React single-page app with a lightweight Express server.
 
-- Frontend: route-based experience pages (`/`, `/listen`, `/watch`, `/connect`, `/mission`).
+- Frontend: route-based experience pages (`/`, `/listen`, `/watch`, `/connect`, `/welcome`, `/mission`).
 - Membership/auth: Ghost Members API + Ghost Portal.
 - Runtime API server: Express serves static assets and a small Ghost Admin API bridge.
 - Deployment target: production host running PM2 + nginx in front.
@@ -26,6 +26,7 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 - `/listen` → `src/Listen.tsx` (tier-gated tracks)
 - `/watch` → `src/Watch.tsx` (video teaser + connect CTA)
 - `/connect` → `src/Connect.tsx` (magic-link auth UI + account/logout)
+- `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name)
 - `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
 - unknown paths → normalized to `/` in router
 
@@ -63,6 +64,7 @@ Current behavior in `src/Connect.tsx`:
 - Callback robustness:
   - detects `?action=signin|signup&success=true`
   - retries member refresh with backoff
+  - on successful `action=signup`, routes to `/welcome` before app entry
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)
@@ -118,6 +120,9 @@ The Node server is intentionally small:
   - `POST /api/submit`:
     - validates `{ name, contact }`
     - creates/reuses Ghost member via Ghost Admin API JWT auth.
+  - `POST /api/member-profile`:
+    - validates `{ memberId, email, firstName, lastName }`
+    - verifies Ghost member identity and updates profile `name` + onboarding metadata in `note`.
   - `GET /api/signups`:
     - token-protected with `x-signups-token`
     - returns recent Ghost members.

@@ -777,3 +777,40 @@ test.describe('Connect Page - Responsive Design', () => {
     await expect(sendLinkBtn).toBeVisible()
   })
 })
+
+
+test.describe('Welcome onboarding flow', () => {
+  test('signup callback routes to welcome and profile submission continues to listen', async ({ page }) => {
+    let memberChecks = 0
+
+    await page.route('**/members/api/member**', (route) => {
+      memberChecks += 1
+      const memberBody = memberChecks < 2
+        ? { member: null }
+        : { member: { id: 'member-1', email: 'new@user.com', subscriptions: [] } }
+
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(memberBody),
+      })
+    })
+
+    await page.route('**/api/member-profile', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      })
+    })
+
+    await page.goto('/connect?action=signup&success=true')
+    await expect(page).toHaveURL(/\/welcome$/)
+
+    await page.getByLabel(/first name/i).fill('Ada')
+    await page.getByLabel(/last name/i).fill('Lovelace')
+    await page.getByRole('button', { name: /continue/i }).click()
+
+    await expect(page).toHaveURL(/\/listen$/)
+  })
+})

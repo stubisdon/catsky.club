@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { PageTitle, Link } from './components'
+import { navigateTo } from './router/navigation'
 import {
   clearLocalSessionFlags,
   triggerPortalSignOut,
@@ -127,6 +128,13 @@ export default function Connect() {
         const loggedIn = await refreshMemberStatus()
         if (loggedIn) {
           setShowAuthForm(false)
+          if (params.get('action') === 'signup') {
+            const next = new URL(window.location.href)
+            next.searchParams.delete('action')
+            next.searchParams.delete('success')
+            window.history.replaceState({}, '', `${next.pathname}${next.search}${next.hash}`)
+            navigateTo('/welcome')
+          }
           return
         }
       }
@@ -317,15 +325,7 @@ export default function Connect() {
 
         <div style={{ marginBottom: '2rem', opacity: 0.9 }}>
           <div style={{ marginTop: '1.5rem' }}>
-            <Link
-              href="/listen"
-              style={{
-                color: 'rgba(255, 255, 255, 0.6)',
-                fontSize: '0.95rem',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
-                paddingBottom: '0.1rem',
-              }}
-            >
+            <Link href="/listen" variant="button" style={{ border: '2px solid var(--color-text)' }}>
               continue →
             </Link>
           </div>
