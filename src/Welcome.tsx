@@ -19,22 +19,35 @@ export default function Welcome() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [member, setMember] = useState<MemberIdentity | null>(null)
+  const [memberCheckState, setMemberCheckState] = useState<'loading' | 'ready' | 'missing'>('loading')
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState('')
 
   useEffect(() => {
     let cancelled = false
+    const retryDelaysMs = [0, 400, 1200, 2500, 5000]
 
     const load = async () => {
-      const currentMember = await getCurrentMember()
-      if (cancelled) return
+      for (const delay of retryDelaysMs) {
+        if (cancelled) return
 
-      if (!currentMember?.id || !currentMember?.email) {
-        navigateTo('/connect')
-        return
+        if (delay > 0) {
+          await new Promise((resolve) => setTimeout(resolve, delay))
+          if (cancelled) return
+        }
+
+        const currentMember = await getCurrentMember()
+        if (cancelled) return
+
+        if (currentMember?.id && currentMember?.email) {
+          setMember({ id: currentMember.id, email: currentMember.email })
+          setMemberCheckState('ready')
+          return
+        }
       }
 
-      setMember({ id: currentMember.id, email: currentMember.email })
+      setMemberCheckState('missing')
+      navigateTo('/connect')
     }
 
     void load()
@@ -96,6 +109,12 @@ export default function Welcome() {
         <PageTitle>welcome</PageTitle>
         <p style={{ marginBottom: '1rem', opacity: 0.85 }}>one quick step before you continue.</p>
 
+        {memberCheckState === 'loading' && (
+          <p className="connect-auth-message" style={{ marginBottom: '1rem' }}>
+            checking your session…
+          </p>
+        )}
+
         <form onSubmit={onSubmit} className="connect-auth-form" noValidate>
           <label htmlFor="firstName" style={{ opacity: 0.9 }}>first name *</label>
           <input
@@ -106,7 +125,7 @@ export default function Welcome() {
             className="connect-auth-input"
             autoComplete="given-name"
             required
-            disabled={status === 'loading'}
+            disabled={status === 'loading' || memberCheckState !== 'ready'}
           />
 
           <label htmlFor="lastName" style={{ opacity: 0.9 }}>last name (optional)</label>
@@ -117,11 +136,15 @@ export default function Welcome() {
             onChange={(e) => setLastName(e.target.value)}
             className="connect-auth-input"
             autoComplete="family-name"
-            disabled={status === 'loading'}
+            disabled={status === 'loading' || memberCheckState !== 'ready'}
           />
 
           <div className="connect-auth-actions" style={{ marginTop: '0.5rem' }}>
-            <button type="submit" className="connect-portal-btn" disabled={!canSubmit}>
+            <button
+              type="submit"
+              className="connect-portal-btn"
+              disabled={!canSubmit || memberCheckState !== 'ready'}
+            >
               {status === 'loading' ? 'saving…' : 'continue →'}
             </button>
           </div>
