@@ -71,8 +71,20 @@ This document is updated to reflect the current V1.0 product vision.
 - Advanced recommendation systems
 - Large-scale analytics UI
 
+
+## UX Change Evidence for Task Execution
+
+For any task that changes user-visible UX/UI behavior, provide a screenshot sequence that covers the full affected journey:
+
+1. Start state before user action.
+2. Intermediate interaction states for each major step.
+3. End state confirming completion (or locked/error outcome if that is the expected path).
+
+Evidence should be ordered and labeled so reviewers can reconstruct the flow without running the app locally.
+
 ## QA Checklist
 - Visitor can complete each P0 use case without dead ends.
 - Role transitions (unregistered -> registered -> paid) work end-to-end.
 - Locked-content copy is consistent across pages.
 - Unsubscribe state persists and is reversible through explicit opt-in.
+- UX/UI-changing tasks include ordered screenshot evidence for the full affected journey.

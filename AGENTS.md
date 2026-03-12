@@ -50,7 +50,8 @@ For these areas: prefer the smallest valid patch and validate behavior directly.
 4. Update docs as part of the same task (see section 6).
 5. Run automated checks (see section 7).
 6. If behavior changed, add/update e2e tests and run them.
-7. Summarize exactly what changed and why.
+7. Capture UX/UI journey screenshots when the task changes user-visible behavior (see section 9).
+8. Summarize exactly what changed and why.
 
 ## 6) Documentation update policy (mandatory)
 
@@ -82,3 +83,21 @@ A task is done only when all are true:
 - docs are updated (or explicitly justified as unchanged),
 - tests were executed and results reported,
 - changes are understandable for the next executor.
+
+
+## 9) UX/UI screenshot evidence policy (mandatory)
+
+When a task changes a user-facing flow (layout, copy, navigation, forms, gating, account actions, or visible states), the executor must attach screenshots that document the full journey touched by the change.
+
+Minimum screenshot set:
+
+- Entry state before interaction (starting page/view).
+- Each key transition step in the path a user takes.
+- Final success/confirmation state (or locked/error state when relevant).
+
+Execution requirements:
+
+- Prefer browser automation so screenshots are reproducible.
+- Include screenshots in the final task summary with clear labels in journey order.
+- If capture is blocked by environment/tooling, explicitly state what was attempted and why evidence could not be collected.
+- Do not mark the task done without screenshot evidence for user-visible changes unless a hard blocker is documented.
