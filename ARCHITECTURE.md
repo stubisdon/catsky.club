@@ -200,7 +200,7 @@ Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redir
 ## 9) Notable current-state caveats
 
 - `src/DocsViewer.tsx` exists but is not wired into current route rendering.
-- Unsubscribe reliability is intentionally duplicated: nginx should proxy `/unsubscribe/` directly, and Express now includes a defensive `/unsubscribe` proxy before SPA fallback.
+- Unsubscribe reliability is intentionally duplicated: nginx should proxy both `= /unsubscribe` and `/unsubscribe/` directly, and Express now includes a defensive `/unsubscribe` proxy before SPA fallback.
 - Membership gating in Listen is client-side UX gating; authoritative member state still comes from Ghost session/cookies.
 - Ghost Portal behavior depends heavily on the `index.html` patch script; accidental refactors there can break auth/signup UX.
 - `POST /api/submit` remains available for server-side member creation flows even though Connect currently uses client-side magic links.
