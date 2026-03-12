@@ -306,6 +306,7 @@ ghost restart
 5. **Unsubscribe links:** open a real newsletter unsubscribe URL and confirm it shows a Catsky unsubscribe confirmation message (instead of silently redirecting to `/`) and never redirects to a localhost/127.0.0.1 address
 6. **Ghost image asset:** Test a known Ghost image URL under `https://catsky.club/content/images/...`
 7. **Email redirect:** Test a known Ghost redirect URL under `https://catsky.club/r/...`
+8. **Fallback safety check (optional):** If nginx route ownership regresses, Express still has defensive pass-through handlers for `/content/images/*` and `/r/*`; treat this as temporary safety net, not the desired steady-state configuration.
 
 ---
 

@@ -137,6 +137,47 @@ async function proxyUnsubscribeToGhost(req, res) {
   }
 }
 
+async function proxyGhostInfraRequest(req, res, { basePath }) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''
+  const targetUrl = `${GHOST_INTERNAL_URL}${req.path}${qs}`
+
+  try {
+    const ghostRes = await fetch(targetUrl, {
+      method: req.method,
+      headers: {
+        Accept: req.headers.accept || '*/*',
+        'Accept-Language': req.headers['accept-language'] || 'en',
+        'User-Agent': req.headers['user-agent'] || 'catsky-server',
+      },
+      redirect: 'manual',
+    })
+
+    res.status(ghostRes.status)
+
+    for (const [name, value] of ghostRes.headers.entries()) {
+      if (name.toLowerCase() === 'location') {
+        res.setHeader(name, mapGhostLocationHeader(value, req))
+      } else {
+        res.setHeader(name, value)
+      }
+    }
+
+    if (req.method === 'HEAD') return res.end()
+
+    const body = Buffer.from(await ghostRes.arrayBuffer())
+    return res.send(body)
+  } catch (error) {
+    return res.status(502).json({
+      error: `Ghost ${basePath} upstream error`,
+      details: String(error?.message || error),
+    })
+  }
+}
+
 function renderUnsubscribeConfirmationPage(res, { success }) {
   const title = success ? 'You are unsubscribed' : 'Unable to confirm unsubscribe'
   const message = success
@@ -234,6 +275,13 @@ app.get('/unsubscribe', unsubscribeAndConfirm)
 app.get('/unsubscribe/*', proxyUnsubscribeToGhost)
 app.head('/unsubscribe', proxyUnsubscribeToGhost)
 app.head('/unsubscribe/*', proxyUnsubscribeToGhost)
+
+// Defensive proxy handlers for Ghost infrastructure routes when nginx routing is stale.
+// nginx should still own these prefixes in production.
+app.get('/content/images/*', (req, res) => proxyGhostInfraRequest(req, res, { basePath: '/content/images/' }))
+app.head('/content/images/*', (req, res) => proxyGhostInfraRequest(req, res, { basePath: '/content/images/' }))
+app.get('/r/*', (req, res) => proxyGhostInfraRequest(req, res, { basePath: '/r/' }))
+app.head('/r/*', (req, res) => proxyGhostInfraRequest(req, res, { basePath: '/r/' }))
 
 function base64url(input) {
   const buf = Buffer.isBuffer(input) ? input : Buffer.from(String(input), 'utf8')
