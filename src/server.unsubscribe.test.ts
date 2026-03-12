@@ -91,6 +91,22 @@ describe('unsubscribe proxy in server.js', () => {
     expect(html).toContain('You have been unsubscribed from this newsletter.')
   })
 
+
+  test('shows confirmation message after tokenized unsubscribe links with trailing slash path', async () => {
+    responseMode = 'ok'
+
+    const res = await fetch(`${appBaseUrl}/unsubscribe/?uuid=abc&key=xyz&newsletter=n1`, {
+      redirect: 'manual',
+      headers: { Accept: 'text/html' },
+    })
+
+    const html = await res.text()
+
+    expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
+    expect(res.status).toBe(200)
+    expect(html).toContain('You are unsubscribed')
+  })
+
   test('shows fallback message when Ghost unsubscribe endpoint fails', async () => {
     responseMode = 'fail'
 
