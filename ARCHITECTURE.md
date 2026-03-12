@@ -127,7 +127,7 @@ The Node server is intentionally small:
 
 Ghost routes like `/members/api/*`, `/ghost/*`, `/content/images/*`, and `/r/*` are not implemented in Express; they are handled by Ghost/nginx (prod) or Vite proxy (dev).
 
-Express now explicitly proxies `/unsubscribe` and `/unsubscribe/*` to `GHOST_INTERNAL_URL` (default `http://127.0.0.1:2368`) before SPA fallback so newsletter unsubscribe links cannot be normalized to `/` by client routing when nginx routing is missing or stale. For upstream redirects, Express rewrites internal/localhost `Location` headers to the public request origin (or `GHOST_URL` fallback) to prevent users from being sent to local addresses.
+Express now intercepts tokenized `GET /unsubscribe?uuid=...&key=...&newsletter=...` links before SPA fallback, calls Ghost unsubscribe on `GHOST_INTERNAL_URL` (default `http://127.0.0.1:2368`), and returns a Catsky-hosted confirmation page so users receive explicit unsubscribe feedback. Non-tokenized `/unsubscribe` routes still proxy through to Ghost, and upstream redirects from internal/localhost hosts are rewritten to the public request origin (or `GHOST_URL` fallback).
 
 ## 6) Local development topology
 
@@ -195,4 +195,3 @@ Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redir
 - Membership gating in Listen is client-side UX gating; authoritative member state still comes from Ghost session/cookies.
 - Ghost Portal behavior depends heavily on the `index.html` patch script; accidental refactors there can break auth/signup UX.
 - `POST /api/submit` remains available for server-side member creation flows even though Connect currently uses client-side magic links.
-

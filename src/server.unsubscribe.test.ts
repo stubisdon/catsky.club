@@ -6,6 +6,7 @@ let mockGhostServer: ReturnType<typeof createServer>
 let appProcess: ChildProcessWithoutNullStreams
 let appBaseUrl = ''
 let seenPath = ''
+let responseMode: 'redirect' | 'ok' | 'fail' = 'redirect'
 
 beforeAll(async () => {
   mockGhostServer = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -17,6 +18,16 @@ beforeAll(async () => {
     seenPath = req.url
 
     if (req.url.startsWith('/unsubscribe/')) {
+      if (responseMode === 'fail') {
+        res.statusCode = 500
+        return res.end('ghost upstream failed')
+      }
+
+      if (responseMode === 'ok') {
+        res.statusCode = 200
+        return res.end('unsubscribed')
+      }
+
       res.statusCode = 302
       res.setHeader('Location', 'http://127.0.0.1:4555/unsubscribe/success/')
       return res.end('redirect')
@@ -64,18 +75,52 @@ afterAll(async () => {
 })
 
 describe('unsubscribe proxy in server.js', () => {
-  test('forwards /unsubscribe query to Ghost and rewrites Location header', async () => {
+  test('shows confirmation message after tokenized unsubscribe links', async () => {
+    responseMode = 'ok'
+
     const res = await fetch(`${appBaseUrl}/unsubscribe?uuid=abc&key=xyz&newsletter=n1`, {
       redirect: 'manual',
       headers: { Accept: 'text/html' },
     })
 
+    const html = await res.text()
+
     expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
+    expect(res.status).toBe(200)
+    expect(html).toContain('You are unsubscribed')
+    expect(html).toContain('You have been unsubscribed from this newsletter.')
+  })
+
+  test('shows fallback message when Ghost unsubscribe endpoint fails', async () => {
+    responseMode = 'fail'
+
+    const res = await fetch(`${appBaseUrl}/unsubscribe?uuid=abc&key=xyz&newsletter=n1`, {
+      redirect: 'manual',
+      headers: { Accept: 'text/html' },
+    })
+
+    const html = await res.text()
+
+    expect(res.status).toBe(502)
+    expect(html).toContain('Unable to confirm unsubscribe')
+  })
+
+  test('still proxies /unsubscribe requests that do not include full token params', async () => {
+    responseMode = 'redirect'
+
+    const res = await fetch(`${appBaseUrl}/unsubscribe?uuid=abc`, {
+      redirect: 'manual',
+      headers: { Accept: 'text/html' },
+    })
+
+    expect(seenPath).toBe('/unsubscribe/?uuid=abc')
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toBe(`${appBaseUrl}/unsubscribe/success/`)
   })
 
   test('rewrites localhost redirects to request host for proxied production origin', async () => {
+    responseMode = 'redirect'
+
     const res = await fetch(`${appBaseUrl}/unsubscribe?uuid=abc`, {
       redirect: 'manual',
       headers: {

@@ -137,7 +137,100 @@ async function proxyUnsubscribeToGhost(req, res) {
   }
 }
 
-app.get('/unsubscribe', proxyUnsubscribeToGhost)
+function renderUnsubscribeConfirmationPage(res, { success }) {
+  const title = success ? 'You are unsubscribed' : 'Unable to confirm unsubscribe'
+  const message = success
+    ? 'You have been unsubscribed from this newsletter. You can resubscribe any time from your account settings.'
+    : 'We could not confirm your unsubscribe request right now. Please try the link again in a moment, or contact support if the problem continues.'
+
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${title}</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #070709;
+        color: #f5f5f5;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      main {
+        width: min(560px, calc(100vw - 3rem));
+        border: 1px solid #2b2b33;
+        border-radius: 14px;
+        background: #111117;
+        padding: 1.5rem;
+      }
+      h1 { margin: 0 0 0.8rem; font-size: 1.4rem; }
+      p { margin: 0; line-height: 1.55; color: #d8d8df; }
+      a {
+        display: inline-block;
+        margin-top: 1.15rem;
+        color: #111117;
+        background: #e6e6f2;
+        text-decoration: none;
+        border-radius: 8px;
+        padding: 0.55rem 0.9rem;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>${title}</h1>
+      <p>${message}</p>
+      <a href="/">Back to catsky.club</a>
+    </main>
+  </body>
+</html>`
+
+  return res
+    .status(success ? 200 : 502)
+    .setHeader('Cache-Control', 'no-store')
+    .setHeader('Content-Type', 'text/html; charset=utf-8')
+    .send(html)
+}
+
+async function unsubscribeAndConfirm(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const uuid = typeof req.query.uuid === 'string' ? req.query.uuid.trim() : ''
+  const key = typeof req.query.key === 'string' ? req.query.key.trim() : ''
+  const newsletter = typeof req.query.newsletter === 'string' ? req.query.newsletter.trim() : ''
+
+  // Non-token requests (e.g. /unsubscribe/success) should continue to proxy.
+  if (!uuid || !key || !newsletter) {
+    return proxyUnsubscribeToGhost(req, res)
+  }
+
+  const targetUrl = `${GHOST_INTERNAL_URL}/unsubscribe/?${new URLSearchParams({ uuid, key, newsletter }).toString()}`
+
+  try {
+    const ghostRes = await fetch(targetUrl, {
+      method: 'GET',
+      headers: {
+        Accept: req.headers.accept || '*/*',
+        'Accept-Language': req.headers['accept-language'] || 'en',
+        'User-Agent': req.headers['user-agent'] || 'catsky-server',
+      },
+      redirect: 'follow',
+    })
+
+    return renderUnsubscribeConfirmationPage(res, { success: ghostRes.status < 500 })
+  } catch {
+    return renderUnsubscribeConfirmationPage(res, { success: false })
+  }
+}
+
+app.get('/unsubscribe', unsubscribeAndConfirm)
 app.get('/unsubscribe/*', proxyUnsubscribeToGhost)
 app.head('/unsubscribe', proxyUnsubscribeToGhost)
 app.head('/unsubscribe/*', proxyUnsubscribeToGhost)
