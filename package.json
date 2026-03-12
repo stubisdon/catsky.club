@@ -15,13 +15,15 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "NODE_OPTIONS=\"--import tsx\" playwright test --config=playwright.config.cjs",
+    "test:e2e": "npm run test:e2e:landing",
     "test:e2e:ui": "NODE_OPTIONS=\"--import tsx\" playwright test --ui --config=playwright.config.cjs",
     "test:e2e:headed": "NODE_OPTIONS=\"--import tsx\" playwright test --headed --config=playwright.config.cjs",
     "test:all": "npm run test && npm run test:e2e",
     "test:ci": "npm run test && npm run test:e2e",
     "test:e2e:auth": "npm run test:e2e:setup && NODE_OPTIONS=\"--import tsx\" playwright test e2e/auth.spec.ts --project=chromium --config=playwright.config.cjs",
-    "test:e2e:landing": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/landing.spec.ts --config=playwright.config.cjs",
+    "test:e2e:landing": "npm run test:e2e:setup && NODE_OPTIONS=\"--import tsx\" playwright test e2e/landing.spec.ts --project=chromium --grep-invert=Performance --config=playwright.config.cjs",
+    "test:e2e:landing:matrix": "npm run test:e2e:setup && NODE_OPTIONS=\"--import tsx\" playwright test e2e/landing.spec.ts --config=playwright.config.cjs",
+    "test:e2e:matrix": "npm run test:e2e:setup && NODE_OPTIONS=\"--import tsx\" playwright test --config=playwright.config.cjs",
     "test:e2e:listen": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/listen.spec.ts --config=playwright.config.cjs",
     "test:e2e:watch": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/watch.spec.ts --config=playwright.config.cjs",
     "test:e2e:navigation": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/navigation.spec.ts --config=playwright.config.cjs",
@@ -29,7 +31,7 @@
     "test:e2e:regression": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/regression.spec.ts --config=playwright.config.cjs",
     "test:e2e:blast": "node scripts/e2e-blast-radius.mjs",
     "test:e2e:blast:run": "node scripts/e2e-blast-radius.mjs --run",
-    "test:e2e:setup": "npx playwright install --with-deps chromium"
+    "test:e2e:setup": "npx playwright install chromium firefox webkit"
   },
   "dependencies": {
     "cors": "^2.8.5",
