@@ -127,7 +127,7 @@ The Node server is intentionally small:
 
 Ghost routes like `/members/api/*`, `/ghost/*`, `/content/images/*`, and `/r/*` are not implemented in Express; they are handled by Ghost/nginx (prod) or Vite proxy (dev).
 
-Express now explicitly proxies `/unsubscribe` and `/unsubscribe/*` to `GHOST_INTERNAL_URL` (default `http://127.0.0.1:2368`) before SPA fallback so newsletter unsubscribe links cannot be normalized to `/` by client routing when nginx routing is missing or stale.
+Express now explicitly proxies `/unsubscribe` and `/unsubscribe/*` to `GHOST_INTERNAL_URL` (default `http://127.0.0.1:2368`) before SPA fallback so newsletter unsubscribe links cannot be normalized to `/` by client routing when nginx routing is missing or stale. For upstream redirects, Express rewrites internal/localhost `Location` headers to the public request origin (or `GHOST_URL` fallback) to prevent users from being sent to local addresses.
 
 ## 6) Local development topology
 

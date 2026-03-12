@@ -56,16 +56,42 @@ const SIGNUPS_API_TOKEN = process.env.SIGNUPS_API_TOKEN || ''
 app.use(cors())
 app.use(express.json())
 
-function mapGhostLocationHeader(value) {
+function getRequestOrigin(req) {
+  const protoHeader = (req.headers['x-forwarded-proto'] || '').toString().split(',')[0].trim()
+  const hostHeader = (req.headers['x-forwarded-host'] || req.headers.host || '').toString().split(',')[0].trim()
+  if (!hostHeader) return ''
+  const protocol = protoHeader || 'http'
+  return `${protocol}://${hostHeader}`.replace(/\/+$/, '')
+}
+
+function mapGhostLocationHeader(value, req) {
   if (!value || typeof value !== 'string') return value
   const normalized = value.trim()
   if (!normalized) return value
 
+  const requestOrigin = getRequestOrigin(req)
   const ghostInternal = GHOST_INTERNAL_URL
   const ghostPublic = GHOST_URL
-  if (normalized.startsWith(ghostInternal)) {
-    return `${ghostPublic}${normalized.slice(ghostInternal.length)}`
+
+  const rewriteBase = requestOrigin || ghostPublic
+
+  try {
+    const parsed = new URL(normalized)
+    const localhostHosts = new Set(['127.0.0.1', 'localhost'])
+    const internalHost = new URL(ghostInternal).host
+    const isInternalHost = parsed.host === internalHost || localhostHosts.has(parsed.hostname)
+
+    if (isInternalHost) {
+      return `${rewriteBase}${parsed.pathname}${parsed.search}${parsed.hash}`
+    }
+  } catch {
+    // Preserve any relative or non-standard location as-is
   }
+
+  if (normalized.startsWith(ghostInternal)) {
+    return `${rewriteBase}${normalized.slice(ghostInternal.length)}`
+  }
+
   return value
 }
 
@@ -93,7 +119,7 @@ async function proxyUnsubscribeToGhost(req, res) {
 
     for (const [name, value] of ghostRes.headers.entries()) {
       if (name.toLowerCase() === 'location') {
-        res.setHeader(name, mapGhostLocationHeader(value))
+        res.setHeader(name, mapGhostLocationHeader(value, req))
       } else {
         res.setHeader(name, value)
       }
