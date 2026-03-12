@@ -215,6 +215,16 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+
+    # Ghost newsletter unsubscribe links
+    location /unsubscribe/ {
+        proxy_pass http://127.0.0.1:2368/unsubscribe/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
     
     # Ghost Webhooks
     location /webhooks/ {
@@ -273,6 +283,7 @@ ghost restart
 2. **Ghost Admin:** Visit `https://catsky.club/ghost/` - should show Ghost admin
 3. **API:** Test `https://catsky.club/ghost/api/content/settings/?key=YOUR_KEY`
 4. **Members:** Test member signup/login at `https://catsky.club/members/`
+5. **Unsubscribe links:** open a real newsletter unsubscribe URL and confirm it does not fall through to `/`
 
 ---
 
@@ -351,4 +362,3 @@ pm2 status
 - Add more pages/components as needed
 - Set up automated deployments (GitHub Actions, etc.)
 - Configure CDN for static assets (optional)
-
