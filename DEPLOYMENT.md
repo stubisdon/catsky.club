@@ -192,6 +192,7 @@ sudo lsof -i :3001
 
 ### Ghost routes not working
 - Make sure your nginx config still has all the Ghost location blocks, including `/content/images/` (admin/email assets) and `/r/` (email tracking redirects)
+- Express includes a defensive fallback proxy for `/content/images/*` and `/r/*`, but this is only a safety net; nginx remains the primary owner for Ghost infrastructure routes
 - Check that Ghost is running: `ghost status`
 
 ### Portal still shows "This site is invite-only" after enabling sign-up
