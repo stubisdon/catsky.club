@@ -230,9 +230,9 @@ async function unsubscribeAndConfirm(req, res) {
   }
 }
 
-app.get('/unsubscribe', unsubscribeAndConfirm)
+app.get(['/unsubscribe', '/unsubscribe/'], unsubscribeAndConfirm)
 app.get('/unsubscribe/*', proxyUnsubscribeToGhost)
-app.head('/unsubscribe', proxyUnsubscribeToGhost)
+app.head(['/unsubscribe', '/unsubscribe/'], proxyUnsubscribeToGhost)
 app.head('/unsubscribe/*', proxyUnsubscribeToGhost)
 
 function base64url(input) {

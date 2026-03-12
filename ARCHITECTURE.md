@@ -127,7 +127,7 @@ The Node server is intentionally small:
 
 Ghost routes like `/members/api/*`, `/ghost/*`, `/content/images/*`, and `/r/*` are not implemented in Express; they are handled by Ghost/nginx (prod) or Vite proxy (dev).
 
-Express now intercepts tokenized `GET /unsubscribe?uuid=...&key=...&newsletter=...` links before SPA fallback, calls Ghost unsubscribe on `GHOST_INTERNAL_URL` (default `http://127.0.0.1:2368`), and returns a Catsky-hosted confirmation page so users receive explicit unsubscribe feedback. Non-tokenized `/unsubscribe` routes still proxy through to Ghost, and upstream redirects from internal/localhost hosts are rewritten to the public request origin (or `GHOST_URL` fallback).
+Express now intercepts tokenized `GET /unsubscribe?uuid=...&key=...&newsletter=...` and `GET /unsubscribe/?uuid=...&key=...&newsletter=...` links before SPA fallback, calls Ghost unsubscribe on `GHOST_INTERNAL_URL` (default `http://127.0.0.1:2368`), and returns a Catsky-hosted confirmation page so users receive explicit unsubscribe feedback. Non-tokenized `/unsubscribe` routes still proxy through to Ghost, and upstream redirects from internal/localhost hosts are rewritten to the public request origin (or `GHOST_URL` fallback).
 
 ## 6) Local development topology
 
