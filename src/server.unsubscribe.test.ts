@@ -72,6 +72,21 @@ describe('unsubscribe proxy in server.js', () => {
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
     expect(res.status).toBe(302)
+    expect(res.headers.get('location')).toBe(`${appBaseUrl}/unsubscribe/success/`)
+  })
+
+  test('rewrites localhost redirects to request host for proxied production origin', async () => {
+    const res = await fetch(`${appBaseUrl}/unsubscribe?uuid=abc`, {
+      redirect: 'manual',
+      headers: {
+        Accept: 'text/html',
+        'X-Forwarded-Proto': 'https',
+        'X-Forwarded-Host': 'catsky.club',
+      },
+    })
+
+    expect(seenPath).toBe('/unsubscribe/?uuid=abc')
+    expect(res.status).toBe(302)
     expect(res.headers.get('location')).toBe('https://catsky.club/unsubscribe/success/')
   })
 })
