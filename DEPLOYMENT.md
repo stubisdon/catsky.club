@@ -114,7 +114,7 @@ sudo nano /etc/nginx/sites-available/catsky.club
 **Key points:**
 - Frontend app runs on port **3001** (not 3000)
 - Root location (`/`) should proxy to `http://127.0.0.1:3001`
-- Keep all Ghost routes (`/ghost/`, `/members/`, `/webhooks/`) as they are
+- Keep all Ghost routes (`/ghost/`, `/members/`, `/webhooks/`, `/content/images/`, `/r/`) as they are
 - Add `/api/` location for your frontend API endpoints
 
 **Test and reload:**
@@ -191,7 +191,7 @@ sudo lsof -i :3001
 ```
 
 ### Ghost routes not working
-- Make sure your nginx config still has all the Ghost location blocks
+- Make sure your nginx config still has all the Ghost location blocks, including `/content/images/` (admin/email assets) and `/r/` (email tracking redirects)
 - Check that Ghost is running: `ghost status`
 
 ### Portal still shows "This site is invite-only" after enabling sign-up
