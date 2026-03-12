@@ -23,6 +23,7 @@ This document is updated to reflect the current V1.0 product vision.
 - `/watch` — trailer public, unreleased video gated for paid tiers
 - `/blog` — public posts
 - `/connect` — sign up, sign in, upgrade, unsubscribe/account controls
+- `/welcome` — post-signup first/last name collection for new users
 
 ## Required UX Behavior
 

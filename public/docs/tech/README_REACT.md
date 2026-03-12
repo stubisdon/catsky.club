@@ -78,6 +78,7 @@ npm start
 │   ├── Listen.tsx        # Music / tracks page (/listen)
 │   ├── Watch.tsx         # Video page (/watch)
 │   ├── Connect.tsx        # Sign up / log in / account (/connect)
+│   ├── Welcome.tsx        # Post-signup profile collection (/welcome)
 │   ├── Mission.tsx       # Mission page (/mission)
 │   ├── main.tsx         # React entry point with routing
 │   ├── index.css        # Global styles
@@ -99,6 +100,7 @@ npm start
 - `/listen` - Music player / tracks (Listen.tsx). `/player` redirects to `/listen`
 - `/watch` - Video content: trailer public, unreleased video gated for paid tiers (Watch.tsx)
 - `/connect` - Sign up, log in, account (Connect.tsx)
+- `/welcome` - New-user onboarding for first/last name after signup callback (Welcome.tsx)
 - `/mission` - Mission statement (Mission.tsx)
 - `/blog` - Public blog posts (if configured in Ghost/content layer)
 

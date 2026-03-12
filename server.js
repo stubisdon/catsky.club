@@ -286,6 +286,20 @@ async function findMemberByEmail(email) {
   return null
 }
 
+function composeMemberName(firstName, lastName) {
+  return lastName ? `${firstName} ${lastName}` : firstName
+}
+
+function mergeNameNote(currentNote, firstName, lastName) {
+  const lines = []
+  if (typeof currentNote === 'string' && currentNote.trim()) {
+    lines.push(currentNote.trim())
+  }
+  lines.push(`first_name:${firstName}`)
+  if (lastName) lines.push(`last_name:${lastName}`)
+  return lines.join('\n')
+}
+
 // Serve static files from dist (production build) and public (additional assets)
 // Order matters: dist first (built assets), then public (audio, docs, etc.)
 app.use(express.static(path.join(__dirname, 'dist'), { 
@@ -312,6 +326,61 @@ app.use(express.static(path.join(__dirname, 'public'), {
     }
   }
 }))
+
+app.post('/api/member-profile', async (req, res) => {
+  const memberId = typeof req.body?.memberId === 'string' ? req.body.memberId.trim() : ''
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : ''
+  const firstName = typeof req.body?.firstName === 'string' ? req.body.firstName.trim() : ''
+  const lastName = typeof req.body?.lastName === 'string' ? req.body.lastName.trim() : ''
+
+  if (!memberId || !email || !firstName) {
+    return res.status(400).json({ error: 'memberId, email, and firstName are required.' })
+  }
+
+  if (!GHOST_ADMIN_API_KEY) {
+    return res.status(500).json({ error: 'Ghost Admin API is not configured (missing GHOST_ADMIN_API_KEY)' })
+  }
+
+  try {
+    const memberRes = await ghostAdminFetch(`members/${memberId}/?include=subscriptions`, { method: 'GET' })
+    const payload = await memberRes.json().catch(() => null)
+    const fetchedMember = Array.isArray(payload?.members) ? payload.members[0] : null
+
+    if (!memberRes.ok || !fetchedMember) {
+      return res.status(404).json({ error: 'Member not found.' })
+    }
+
+    const fetchedEmail = typeof fetchedMember.email === 'string' ? fetchedMember.email.trim().toLowerCase() : ''
+    if (fetchedEmail !== email) {
+      return res.status(403).json({ error: 'Member identity mismatch.' })
+    }
+
+    const updateRes = await ghostAdminFetch(`members/${memberId}/`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        members: [
+          {
+            id: memberId,
+            email: fetchedMember.email,
+            name: composeMemberName(firstName, lastName),
+            note: mergeNameNote(fetchedMember.note, firstName, lastName),
+          },
+        ],
+      }),
+    })
+
+    const updatePayload = await updateRes.json().catch(() => null)
+    if (!updateRes.ok) {
+      return res.status(updateRes.status).json({ error: 'Failed to update member profile.', details: updatePayload })
+    }
+
+    return res.status(200).json({ success: true })
+  } catch (error) {
+    console.error('[Member profile update failed]', error)
+    return res.status(500).json({ error: 'Failed to update member profile.' })
+  }
+})
+
 
 // API endpoint for form submissions
 app.post('/api/submit', async (req, res) => {
