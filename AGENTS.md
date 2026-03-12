@@ -39,6 +39,15 @@ Be extra careful in:
 - `src/Connect.tsx` login/signup/callback behavior,
 - `vite.config.ts` proxy + cookie/redirect rewriting,
 - `server.js` env loading, static serving order, and SPA fallback.
+- nginx templates: `catsky.club-ssl.conf`, `nginx.conf.example`, `nginx-ssl-update.txt` (Ghost route ownership must stay intact).
+
+### Ghost asset/routing protection (to prevent favicon/email regressions)
+
+- Treat these URL prefixes as **Ghost-owned infrastructure routes**: `/ghost/`, `/ghost/api/`, `/members/`, `/webhooks/`, `/unsubscribe/`, `/content/images/`, `/r/`.
+- Never route those prefixes to the frontend app (`:3001`) and never remove them from nginx templates during frontend work.
+- Do not create “documentation” files under runtime asset paths (for example under `public/content/images/**`) as a way to preserve operational behavior.
+- Document protection/routing rationale only in canonical docs: `AGENTS.md`, `ARCHITECTURE.md`, `DEPLOYMENT.md`, and relevant `public/docs/tech/*` docs.
+- If a Ghost Admin branding image URL is broken, fix by restoring/proxying the actual asset path and validating the URL directly, not by changing unrelated frontend routing.
 
 For these areas: prefer the smallest valid patch and validate behavior directly.
 
