@@ -31,11 +31,9 @@ test.describe('Listen page - Access Control', () => {
     // Should see first track (Vision) - accessible
     await expect(page.getByText('Vision')).toBeVisible()
     
-    // Should see locked tracks with "sign up" text
-    const signUpTexts = page.getByText('sign up')
-    const signUpCount = await signUpTexts.count()
-    // Guest should see 2 locked tracks (Overpriced Airbnb and Nova)
-    expect(signUpCount).toBeGreaterThanOrEqual(1)
+    // Should see locked tracks with release status text
+    await expect(page.getByText('coming Apr 10, 2026')).toBeVisible()
+    await expect(page.getByText('coming May 8, 2026')).toBeVisible()
   })
 
   test('free subscriber sees first 2 tracks accessible', async ({ page }) => {
@@ -69,9 +67,9 @@ test.describe('Listen page - Access Control', () => {
     // Should see third track (Nova) which is locked
     await expect(page.getByText('Nova')).toBeVisible()
     
-    // Nova track container should have "sign up" text visible (locked track indicator)
+    // Nova track container should have "in progress" lock text visible
     // Use a more specific locator to avoid hidden ghost portal buttons
-    const novaTrackContainer = page.locator('div').filter({ hasText: /^Nova.*sign up$/i }).first()
+    const novaTrackContainer = page.locator('div').filter({ hasText: /^Nova.*in progress$/i }).first()
     await expect(novaTrackContainer).toBeVisible()
   })
 
@@ -108,11 +106,10 @@ test.describe('Listen page - Access Control', () => {
     await expect(page.getByText('Overpriced Airbnb')).toBeVisible()
     await expect(page.getByText('Nova')).toBeVisible()
     
-    // No track should have "sign up" text visible (all tracks unlocked for paid)
-    // Check within the track list area, not hidden Ghost portal buttons
+    // No locked status text should be visible (all tracks unlocked for paid)
     const tracksArea = page.locator('.app-container')
-    const visibleSignUp = tracksArea.locator('div:visible').filter({ hasText: /^.*sign up$/i })
-    await expect(visibleSignUp).toHaveCount(0)
+    const lockedStatus = tracksArea.locator('div:visible').filter({ hasText: /^.*(coming Apr 10, 2026|coming May 8, 2026|in progress)$/i })
+    await expect(lockedStatus).toHaveCount(0)
     
     // Should see voting buttons on tracks (paid subscribers get voting)
     const upvoteButtons = page.locator('button').filter({ hasText: '↑' })

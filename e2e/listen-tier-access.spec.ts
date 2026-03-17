@@ -36,8 +36,7 @@ test.describe('Listen catalog tier access', () => {
     await expect(page.getByText('Baby Mama')).toBeVisible()
     await expect(page.getByText('Baby Mama 2')).toHaveCount(0)
 
-    const signUpText = page.getByText('sign up')
-    await expect(signUpText.first()).toBeVisible()
+    await expect(page.getByText('coming Apr 10, 2026')).toBeVisible()
   })
 
   test('free member can see free-only tracks but not paid tracks', async ({ page }) => {
@@ -47,7 +46,7 @@ test.describe('Listen catalog tier access', () => {
     await expect(page.getByText('Plank Song')).toBeVisible()
     await expect(page.getByText('Motherless Child')).toBeVisible()
 
-    const sugarDaddyContainer = page.locator('div').filter({ hasText: /^Sugar Daddy.*sign up$/i }).first()
+    const sugarDaddyContainer = page.locator('div').filter({ hasText: /^Sugar Daddy.*coming May 8, 2026$/i }).first()
     await expect(sugarDaddyContainer).toBeVisible()
   })
 
@@ -55,18 +54,28 @@ test.describe('Listen catalog tier access', () => {
     await mockMember(page, 500)
     await page.goto('/listen')
 
-    const sugarDaddyLocked = page.locator('div').filter({ hasText: /^Sugar Daddy.*sign up$/i })
+    const sugarDaddyLocked = page.locator('div').filter({ hasText: /^Sugar Daddy.*coming May 8, 2026$/i })
     await expect(sugarDaddyLocked).toHaveCount(0)
 
-    const overpricedLocked = page.locator('div').filter({ hasText: /^Overpriced Airbnb.*sign up$/i }).first()
+    const overpricedLocked = page.locator('div').filter({ hasText: /^Overpriced Airbnb.*in progress$/i }).first()
     await expect(overpricedLocked).toBeVisible()
   })
 
+
+  test('hovering locked track shows listen early CTA', async ({ page }) => {
+    await mockMember(page)
+    await page.goto('/listen')
+
+    const sugarDaddyCard = page.locator('div').filter({ hasText: /^Sugar Daddy.*coming May 8, 2026$/i }).first()
+    await sugarDaddyCard.hover()
+
+    await expect(sugarDaddyCard.getByText('listen early')).toBeVisible()
+  })
   test('clicking locked paid track routes user to /connect', async ({ page }) => {
     await mockMember(page, 0)
     await page.goto('/listen')
 
-    await page.locator('div').filter({ hasText: /^Sugar Daddy.*sign up$/i }).first().click()
+    await page.locator('div').filter({ hasText: /^Sugar Daddy.*coming May 8, 2026$/i }).first().click()
     await expect(page).toHaveURL(/\/connect$/)
   })
 })

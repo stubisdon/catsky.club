@@ -36,7 +36,7 @@ export const TRACKS: Track[] = [
   {
     id: '3',
     title: 'Plank Song',
-    accessTier: 'free_member',
+    accessTier: 'public',
     audioSource: {
       type: 'soundcloud',
       trackUrl: 'https://soundcloud.com/catsky_club/catsky-plank-song/s-I3zejyelPY1',
