@@ -188,7 +188,7 @@ export default function Listen() {
           textAlign: 'left',
           letterSpacing: '0.05em',
           lineHeight: '1.8',
-          maxHeight: '100vh',
+          maxHeight: '100dvh',
           overflowY: 'auto',
           userSelect: 'text',
           WebkitUserSelect: 'text',
@@ -218,6 +218,82 @@ export default function Listen() {
             >
               account
             </a>
+          </div>
+        )}
+
+        {currentTrack && (
+          <div style={{ border: '1px solid rgba(255, 255, 255, 0.3)', padding: '1.5rem', marginBottom: '2rem' }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>{currentTrack.title}</div>
+              {currentTrack.audioSource.type === 'direct' && (
+                <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </div>
+              )}
+              {trackLoadError && (
+                <div style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                  ⚠ {trackLoadError}
+                </div>
+              )}
+            </div>
+
+            {currentTrack.audioSource.type === 'direct' && (
+              <>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
+                  <button
+                    onClick={handlePlayPause}
+                    style={{
+                      background: 'transparent', border: '2px solid var(--color-text)', color: 'var(--color-text)',
+                      cursor: 'pointer', fontSize: '1.5rem', width: '3rem', height: '3rem',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', textTransform: 'lowercase',
+                    }}
+                  >{isPlaying ? '⏸' : '▶'}</button>
+                  <div style={{ flex: 1, height: '4px', background: 'rgba(255, 255, 255, 0.2)', position: 'relative' }}>
+                    <div
+                      style={{
+                        height: '100%', background: 'var(--color-text)',
+                        width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%',
+                        transition: 'width 0.1s linear',
+                      }}
+                    />
+                  </div>
+                </div>
+                <audio
+                  ref={audioRef}
+                  onTimeUpdate={handleTimeUpdate}
+                  onLoadedMetadata={handleTimeUpdate}
+                  onEnded={() => setIsPlaying(false)}
+                  style={{ display: 'none' }}
+                />
+              </>
+            )}
+
+            {currentTrack.audioSource.type === 'soundcloud' && (
+              <div style={{ marginTop: '1rem' }}>
+                <div style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '0.5rem', textAlign: 'center', fontStyle: 'italic' }}>
+                  click the circle to play
+                </div>
+                <iframe
+                  ref={soundcloudIframeRef}
+                  width="100%"
+                  height="166"
+                  scrolling="no"
+                  frameBorder="no"
+                  allow="autoplay"
+                  src={getSoundCloudEmbedUrl(
+                    currentTrack.audioSource.trackId,
+                    currentTrack.audioSource.trackUrl,
+                    currentTrack.audioSource.setId,
+                    currentTrack.audioSource.secretToken
+                  )}
+                  style={{ border: 'none', borderRadius: '0' }}
+                  title={`SoundCloud player for ${currentTrack.title}`}
+                />
+                <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '0.5rem', textAlign: 'center' }}>
+                  powered by soundcloud
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -359,83 +435,6 @@ export default function Listen() {
             )}
           </div>
         </div>
-
-        {currentTrack && (
-          <div style={{ border: '1px solid rgba(255, 255, 255, 0.3)', padding: '1.5rem', marginBottom: '2rem' }}>
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>{currentTrack.title}</div>
-              {currentTrack.audioSource.type === 'direct' && (
-                <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </div>
-              )}
-              {trackLoadError && (
-                <div style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-                  ⚠ {trackLoadError}
-                </div>
-              )}
-            </div>
-
-            {currentTrack.audioSource.type === 'direct' && (
-              <>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1rem' }}>
-                  <button
-                    onClick={handlePlayPause}
-                    style={{
-                      background: 'transparent', border: '2px solid var(--color-text)', color: 'var(--color-text)',
-                      cursor: 'pointer', fontSize: '1.5rem', width: '3rem', height: '3rem',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', textTransform: 'lowercase',
-                    }}
-                  >{isPlaying ? '⏸' : '▶'}</button>
-                  <div style={{ flex: 1, height: '4px', background: 'rgba(255, 255, 255, 0.2)', position: 'relative' }}>
-                    <div
-                      style={{
-                        height: '100%', background: 'var(--color-text)',
-                        width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%',
-                        transition: 'width 0.1s linear',
-                      }}
-                    />
-                  </div>
-                </div>
-                <audio
-                  ref={audioRef}
-                  onTimeUpdate={handleTimeUpdate}
-                  onLoadedMetadata={handleTimeUpdate}
-                  onEnded={() => setIsPlaying(false)}
-                  style={{ display: 'none' }}
-                />
-              </>
-            )}
-
-            {currentTrack.audioSource.type === 'soundcloud' && (
-              <div style={{ marginTop: '1rem' }}>
-                <div style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '0.5rem', textAlign: 'center', fontStyle: 'italic' }}>
-                  click the circle to play
-                </div>
-                <iframe
-                  ref={soundcloudIframeRef}
-                  width="100%"
-                  height="166"
-                  scrolling="no"
-                  frameBorder="no"
-                  allow="autoplay"
-                  src={getSoundCloudEmbedUrl(
-                    currentTrack.audioSource.trackId,
-                    currentTrack.audioSource.trackUrl,
-                    currentTrack.audioSource.setId,
-                    currentTrack.audioSource.secretToken
-                  )}
-                  style={{ border: 'none', borderRadius: '0' }}
-                  title={`SoundCloud player for ${currentTrack.title}`}
-                />
-                <div style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '0.5rem', textAlign: 'center' }}>
-                  powered by soundcloud
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         <Link
           href="/"
           variant="subtle"

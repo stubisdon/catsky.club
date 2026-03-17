@@ -71,6 +71,11 @@ Current supported sources:
 4. Paid $20 user: all categories unlocked.
 5. Locked CTA routes correctly to `/connect` and returns to `/listen` after auth/upgrade.
 
+
+## 2026-03 listen stability notes
+- Keep the selected-player module rendered above the track list so it remains visible immediately after selecting a public track.
+- Use `max-height: 100dvh` on the `/listen` content panel to avoid desktop browser chrome causing an extra phantom inner scrollbar.
+
 ## Related
 - `public/docs/tech/V1_UX_USE_CASES.md`
 - `public/docs/tech/V1_UX_USE_CASES_VS_BIZ_2026_REVIEW.md`
