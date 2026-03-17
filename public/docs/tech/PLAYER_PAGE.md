@@ -52,9 +52,11 @@ interface Track {
 ## UX Requirements
 - Public tracks playable without auth wall.
 - Locked tracks remain visible for discovery but cannot play.
-- Every locked state includes precise CTA:
-  - sign up for free (for finished unreleased)
-  - upgrade to paid (for demos)
+- Every locked state includes release-status copy and an upgrade CTA on hover.
+  - `Motherless Child` shows `coming Apr 10, 2026`.
+  - `Sugar Daddy` shows `coming May 8, 2026`.
+  - Other locked songs show `in progress`.
+  - Hovering a locked card reveals `listen early` and routes to `/connect` on click.
 - Copy should be concise and non-manipulative.
 
 ## Audio Sources

@@ -29,6 +29,7 @@ export default function Listen() {
   const [feedbackText, setFeedbackText] = useState('')
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<string | null>(null)
   const [trackLoadError, setTrackLoadError] = useState<string | null>(null)
+  const [hoveredLockedTrackId, setHoveredLockedTrackId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const soundcloudIframeRef = useRef<HTMLIFrameElement | null>(null)
 
@@ -72,6 +73,12 @@ export default function Listen() {
     if (track.accessTier === 'paid_5') return effectiveTier === 'paid_5' || effectiveTier === 'paid_20'
     return effectiveTier === 'paid_20'
   }, [effectiveTier])
+
+  const getLockedTrackLabel = useCallback((track: Track) => {
+    if (track.title === 'Motherless Child') return 'coming Apr 10, 2026'
+    if (track.title === 'Sugar Daddy') return 'coming May 8, 2026'
+    return 'in progress'
+  }, [])
 
   const accessibleTracks = TRACKS.filter(hasTrackAccess)
   const lockedTracks = TRACKS.filter((track) => !hasTrackAccess(track))
@@ -306,36 +313,48 @@ export default function Listen() {
             ))}
             {lockedTracks.length > 0 && (
               <>
-                {lockedTracks.map(track => (
-                  <div
-                    key={track.id}
-                    style={{
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      padding: '1rem',
-                      opacity: 0.5,
-                      position: 'relative',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      navigateTo('/connect')
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div>{track.title}</div>
-                        {track.version && (
-                          <div style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.25rem' }}>
-                            {track.version} {track.date && `• ${track.date}`}
-                          </div>
-                        )}
+                {lockedTracks.map(track => {
+                  const isHovered = hoveredLockedTrackId === track.id
+                  return (
+                    <div
+                      key={track.id}
+                      style={{
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        padding: '1rem',
+                        opacity: 0.6,
+                        position: 'relative',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                      }}
+                      onMouseEnter={() => setHoveredLockedTrackId(track.id)}
+                      onMouseLeave={() => setHoveredLockedTrackId(null)}
+                      onFocus={() => setHoveredLockedTrackId(track.id)}
+                      onBlur={() => setHoveredLockedTrackId(null)}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        navigateTo('/connect')
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div>{track.title}</div>
+                          {track.version && (
+                            <div style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.25rem' }}>
+                              {track.version} {track.date && `• ${track.date}`}
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>{getLockedTrackLabel(track)}</div>
                       </div>
-                      <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>sign up</div>
+                      {isHovered && (
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.9 }}>
+                          listen early
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </>
             )}
           </div>
