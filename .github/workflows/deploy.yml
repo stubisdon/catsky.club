@@ -31,6 +31,17 @@ jobs:
             
             AUTH_PAT="${GIT_PAT_2:-$GIT_PAT}"
 
+            # If the server has local modifications (often from a previous `npm install`),
+            # Git pull can fail with:
+            # "Your local changes to the following files would be overwritten by merge: package-lock.json"
+            # Stash package-lock.json temporarily so the pull can proceed cleanly.
+            LOCK_STASHED=0
+            if ! git diff --quiet -- package-lock.json || ! git diff --cached --quiet -- package-lock.json; then
+              echo "Detected local package-lock.json changes; stashing before git pull..."
+              git stash push -m "ci: stash package-lock.json before pull" -- package-lock.json
+              LOCK_STASHED=1
+            fi
+
             if [ -n "$AUTH_PAT" ]; then
               if [ -n "$GIT_PAT_2" ]; then
                 echo "Using GIT_PAT_2 (length=${#GIT_PAT_2}) for git pull."
@@ -67,6 +78,12 @@ jobs:
               echo "  1. Add GIT_PAT_2 (or GIT_PAT) secret with a Personal Access Token (repo scope)"
               echo "  2. Configure SSH deploy key on production server"
               exit 1
+            fi
+
+            # We don't need the stashed lockfile changes after pulling; drop them so
+            # the working tree reflects the pulled state.
+            if [ "$LOCK_STASHED" = "1" ]; then
+              git stash drop --quiet stash@{0} || true
             fi
             
             chmod +x deploy.sh
