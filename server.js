@@ -45,10 +45,24 @@ function loadEnvFile(relativePath) {
 loadEnvFile('.env.server')
 loadEnvFile('.env')
 
-const posthog = new PostHog(process.env.POSTHOG_KEY || '', {
-  host: process.env.POSTHOG_HOST,
-  enableExceptionAutocapture: true,
-})
+function createAnalyticsClient() {
+  const apiKey = (process.env.POSTHOG_KEY || '').trim()
+  if (!apiKey) {
+    return {
+      capture: () => {},
+      identify: () => {},
+      captureException: () => {},
+      shutdown: async () => {},
+    }
+  }
+
+  return new PostHog(apiKey, {
+    host: process.env.POSTHOG_HOST,
+    enableExceptionAutocapture: true,
+  })
+}
+
+const posthog = createAnalyticsClient()
 
 const app = express()
 const PORT = process.env.PORT || 3001
