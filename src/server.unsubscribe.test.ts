@@ -7,6 +7,10 @@ let appProcess: ChildProcessWithoutNullStreams
 let appBaseUrl = ''
 let seenPath = ''
 let responseMode: 'redirect' | 'ok' | 'fail' = 'redirect'
+let seenHostHeader = ''
+let seenForwardedHostHeader = ''
+let seenForwardedProtoHeader = ''
+let seenForwardedPortHeader = ''
 
 beforeAll(async () => {
   mockGhostServer = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -16,6 +20,10 @@ beforeAll(async () => {
     }
 
     seenPath = req.url
+    seenHostHeader = String(req.headers.host || '')
+    seenForwardedHostHeader = String(req.headers['x-forwarded-host'] || '')
+    seenForwardedProtoHeader = String(req.headers['x-forwarded-proto'] || '')
+    seenForwardedPortHeader = String(req.headers['x-forwarded-port'] || '')
 
     if (req.url.startsWith('/unsubscribe/')) {
       if (responseMode === 'fail') {
@@ -86,6 +94,10 @@ describe('unsubscribe proxy in server.js', () => {
     const html = await res.text()
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
+    expect(seenHostHeader).toBe('catsky.club')
+    expect(seenForwardedHostHeader).toBe('catsky.club')
+    expect(seenForwardedProtoHeader).toBe('https')
+    expect(seenForwardedPortHeader).toBe('443')
     expect(res.status).toBe(200)
     expect(html).toContain('You are unsubscribed')
     expect(html).toContain('You have been unsubscribed from this newsletter.')
@@ -103,6 +115,7 @@ describe('unsubscribe proxy in server.js', () => {
     const html = await res.text()
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
+    expect(seenHostHeader).toBe('catsky.club')
     expect(res.status).toBe(200)
     expect(html).toContain('You are unsubscribed')
   })
@@ -130,6 +143,10 @@ describe('unsubscribe proxy in server.js', () => {
     })
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc')
+    expect(seenHostHeader).toBe('catsky.club')
+    expect(seenForwardedHostHeader).toBe('catsky.club')
+    expect(seenForwardedProtoHeader).toBe('https')
+    expect(seenForwardedPortHeader).toBe('443')
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toBe(`${appBaseUrl}/unsubscribe/success/`)
   })

@@ -10,9 +10,20 @@ const publicHost = 'catsky.club'
 
 function hasPublicProxyHeaders(req: IncomingMessage) {
   return (
-    req.headers['x-forwarded-host'] === publicHost
+    req.headers.host === publicHost
+    && req.headers['x-forwarded-host'] === publicHost
     && req.headers['x-forwarded-proto'] === 'https'
     && req.headers['x-forwarded-port'] === '443'
+  )
+}
+
+function hasPublicProxyContractInConfig(block: string) {
+  return (
+    block.includes('proxy_set_header X-Forwarded-Host $host;')
+    && block.includes('proxy_set_header X-Forwarded-Port $server_port;')
+    && block.includes('proxy_redirect http://127.0.0.1:2368/ https://$host/;')
+    && block.includes('proxy_redirect http://localhost:2368/ https://$host/;')
+    && block.includes('proxy_redirect http://localhost/ https://$host/;')
   )
 }
 
@@ -144,11 +155,7 @@ for (const contract of nginxGhostRouteContracts) {
       const blockEnd = text.indexOf('}', blockStart)
       const block = text.slice(blockStart, blockEnd)
 
-      expect(block).toContain('proxy_set_header X-Forwarded-Host $host;')
-      expect(block).toContain('proxy_set_header X-Forwarded-Port $server_port;')
-      expect(block).toContain('proxy_redirect http://127.0.0.1:2368/ https://$host/;')
-      expect(block).toContain('proxy_redirect http://localhost:2368/ https://$host/;')
-      expect(block).toContain('proxy_redirect http://localhost/ https://$host/;')
+      expect(hasPublicProxyContractInConfig(block)).toBe(true)
     }
   })
 }
