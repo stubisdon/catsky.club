@@ -56,12 +56,42 @@ const SIGNUPS_API_TOKEN = process.env.SIGNUPS_API_TOKEN || ''
 app.use(cors())
 app.use(express.json())
 
+function getForwardedHeaderValue(value) {
+  return (value || '').toString().split(',')[0].trim()
+}
+
+function getRequestHost(req) {
+  return getForwardedHeaderValue(req.headers['x-forwarded-host'] || req.headers.host)
+}
+
+function getRequestProtocol(req) {
+  const forwardedProtocol = getForwardedHeaderValue(req.headers['x-forwarded-proto'])
+  if (forwardedProtocol) return forwardedProtocol
+
+  const publicUrl = new URL(GHOST_URL)
+  return getRequestHost(req) === publicUrl.host ? publicUrl.protocol.replace(':', '') : 'http'
+}
+
 function getRequestOrigin(req) {
-  const protoHeader = (req.headers['x-forwarded-proto'] || '').toString().split(',')[0].trim()
-  const hostHeader = (req.headers['x-forwarded-host'] || req.headers.host || '').toString().split(',')[0].trim()
+  const hostHeader = getRequestHost(req)
   if (!hostHeader) return ''
-  const protocol = protoHeader || 'http'
-  return `${protocol}://${hostHeader}`.replace(/\/+$/, '')
+  return `${getRequestProtocol(req)}://${hostHeader}`.replace(/\/+$/, '')
+}
+
+function createGhostProxyHeaders(req) {
+  const host = getRequestHost(req) || new URL(GHOST_URL).host
+  const protocol = getRequestProtocol(req)
+  const port = protocol === 'https' ? '443' : '80'
+
+  return {
+    Accept: req.headers.accept || '*/*',
+    'Accept-Language': req.headers['accept-language'] || 'en',
+    'User-Agent': req.headers['user-agent'] || 'catsky-server',
+    'X-Forwarded-Host': host,
+    'X-Forwarded-Proto': protocol,
+    'X-Forwarded-Port': port,
+    'X-Forwarded-For': req.headers['x-forwarded-for'] || req.socket.remoteAddress || '',
+  }
 }
 
 function mapGhostLocationHeader(value, req) {
@@ -107,11 +137,7 @@ async function proxyUnsubscribeToGhost(req, res) {
   try {
     const ghostRes = await fetch(targetUrl, {
       method: req.method,
-      headers: {
-        Accept: req.headers.accept || '*/*',
-        'Accept-Language': req.headers['accept-language'] || 'en',
-        'User-Agent': req.headers['user-agent'] || 'catsky-server',
-      },
+      headers: createGhostProxyHeaders(req),
       redirect: 'manual',
     })
 
@@ -148,11 +174,7 @@ async function proxyGhostInfraToGhost(req, res) {
   try {
     const ghostRes = await fetch(targetUrl, {
       method: req.method,
-      headers: {
-        Accept: req.headers.accept || '*/*',
-        'Accept-Language': req.headers['accept-language'] || 'en',
-        'User-Agent': req.headers['user-agent'] || 'catsky-server',
-      },
+      headers: createGhostProxyHeaders(req),
       redirect: 'manual',
     })
 
@@ -257,11 +279,7 @@ async function unsubscribeAndConfirm(req, res) {
   try {
     const ghostRes = await fetch(targetUrl, {
       method: 'GET',
-      headers: {
-        Accept: req.headers.accept || '*/*',
-        'Accept-Language': req.headers['accept-language'] || 'en',
-        'User-Agent': req.headers['user-agent'] || 'catsky-server',
-      },
+      headers: createGhostProxyHeaders(req),
       redirect: 'follow',
     })
 
