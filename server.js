@@ -8,6 +8,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import crypto from 'crypto'
 import fs from 'fs'
+import { PostHog } from 'posthog-node'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -43,6 +44,11 @@ function loadEnvFile(relativePath) {
 // Preferred: .env.server (ignored by git). Fallback: .env
 loadEnvFile('.env.server')
 loadEnvFile('.env')
+
+const posthog = new PostHog(process.env.POSTHOG_KEY || '', {
+  host: process.env.POSTHOG_HOST,
+  enableExceptionAutocapture: true,
+})
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -265,7 +271,15 @@ async function unsubscribeAndConfirm(req, res) {
       redirect: 'follow',
     })
 
-    return renderUnsubscribeConfirmationPage(res, { success: ghostRes.status < 500 })
+    const success = ghostRes.status < 500
+    if (success) {
+      posthog.capture({
+        distinctId: uuid,
+        event: 'member unsubscribed',
+        properties: { newsletter, $set: { email: uuid } },
+      })
+    }
+    return renderUnsubscribeConfirmationPage(res, { success })
   } catch {
     return renderUnsubscribeConfirmationPage(res, { success: false })
   }
@@ -422,9 +436,26 @@ app.post('/api/member-profile', async (req, res) => {
       return res.status(updateRes.status).json({ error: 'Failed to update member profile.', details: updatePayload })
     }
 
+    const phDistinctId = req.headers['x-posthog-distinct-id'] || memberId
+    posthog.identify({
+      distinctId: phDistinctId,
+      properties: {
+        $set: { email, name: composeMemberName(firstName, lastName), first_name: firstName, last_name: lastName || undefined },
+      },
+    })
+    posthog.capture({
+      distinctId: phDistinctId,
+      event: 'member profile updated',
+      properties: {
+        member_id: memberId,
+        has_last_name: Boolean(lastName),
+      },
+    })
+
     return res.status(200).json({ success: true })
   } catch (error) {
     console.error('[Member profile update failed]', error)
+    posthog.captureException(error)
     return res.status(500).json({ error: 'Failed to update member profile.' })
   }
 })
@@ -468,6 +499,19 @@ app.post('/api/submit', async (req, res) => {
     if (createRes.ok) {
       const payload = await createRes.json()
       const created = payload && Array.isArray(payload.members) ? payload.members[0] : null
+      const phDistinctId = req.headers['x-posthog-distinct-id'] || (created?.id ?? email)
+      posthog.identify({
+        distinctId: phDistinctId,
+        properties: { $set: { email, name: safeName } },
+      })
+      posthog.capture({
+        distinctId: phDistinctId,
+        event: 'member signed up',
+        properties: {
+          member_id: created?.id,
+          already_existed: false,
+        },
+      })
       return res.status(200).json({
         success: true,
         member: created ? { id: created.id, email: created.email, name: created.name, created_at: created.created_at } : null,
@@ -479,6 +523,15 @@ app.post('/api/submit', async (req, res) => {
     const errMessage = errPayload?.errors?.[0]?.message || createRes.statusText
     if (typeof errMessage === 'string' && errMessage.toLowerCase().includes('already exists')) {
       const existing = await findMemberByEmail(email)
+      const phDistinctId = req.headers['x-posthog-distinct-id'] || (existing?.id ?? email)
+      posthog.capture({
+        distinctId: phDistinctId,
+        event: 'member signed up',
+        properties: {
+          member_id: existing?.id,
+          already_existed: true,
+        },
+      })
       return res.status(200).json({
         success: true,
         member: existing ? { id: existing.id, email: existing.email, name: existing.name, created_at: existing.created_at } : null,
@@ -495,6 +548,7 @@ app.post('/api/submit', async (req, res) => {
     })
   } catch (e) {
     console.error('[Ghost signup error]', e?.message || e, { ghostUrl: GHOST_URL })
+    posthog.captureException(e)
     return res.status(500).json({ error: 'Ghost signup error', details: String(e?.message || e) })
   }
 })
@@ -541,4 +595,13 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
+})
+
+process.on('SIGINT', async () => {
+  await posthog.shutdown()
+  process.exit(0)
+})
+process.on('SIGTERM', async () => {
+  await posthog.shutdown()
+  process.exit(0)
 })
