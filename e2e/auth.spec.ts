@@ -112,6 +112,8 @@ test.describe('Connect Page - Basic Elements', () => {
     // Should see continue link
     const continueLink = page.getByRole('link', { name: /continue/i })
     await expect(continueLink).toBeVisible()
+    await expect(continueLink).toHaveCSS('display', 'inline')
+    await expect(continueLink).toHaveCSS('border-top-width', '0px')
   })
 })
 
