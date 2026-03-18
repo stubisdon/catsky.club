@@ -14,6 +14,11 @@ test.beforeAll(async () => {
     }
 
     if (req.url.startsWith('/unsubscribe/')) {
+      if (req.headers.host !== 'catsky.club' || req.headers['x-forwarded-host'] !== 'catsky.club' || req.headers['x-forwarded-proto'] !== 'https') {
+        res.statusCode = 500
+        return res.end('missing public host headers')
+      }
+
       res.statusCode = 200
       return res.end('unsubscribed')
     }

@@ -5,6 +5,8 @@
 import express from 'express'
 import cors from 'cors'
 import path from 'path'
+import http from 'node:http'
+import https from 'node:https'
 import { fileURLToPath } from 'url'
 import crypto from 'crypto'
 import fs from 'fs'
@@ -64,6 +66,85 @@ function getRequestOrigin(req) {
   return `${protocol}://${hostHeader}`.replace(/\/+$/, '')
 }
 
+function getGhostPublicOrigin() {
+  try {
+    return new URL(GHOST_URL)
+  } catch {
+    return new URL('https://catsky.club')
+  }
+}
+
+function createGhostProxyHeaders(req) {
+  const ghostPublicOrigin = getGhostPublicOrigin()
+  const forwardedFor = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').toString().trim()
+
+  return {
+    Accept: req.headers.accept || '*/*',
+    'Accept-Language': req.headers['accept-language'] || 'en',
+    'User-Agent': req.headers['user-agent'] || 'catsky-server',
+    Host: ghostPublicOrigin.host,
+    'X-Forwarded-Host': ghostPublicOrigin.host,
+    'X-Forwarded-Proto': ghostPublicOrigin.protocol.replace(/:$/, ''),
+    ...(forwardedFor ? { 'X-Forwarded-For': forwardedFor } : {}),
+  }
+}
+
+async function requestGhost(targetUrl, { method, headers, redirect = 'manual', maxRedirects = 5 } = {}) {
+  return await new Promise((resolve, reject) => {
+    const url = new URL(targetUrl)
+    const transport = url.protocol === 'https:' ? https : http
+    const req = transport.request(
+      {
+        protocol: url.protocol,
+        hostname: url.hostname,
+        port: url.port || undefined,
+        path: `${url.pathname}${url.search}`,
+        method,
+        headers,
+      },
+      (upstreamRes) => {
+        const chunks = []
+        upstreamRes.on('data', (chunk) => chunks.push(Buffer.from(chunk)))
+        upstreamRes.on('end', async () => {
+          const status = upstreamRes.statusCode || 502
+          const locationHeader = upstreamRes.headers.location
+          const location = Array.isArray(locationHeader) ? locationHeader[0] : locationHeader
+
+          if (redirect === 'follow' && location && status >= 300 && status < 400) {
+            if (maxRedirects <= 0) {
+              reject(new Error('Ghost upstream redirect limit exceeded'))
+              return
+            }
+
+            try {
+              const nextUrl = new URL(location, url)
+              const nextRes = await requestGhost(nextUrl.toString(), {
+                method: 'GET',
+                headers,
+                redirect,
+                maxRedirects: maxRedirects - 1,
+              })
+              resolve(nextRes)
+            } catch (error) {
+              reject(error)
+            }
+            return
+          }
+
+          resolve({
+            status,
+            headers: upstreamRes.headers,
+            body: Buffer.concat(chunks),
+          })
+        })
+      },
+    )
+
+    req.on('error', reject)
+    req.end()
+  })
+}
+
 function mapGhostLocationHeader(value, req) {
   if (!value || typeof value !== 'string') return value
   const normalized = value.trim()
@@ -105,21 +186,18 @@ async function proxyUnsubscribeToGhost(req, res) {
   const targetUrl = `${GHOST_INTERNAL_URL}${targetPath}${qs}`
 
   try {
-    const ghostRes = await fetch(targetUrl, {
+    const ghostRes = await requestGhost(targetUrl, {
       method: req.method,
-      headers: {
-        Accept: req.headers.accept || '*/*',
-        'Accept-Language': req.headers['accept-language'] || 'en',
-        'User-Agent': req.headers['user-agent'] || 'catsky-server',
-      },
+      headers: createGhostProxyHeaders(req),
       redirect: 'manual',
     })
 
     res.status(ghostRes.status)
 
-    for (const [name, value] of ghostRes.headers.entries()) {
+    for (const [name, value] of Object.entries(ghostRes.headers)) {
+      if (value === undefined) continue
       if (name.toLowerCase() === 'location') {
-        res.setHeader(name, mapGhostLocationHeader(value, req))
+        res.setHeader(name, mapGhostLocationHeader(Array.isArray(value) ? value[0] : value, req))
       } else {
         res.setHeader(name, value)
       }
@@ -127,8 +205,7 @@ async function proxyUnsubscribeToGhost(req, res) {
 
     if (req.method === 'HEAD') return res.end()
 
-    const body = Buffer.from(await ghostRes.arrayBuffer())
-    return res.send(body)
+    return res.send(ghostRes.body)
   } catch (error) {
     return res.status(502).json({
       error: 'Ghost unsubscribe upstream error',
@@ -146,21 +223,18 @@ async function proxyGhostInfraToGhost(req, res) {
   const targetUrl = `${GHOST_INTERNAL_URL}${req.path}${qs}`
 
   try {
-    const ghostRes = await fetch(targetUrl, {
+    const ghostRes = await requestGhost(targetUrl, {
       method: req.method,
-      headers: {
-        Accept: req.headers.accept || '*/*',
-        'Accept-Language': req.headers['accept-language'] || 'en',
-        'User-Agent': req.headers['user-agent'] || 'catsky-server',
-      },
+      headers: createGhostProxyHeaders(req),
       redirect: 'manual',
     })
 
     res.status(ghostRes.status)
 
-    for (const [name, value] of ghostRes.headers.entries()) {
+    for (const [name, value] of Object.entries(ghostRes.headers)) {
+      if (value === undefined) continue
       if (name.toLowerCase() === 'location') {
-        res.setHeader(name, mapGhostLocationHeader(value, req))
+        res.setHeader(name, mapGhostLocationHeader(Array.isArray(value) ? value[0] : value, req))
       } else {
         res.setHeader(name, value)
       }
@@ -168,8 +242,7 @@ async function proxyGhostInfraToGhost(req, res) {
 
     if (req.method === 'HEAD') return res.end()
 
-    const body = Buffer.from(await ghostRes.arrayBuffer())
-    return res.send(body)
+    return res.send(ghostRes.body)
   } catch (error) {
     return res.status(502).json({
       error: 'Ghost infrastructure upstream error',
@@ -255,13 +328,9 @@ async function unsubscribeAndConfirm(req, res) {
   const targetUrl = `${GHOST_INTERNAL_URL}/unsubscribe/?${new URLSearchParams({ uuid, key, newsletter }).toString()}`
 
   try {
-    const ghostRes = await fetch(targetUrl, {
+    const ghostRes = await requestGhost(targetUrl, {
       method: 'GET',
-      headers: {
-        Accept: req.headers.accept || '*/*',
-        'Accept-Language': req.headers['accept-language'] || 'en',
-        'User-Agent': req.headers['user-agent'] || 'catsky-server',
-      },
+      headers: createGhostProxyHeaders(req),
       redirect: 'follow',
     })
 

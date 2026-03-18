@@ -6,6 +6,9 @@ let mockGhostServer: ReturnType<typeof createServer>
 let appProcess: ChildProcessWithoutNullStreams
 let appBaseUrl = ''
 let seenPath = ''
+let seenHostHeader = ''
+let seenForwardedHost = ''
+let seenForwardedProto = ''
 let responseMode: 'redirect' | 'ok' | 'fail' = 'redirect'
 
 beforeAll(async () => {
@@ -16,6 +19,9 @@ beforeAll(async () => {
     }
 
     seenPath = req.url
+    seenHostHeader = req.headers.host || ''
+    seenForwardedHost = (req.headers['x-forwarded-host'] || '').toString()
+    seenForwardedProto = (req.headers['x-forwarded-proto'] || '').toString()
 
     if (req.url.startsWith('/unsubscribe/')) {
       if (responseMode === 'fail') {
@@ -86,6 +92,9 @@ describe('unsubscribe proxy in server.js', () => {
     const html = await res.text()
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
+    expect(seenHostHeader).toBe('catsky.club')
+    expect(seenForwardedHost).toBe('catsky.club')
+    expect(seenForwardedProto).toBe('https')
     expect(res.status).toBe(200)
     expect(html).toContain('You are unsubscribed')
     expect(html).toContain('You have been unsubscribed from this newsletter.')
@@ -103,6 +112,7 @@ describe('unsubscribe proxy in server.js', () => {
     const html = await res.text()
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
+    expect(seenHostHeader).toBe('catsky.club')
     expect(res.status).toBe(200)
     expect(html).toContain('You are unsubscribed')
   })
@@ -130,6 +140,9 @@ describe('unsubscribe proxy in server.js', () => {
     })
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc')
+    expect(seenHostHeader).toBe('catsky.club')
+    expect(seenForwardedHost).toBe('catsky.club')
+    expect(seenForwardedProto).toBe('https')
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toBe(`${appBaseUrl}/unsubscribe/success/`)
   })
@@ -147,6 +160,7 @@ describe('unsubscribe proxy in server.js', () => {
     })
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc')
+    expect(seenHostHeader).toBe('catsky.club')
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toBe('https://catsky.club/unsubscribe/success/')
   })
