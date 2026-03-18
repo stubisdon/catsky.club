@@ -325,7 +325,7 @@ export default function Connect() {
 
         <div style={{ marginBottom: '2rem', opacity: 0.9 }}>
           <div style={{ marginTop: '1.5rem' }}>
-            <Link href="/listen" variant="button" style={{ border: '2px solid var(--color-text)' }}>
+            <Link href="/listen">
               continue →
             </Link>
           </div>
