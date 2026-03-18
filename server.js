@@ -8,6 +8,8 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import crypto from 'crypto'
 import fs from 'fs'
+import http from 'http'
+import https from 'https'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -79,19 +81,79 @@ function getRequestOrigin(req) {
 }
 
 function createGhostProxyHeaders(req) {
-  const host = getRequestHost(req) || new URL(GHOST_URL).host
-  const protocol = getRequestProtocol(req)
-  const port = protocol === 'https' ? '443' : '80'
+  const publicUrl = new URL(GHOST_URL)
+  const host = publicUrl.host
+  const protocol = publicUrl.protocol.replace(':', '')
+  const port = publicUrl.port || (protocol === 'https' ? '443' : '80')
 
   return {
     Accept: req.headers.accept || '*/*',
     'Accept-Language': req.headers['accept-language'] || 'en',
     'User-Agent': req.headers['user-agent'] || 'catsky-server',
+    Host: host,
     'X-Forwarded-Host': host,
     'X-Forwarded-Proto': protocol,
     'X-Forwarded-Port': port,
     'X-Forwarded-For': req.headers['x-forwarded-for'] || req.socket.remoteAddress || '',
   }
+}
+
+function requestGhostUpstream(targetUrl, { method, headers, redirect = 'manual', maxRedirects = 5 } = {}) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(targetUrl)
+    const transport = url.protocol === 'https:' ? https : http
+
+    const req = transport.request(url, { method, headers }, (res) => {
+      const chunks = []
+      res.on('data', (chunk) => chunks.push(chunk))
+      res.on('end', async () => {
+        const status = res.statusCode || 502
+        const responseHeaders = new Headers()
+
+        for (const [name, value] of Object.entries(res.headers)) {
+          if (Array.isArray(value)) {
+            for (const item of value) responseHeaders.append(name, item)
+          } else if (value !== undefined) {
+            responseHeaders.set(name, String(value))
+          }
+        }
+
+        const location = responseHeaders.get('location')
+        const nextUrl = location ? new URL(location, targetUrl) : null
+        const shouldFollowRedirect = (
+          redirect === 'follow'
+          && nextUrl
+          && status >= 300
+          && status < 400
+          && maxRedirects > 0
+          && nextUrl.host === url.host
+        )
+
+        if (shouldFollowRedirect && nextUrl) {
+          try {
+            const followed = await requestGhostUpstream(nextUrl.toString(), {
+              method,
+              headers,
+              redirect,
+              maxRedirects: maxRedirects - 1,
+            })
+            return resolve(followed)
+          } catch (error) {
+            return reject(error)
+          }
+        }
+
+        return resolve({
+          status,
+          headers: responseHeaders,
+          body: Buffer.concat(chunks),
+        })
+      })
+    })
+
+    req.on('error', reject)
+    req.end()
+  })
 }
 
 function mapGhostLocationHeader(value, req) {
@@ -135,10 +197,9 @@ async function proxyUnsubscribeToGhost(req, res) {
   const targetUrl = `${GHOST_INTERNAL_URL}${targetPath}${qs}`
 
   try {
-    const ghostRes = await fetch(targetUrl, {
+    const ghostRes = await requestGhostUpstream(targetUrl, {
       method: req.method,
       headers: createGhostProxyHeaders(req),
-      redirect: 'manual',
     })
 
     res.status(ghostRes.status)
@@ -153,8 +214,7 @@ async function proxyUnsubscribeToGhost(req, res) {
 
     if (req.method === 'HEAD') return res.end()
 
-    const body = Buffer.from(await ghostRes.arrayBuffer())
-    return res.send(body)
+    return res.send(ghostRes.body)
   } catch (error) {
     return res.status(502).json({
       error: 'Ghost unsubscribe upstream error',
@@ -172,10 +232,9 @@ async function proxyGhostInfraToGhost(req, res) {
   const targetUrl = `${GHOST_INTERNAL_URL}${req.path}${qs}`
 
   try {
-    const ghostRes = await fetch(targetUrl, {
+    const ghostRes = await requestGhostUpstream(targetUrl, {
       method: req.method,
       headers: createGhostProxyHeaders(req),
-      redirect: 'manual',
     })
 
     res.status(ghostRes.status)
@@ -190,8 +249,7 @@ async function proxyGhostInfraToGhost(req, res) {
 
     if (req.method === 'HEAD') return res.end()
 
-    const body = Buffer.from(await ghostRes.arrayBuffer())
-    return res.send(body)
+    return res.send(ghostRes.body)
   } catch (error) {
     return res.status(502).json({
       error: 'Ghost infrastructure upstream error',
@@ -277,7 +335,7 @@ async function unsubscribeAndConfirm(req, res) {
   const targetUrl = `${GHOST_INTERNAL_URL}/unsubscribe/?${new URLSearchParams({ uuid, key, newsletter }).toString()}`
 
   try {
-    const ghostRes = await fetch(targetUrl, {
+    const ghostRes = await requestGhostUpstream(targetUrl, {
       method: 'GET',
       headers: createGhostProxyHeaders(req),
       redirect: 'follow',

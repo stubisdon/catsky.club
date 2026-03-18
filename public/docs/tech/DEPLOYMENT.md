@@ -338,7 +338,7 @@ ghost restart
 6. **Ghost image asset:** Test a known Ghost image URL under `https://catsky.club/content/images/...`
 7. **Email redirect:** Test a known Ghost redirect URL under `https://catsky.club/r/...`
 
-Note: the Express app includes a defensive pass-through for `/content/images/*` and `/r/*` if nginx route blocks are stale, but production should still treat nginx as the canonical owner of those prefixes. Admin/logo correctness at `/ghost/` and `/ghost/api/` depends on the same forwarded-host contract. The Express fallback must forward `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port` so Ghost serves the asset/redirect directly instead of emitting a canonical redirect back to the same public URL.
+Note: the Express app includes a defensive pass-through for `/content/images/*` and `/r/*` if nginx route blocks are stale, but production should still treat nginx as the canonical owner of those prefixes. Admin/logo correctness at `/ghost/` and `/ghost/api/` depends on the same forwarded-host contract. The Express fallback must forward the canonical public `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port` values derived from `GHOST_URL` so Ghost serves the asset/redirect directly instead of emitting a canonical redirect back to the same public URL or treating newsletter unsubscribe traffic as localhost/internal-only.
 Also keep `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-Port`, and `proxy_redirect` rewrite rules in those nginx blocks so Ghost absolute redirects never leak internal `localhost/127.0.0.1` hosts.
 
 ---
