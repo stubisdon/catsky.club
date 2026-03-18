@@ -65,7 +65,7 @@ Current behavior in `src/Connect.tsx`:
   - detects `?action=signin|signup&success=true`
   - retries member refresh with backoff
   - on successful `action=signup`, routes to `/welcome` before app entry
-  - `/welcome` also retries member-session hydration before redirecting back to `/connect`, preventing immediate bounce-outs when Ghost cookie propagation is slightly delayed.
+  - `/welcome` retries member-session hydration with backoff, keeps name inputs editable, and if session is still missing shows an in-place retry action instead of auto-redirecting away from onboarding.
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)

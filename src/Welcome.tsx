@@ -3,6 +3,8 @@ import { Link, PageTitle } from './components'
 import { getCurrentMember } from './utils'
 import { navigateTo } from './router/navigation'
 
+const RETRY_DELAYS_MS = [0, 400, 1200, 2500, 5000]
+
 interface MemberProfilePayload {
   memberId: string
   email: string
@@ -20,15 +22,15 @@ export default function Welcome() {
   const [lastName, setLastName] = useState('')
   const [member, setMember] = useState<MemberIdentity | null>(null)
   const [memberCheckState, setMemberCheckState] = useState<'loading' | 'ready' | 'missing'>('loading')
+  const [isRetryingSession, setIsRetryingSession] = useState(false)
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState('')
 
   useEffect(() => {
     let cancelled = false
-    const retryDelaysMs = [0, 400, 1200, 2500, 5000]
 
     const load = async () => {
-      for (const delay of retryDelaysMs) {
+      for (const delay of RETRY_DELAYS_MS) {
         if (cancelled) return
 
         if (delay > 0) {
@@ -47,7 +49,6 @@ export default function Welcome() {
       }
 
       setMemberCheckState('missing')
-      navigateTo('/connect')
     }
 
     void load()
@@ -57,6 +58,28 @@ export default function Welcome() {
   }, [])
 
   const canSubmit = useMemo(() => firstName.trim().length > 0 && status !== 'loading', [firstName, status])
+
+  const retrySessionCheck = async () => {
+    setIsRetryingSession(true)
+    setMemberCheckState('loading')
+
+    for (const delay of RETRY_DELAYS_MS) {
+      if (delay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+
+      const currentMember = await getCurrentMember()
+      if (currentMember?.id && currentMember?.email) {
+        setMember({ id: currentMember.id, email: currentMember.email })
+        setMemberCheckState('ready')
+        setIsRetryingSession(false)
+        return
+      }
+    }
+
+    setMemberCheckState('missing')
+    setIsRetryingSession(false)
+  }
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -125,7 +148,7 @@ export default function Welcome() {
             className="connect-auth-input"
             autoComplete="given-name"
             required
-            disabled={status === 'loading' || memberCheckState !== 'ready'}
+            disabled={status === 'loading'}
           />
 
           <label htmlFor="lastName" style={{ opacity: 0.9 }}>last name (optional)</label>
@@ -136,7 +159,7 @@ export default function Welcome() {
             onChange={(e) => setLastName(e.target.value)}
             className="connect-auth-input"
             autoComplete="family-name"
-            disabled={status === 'loading' || memberCheckState !== 'ready'}
+            disabled={status === 'loading'}
           />
 
           <div className="connect-auth-actions" style={{ marginTop: '0.5rem' }}>
@@ -148,6 +171,24 @@ export default function Welcome() {
               {status === 'loading' ? 'saving…' : 'continue →'}
             </button>
           </div>
+
+          {memberCheckState === 'missing' && (
+            <>
+              <p className="connect-auth-error" style={{ marginTop: '0.75rem' }}>
+                we couldn&apos;t confirm your session yet. keep this page open and try again.
+              </p>
+              <div className="connect-auth-actions" style={{ marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="connect-portal-btn"
+                  onClick={() => { void retrySessionCheck() }}
+                  disabled={status === 'loading' || isRetryingSession}
+                >
+                  {isRetryingSession ? 'checking…' : 'retry session check'}
+                </button>
+              </div>
+            </>
+          )}
 
           {status === 'error' && error && <p className="connect-auth-error">{error}</p>}
         </form>

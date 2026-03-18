@@ -24,6 +24,7 @@ This document is updated to reflect the current V1.0 product vision.
 - `/blog` — public posts
 - `/connect` — sign up, sign in, upgrade, unsubscribe/account controls
 - `/welcome` — post-signup first/last name collection for new users
+- `/welcome` should remain visible while session hydration completes; if delayed, it must offer a retry action without ejecting the user back to `/connect`.
 
 ## Required UX Behavior
 
