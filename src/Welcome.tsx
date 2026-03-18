@@ -1,9 +1,10 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, PageTitle } from './components'
 import { getCurrentMember } from './utils'
 import { navigateTo } from './router/navigation'
 
-const RETRY_DELAYS_MS = [0, 400, 1200, 2500, 5000]
+const INITIAL_RETRY_DELAYS_MS = [0, 400, 1200, 2500, 5000]
+const BACKGROUND_RETRY_MS = 3000
 
 interface MemberProfilePayload {
   memberId: string
@@ -26,11 +27,21 @@ export default function Welcome() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState('')
 
+  const syncMember = useCallback((currentMember: { id?: string; email?: string } | null) => {
+    if (currentMember?.id && currentMember?.email) {
+      setMember({ id: currentMember.id, email: currentMember.email })
+      setMemberCheckState('ready')
+      return true
+    }
+
+    return false
+  }, [])
+
   useEffect(() => {
     let cancelled = false
 
     const load = async () => {
-      for (const delay of RETRY_DELAYS_MS) {
+      for (const delay of INITIAL_RETRY_DELAYS_MS) {
         if (cancelled) return
 
         if (delay > 0) {
@@ -41,9 +52,7 @@ export default function Welcome() {
         const currentMember = await getCurrentMember()
         if (cancelled) return
 
-        if (currentMember?.id && currentMember?.email) {
-          setMember({ id: currentMember.id, email: currentMember.email })
-          setMemberCheckState('ready')
+        if (syncMember(currentMember)) {
           return
         }
       }
@@ -55,23 +64,55 @@ export default function Welcome() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [syncMember])
+
+  useEffect(() => {
+    if (memberCheckState !== 'missing') return
+
+    const timeoutId = window.setTimeout(async () => {
+      const currentMember = await getCurrentMember()
+      syncMember(currentMember)
+    }, BACKGROUND_RETRY_MS)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [memberCheckState, syncMember])
+
+  useEffect(() => {
+    if (memberCheckState !== 'missing') return
+
+    const retryIfVisible = () => {
+      if (document.visibilityState === 'hidden') return
+      void getCurrentMember().then((currentMember) => {
+        syncMember(currentMember)
+      })
+    }
+
+    window.addEventListener('focus', retryIfVisible)
+    window.addEventListener('pageshow', retryIfVisible)
+    document.addEventListener('visibilitychange', retryIfVisible)
+
+    return () => {
+      window.removeEventListener('focus', retryIfVisible)
+      window.removeEventListener('pageshow', retryIfVisible)
+      document.removeEventListener('visibilitychange', retryIfVisible)
+    }
+  }, [memberCheckState, syncMember])
 
   const canSubmit = useMemo(() => firstName.trim().length > 0 && status !== 'loading', [firstName, status])
 
-  const retrySessionCheck = async () => {
+  const retrySessionCheck = useCallback(async () => {
     setIsRetryingSession(true)
     setMemberCheckState('loading')
 
-    for (const delay of RETRY_DELAYS_MS) {
+    for (const delay of INITIAL_RETRY_DELAYS_MS) {
       if (delay > 0) {
         await new Promise((resolve) => setTimeout(resolve, delay))
       }
 
       const currentMember = await getCurrentMember()
-      if (currentMember?.id && currentMember?.email) {
-        setMember({ id: currentMember.id, email: currentMember.email })
-        setMemberCheckState('ready')
+      if (syncMember(currentMember)) {
         setIsRetryingSession(false)
         return
       }
@@ -79,7 +120,7 @@ export default function Welcome() {
 
     setMemberCheckState('missing')
     setIsRetryingSession(false)
-  }
+  }, [syncMember])
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -174,8 +215,8 @@ export default function Welcome() {
 
           {memberCheckState === 'missing' && (
             <>
-              <p className="connect-auth-error" style={{ marginTop: '0.75rem' }}>
-                we couldn&apos;t confirm your session yet. keep this page open and try again.
+              <p className="connect-auth-message" style={{ marginTop: '0.75rem' }}>
+                still connecting your account. you can keep filling in your name and we&apos;ll keep checking in the background.
               </p>
               <div className="connect-auth-actions" style={{ marginTop: '0.5rem' }}>
                 <button
@@ -184,7 +225,7 @@ export default function Welcome() {
                   onClick={() => { void retrySessionCheck() }}
                   disabled={status === 'loading' || isRetryingSession}
                 >
-                  {isRetryingSession ? 'checking…' : 'retry session check'}
+                  {isRetryingSession ? 'checking…' : 'refresh session'}
                 </button>
               </div>
             </>

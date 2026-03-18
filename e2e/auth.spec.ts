@@ -780,6 +780,36 @@ test.describe('Connect Page - Responsive Design', () => {
 
 
 test.describe('Welcome onboarding flow', () => {
+  test('welcome keeps the form visible, auto-recovers the session, and keeps the continue CTA styled', async ({ page }) => {
+    let memberChecks = 0
+
+    await page.route('**/members/api/member**', (route) => {
+      memberChecks += 1
+      const memberBody = memberChecks <= 5
+        ? { member: null }
+        : { member: { id: 'member-2', email: 'later@user.com', subscriptions: [] } }
+
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(memberBody),
+      })
+    })
+
+    await page.goto('/welcome')
+
+    await page.getByLabel(/first name/i).fill('Ada')
+    await page.getByLabel(/last name/i).fill('Lovelace')
+
+    const continueButton = page.getByRole('button', { name: /continue/i })
+    await expect(continueButton).toBeVisible()
+    await expect(continueButton).toHaveCSS('border-top-width', '2px')
+    await expect(continueButton).toHaveCSS('text-transform', 'lowercase')
+
+    await expect(continueButton).toBeDisabled()
+    await expect(continueButton).toBeEnabled({ timeout: 15000 })
+  })
+
   test('signup callback routes to welcome and profile submission continues to listen', async ({ page }) => {
     let memberChecks = 0
 

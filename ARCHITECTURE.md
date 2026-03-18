@@ -65,7 +65,7 @@ Current behavior in `src/Connect.tsx`:
   - detects `?action=signin|signup&success=true`
   - retries member refresh with backoff
   - on successful `action=signup`, routes to `/welcome` before app entry
-  - `/welcome` retries member-session hydration with backoff, keeps name inputs editable, and if session is still missing shows an in-place retry action instead of auto-redirecting away from onboarding.
+  - `/welcome` retries member-session hydration with backoff, keeps name inputs editable, and if session is still missing it keeps the form visible, continues silent background rechecks, and offers an in-place session refresh action instead of showing an error-state eject path.
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)

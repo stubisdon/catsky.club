@@ -42,21 +42,22 @@ describe('Welcome onboarding session checks', () => {
     expect(screen.getByLabelText(/first name/i)).not.toBeDisabled()
   })
 
-  it('shows retry session action instead of auto-redirecting when retries fail', async () => {
+  it('shows a non-error helper message and manual refresh action when initial retries fail', async () => {
     getCurrentMemberMock.mockResolvedValue(null)
 
     render(<Welcome />)
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(10000)
+      await vi.advanceTimersByTimeAsync(9200)
     })
 
     expect(navigateToMock).not.toHaveBeenCalled()
-    expect(screen.getByText(/couldn't confirm your session yet/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /retry session check/i })).toBeVisible()
+    expect(screen.getByText(/still connecting your account/i)).toBeInTheDocument()
+    expect(screen.queryByText(/couldn't confirm your session yet/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /refresh session/i })).toBeVisible()
   })
 
-  it('recovers after retry when session appears later', async () => {
+  it('recovers automatically after a background session recheck succeeds', async () => {
     getCurrentMemberMock
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
@@ -68,14 +69,42 @@ describe('Welcome onboarding session checks', () => {
     render(<Welcome />)
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(10000)
+      await vi.advanceTimersByTimeAsync(9200)
     })
 
-    const retryButton = screen.getByRole('button', { name: /retry session check/i })
+    expect(screen.getByText(/still connecting your account/i)).toBeInTheDocument()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000)
+    })
+
+    expect(getCurrentMemberMock).toHaveBeenCalledTimes(6)
+    expect(screen.queryByText(/still connecting your account/i)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/first name/i)).not.toBeDisabled()
+    expect(navigateToMock).not.toHaveBeenCalled()
+  })
+
+  it('manual refresh recovers when the session appears later', async () => {
+    getCurrentMemberMock
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'member-3', email: 'retry@user.com' })
+
+    render(<Welcome />)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(9200)
+    })
+
+    const retryButton = screen.getByRole('button', { name: /refresh session/i })
     fireEvent.click(retryButton)
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(50)
+      await vi.advanceTimersByTimeAsync(500)
     })
 
     expect(screen.getByLabelText(/first name/i)).not.toBeDisabled()
