@@ -131,6 +131,8 @@ Your frontend should now be running on `http://localhost:3001` (internal).
 We need to configure nginx to:
 - Serve your React frontend at the root (`/`)
 - Proxy API requests to the Express server
+- Keep Ghost-owned routes (`/ghost/`, `/ghost/api/`, `/members/`, `/webhooks/`, `/unsubscribe`, `/unsubscribe/`, `/content/images/`, `/r/`) on Ghost
+- Preserve Ghost’s public request context on admin/image/redirect routes so Ghost never generates localhost/internal branding or redirect URLs
 - Handle static files from the `dist` directory
 
 ### Create Nginx Configuration
@@ -194,6 +196,11 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_redirect http://127.0.0.1:2368/ https://$host/;
+        proxy_redirect http://localhost:2368/ https://$host/;
+        proxy_redirect http://localhost/ https://$host/;
     }
     
     # Ghost Content API (for frontend)
@@ -204,6 +211,11 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_redirect http://127.0.0.1:2368/ https://$host/;
+        proxy_redirect http://localhost:2368/ https://$host/;
+        proxy_redirect http://localhost/ https://$host/;
     }
     
     # Ghost content images (used by Ghost Admin + email assets)
@@ -215,6 +227,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
         proxy_redirect http://127.0.0.1:2368/ https://$host/;
         proxy_redirect http://localhost:2368/ https://$host/;
         proxy_redirect http://localhost/ https://$host/;
@@ -229,6 +242,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
         proxy_redirect http://127.0.0.1:2368/ https://$host/;
         proxy_redirect http://localhost:2368/ https://$host/;
         proxy_redirect http://localhost/ https://$host/;
@@ -324,8 +338,8 @@ ghost restart
 6. **Ghost image asset:** Test a known Ghost image URL under `https://catsky.club/content/images/...`
 7. **Email redirect:** Test a known Ghost redirect URL under `https://catsky.club/r/...`
 
-Note: the Express app includes a defensive pass-through for `/content/images/*` and `/r/*` if nginx route blocks are stale, but production should still treat nginx as the canonical owner of those prefixes. That fallback must forward `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port` so Ghost serves the asset/redirect directly instead of emitting a canonical redirect back to the same public URL.
-Also keep `X-Forwarded-Host` + `proxy_redirect` rewrite rules in those nginx blocks so Ghost absolute redirects never leak internal `localhost/127.0.0.1` hosts.
+Note: the Express app includes a defensive pass-through for `/content/images/*` and `/r/*` if nginx route blocks are stale, but production should still treat nginx as the canonical owner of those prefixes. Admin/logo correctness at `/ghost/` and `/ghost/api/` depends on the same forwarded-host contract. The Express fallback must forward `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port` so Ghost serves the asset/redirect directly instead of emitting a canonical redirect back to the same public URL.
+Also keep `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-Port`, and `proxy_redirect` rewrite rules in those nginx blocks so Ghost absolute redirects never leak internal `localhost/127.0.0.1` hosts.
 
 ---
 

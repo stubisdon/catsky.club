@@ -1,4 +1,4 @@
-# Catsky Club Architecture (March 11, 2026 refresh)
+# Catsky Club Architecture (March 18, 2026 refresh)
 
 This document reflects the **current** codebase architecture for `catsky.club` and replaces stale assumptions.
 
@@ -131,9 +131,20 @@ The Node server is intentionally small:
   - unknown extensionless routes return `dist/index.html`
   - unknown file paths with extension return 404.
 
-Ghost routes like `/members/api/*`, `/ghost/*`, `/content/images/*`, and `/r/*` are not implemented in Express; they are handled by Ghost/nginx (prod) or Vite proxy (dev).
+Ghost routes like `/members/api/*`, `/ghost/*`, `/content/images/*`, and `/r/*` are not normal SPA routes. In production, nginx is the canonical owner for those Ghost prefixes; in local dev, Vite proxies Ghost traffic.
 
-Express now intercepts tokenized `GET /unsubscribe?uuid=...&key=...&newsletter=...` and `GET /unsubscribe/?uuid=...&key=...&newsletter=...` links before SPA fallback, calls Ghost unsubscribe on `GHOST_INTERNAL_URL` (default `http://127.0.0.1:2368`), and returns a Catsky-hosted confirmation page so users receive explicit unsubscribe feedback. Non-tokenized `/unsubscribe` routes still proxy through to Ghost, and upstream redirects from internal/localhost hosts are rewritten to the public request origin (or `GHOST_URL` fallback). Express also includes defensive pass-through handlers for `/content/images/*` and `/r/*` so Ghost favicon/email paths still resolve if nginx route blocks are accidentally stale; those fallback fetches now forward `X-Forwarded-Host` / `X-Forwarded-Proto` / `X-Forwarded-Port` so Ghost does not bounce them back to the same public URL in a canonical-host redirect loop. nginx remains the primary owner for these prefixes in production. On nginx, `/content/images/` and `/r/` blocks also preserve `X-Forwarded-Host` and explicit `proxy_redirect` rules to avoid Ghost issuing absolute localhost/internal redirects in production.
+#### Ghost-owned infrastructure route contract
+
+The CAT-34 favicon/email work established this routing contract and it should now be treated as architecture, not as a one-off fix:
+
+- `/ghost/` and `/ghost/api/` must preserve `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port`, and must rewrite localhost/internal absolute redirects with `proxy_redirect`. Ghost Admin uses that public request context when it builds branding/image URLs (including the logo/icon shown inside `/ghost`).
+- `/content/images/` serves Ghost-hosted assets used by Ghost Admin branding and Ghost emails. Those nginx blocks also need the same forwarded-host context + redirect rewriting so Ghost does not emit broken localhost/self-loop redirects.
+- `/r/` serves Ghost email tracking redirects and must stay Ghost-owned for newsletter links to resolve correctly on the public domain.
+- `/unsubscribe` remains a Ghost-owned flow, but Catsky intentionally intercepts tokenized newsletter unsubscribe links in Express so users land on a first-party confirmation page instead of falling through to the SPA shell.
+
+Express now intercepts tokenized `GET /unsubscribe?uuid=...&key=...&newsletter=...` and `GET /unsubscribe/?uuid=...&key=...&newsletter=...` links before SPA fallback, calls Ghost unsubscribe on `GHOST_INTERNAL_URL` (default `http://127.0.0.1:2368`), and returns a Catsky-hosted confirmation page so users receive explicit unsubscribe feedback. Non-tokenized `/unsubscribe` routes still proxy through to Ghost, and upstream redirects from internal/localhost hosts are rewritten to the public request origin (or `GHOST_URL` fallback). Express also includes defensive pass-through handlers for `/content/images/*` and `/r/*` so Ghost favicon/email paths still resolve if nginx route blocks are accidentally stale; those fallback fetches forward `X-Forwarded-Host` / `X-Forwarded-Proto` / `X-Forwarded-Port` so Ghost does not bounce them back to the same public URL in a canonical-host redirect loop. nginx remains the primary owner for these prefixes in production.
+
+The practical result is that Ghost Admin branding, Ghost email logos/assets, email click-tracking redirects, and newsletter unsubscribe flows all depend on the same public-host-aware proxy contract. If one of those surfaces breaks, inspect nginx/Express forwarding behavior before adding compatibility assets or changing frontend routing.
 
 ## 6) Local development topology
 

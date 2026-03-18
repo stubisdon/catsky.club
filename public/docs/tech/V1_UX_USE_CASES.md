@@ -63,6 +63,16 @@ This document defines the **authoritative V1.0 user experience scope**. If any o
 - `/connect` → auth, free signup, tier upgrade/downgrade, unsubscribe
 - `/account` (or section under `/connect`) → membership + newsletter preferences
 
+## Operational UX invariants for Ghost-managed flows
+These are not new product features, but they are required for the V1 experience to feel trustworthy and complete:
+
+- Ghost Admin at `/ghost/` must render Catsky branding assets using the public `catsky.club` host, not localhost/internal Ghost URLs.
+- Ghost email assets under `/content/images/...` must resolve on the public site because Ghost newsletters and admin previews depend on them.
+- Ghost email tracking links under `/r/...` must resolve on the public site and must never bounce users through localhost/127.0.0.1 URLs.
+- Newsletter unsubscribe links must stay public-hosted and end in a clear Catsky confirmation state.
+
+If any of those paths regress, treat the bug as a release-blocking Ghost infrastructure regression rather than as a cosmetic frontend issue.
+
 ## Guardrails for V1.0
 - Do not block public discovery content (released music, trailer, blog).
 - Do not require registration before users can sample public content.
