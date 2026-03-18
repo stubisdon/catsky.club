@@ -114,7 +114,8 @@ sudo nano /etc/nginx/sites-available/catsky.club
 **Key points:**
 - Frontend app runs on port **3001** (not 3000)
 - Root location (`/`) should proxy to `http://127.0.0.1:3001`
-- Keep all Ghost routes (`/ghost/`, `/members/`, `/webhooks/`, `/content/images/`, `/r/`) as they are
+- Keep all Ghost routes (`/ghost/`, `/ghost/api/`, `/members/`, `/webhooks/`, `/content/images/`, `/r/`, `/unsubscribe`, `/unsubscribe/`) as they are
+- `/ghost/`, `/ghost/api/`, `/content/images/`, and `/r/` must preserve Ghost’s public request context with `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-Port`, plus localhost/internal `proxy_redirect` rewrites
 - Add `/api/` location for your frontend API endpoints
 
 **Test and reload:**
@@ -191,8 +192,8 @@ sudo lsof -i :3001
 ```
 
 ### Ghost routes not working
-- Make sure your nginx config still has all the Ghost location blocks, including `/content/images/` (admin/email assets) and `/r/` (email tracking redirects)
-- In `/content/images/` and `/r/` nginx blocks, keep `X-Forwarded-Host` + `proxy_redirect` rewrites so any Ghost absolute redirects pointing at localhost/internal hosts are rewritten to `https://catsky.club/...`
+- Make sure your nginx config still has all the Ghost location blocks, especially `/ghost/`, `/ghost/api/`, `/content/images/` (admin/email assets), and `/r/` (email tracking redirects)
+- In `/ghost/`, `/ghost/api/`, `/content/images/`, and `/r/` nginx blocks, keep `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-Port`, and `proxy_redirect` rewrites so any Ghost absolute redirects pointing at localhost/internal hosts are rewritten to `https://catsky.club/...`
 - Express includes a defensive fallback proxy for `/content/images/*` and `/r/*`, but this is only a safety net; nginx remains the primary owner for Ghost infrastructure routes
 - That Express fallback must forward `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port` to Ghost, otherwise Ghost can answer with a canonical redirect back to the same public asset URL and create a broken loop
 - Check that Ghost is running: `ghost status`

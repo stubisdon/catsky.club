@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 
@@ -115,3 +116,39 @@ test('rewrites Ghost redirect locations for /r routes after satisfying Ghost can
   expect(response.status()).toBe(302)
   expect(response.headers()['location']).toBe(`https://${publicHost}/welcome`)
 })
+
+
+const nginxGhostRouteContracts = [
+  {
+    file: 'catsky.club-ssl.conf',
+    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/'],
+  },
+  {
+    file: 'nginx.conf.example',
+    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/'],
+  },
+  {
+    file: 'nginx-ssl-update.txt',
+    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/'],
+  },
+]
+
+for (const contract of nginxGhostRouteContracts) {
+  test(`documents Ghost proxy contract in ${contract.file}`, async () => {
+    const text = readFileSync(contract.file, 'utf8')
+
+    for (const route of contract.routes) {
+      const blockStart = text.indexOf(`location ${route}`)
+      expect(blockStart, `${contract.file} should define ${route}`).toBeGreaterThanOrEqual(0)
+
+      const blockEnd = text.indexOf('}', blockStart)
+      const block = text.slice(blockStart, blockEnd)
+
+      expect(block).toContain('proxy_set_header X-Forwarded-Host $host;')
+      expect(block).toContain('proxy_set_header X-Forwarded-Port $server_port;')
+      expect(block).toContain('proxy_redirect http://127.0.0.1:2368/ https://$host/;')
+      expect(block).toContain('proxy_redirect http://localhost:2368/ https://$host/;')
+      expect(block).toContain('proxy_redirect http://localhost/ https://$host/;')
+    }
+  })
+}

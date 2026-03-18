@@ -45,9 +45,14 @@ Be extra careful in:
 
 - Treat these URL prefixes as **Ghost-owned infrastructure routes**: `/ghost/`, `/ghost/api/`, `/members/`, `/webhooks/`, `/unsubscribe/`, `/content/images/`, `/r/`.
 - Never route those prefixes to the frontend app (`:3001`) and never remove them from nginx templates during frontend work.
+- The current production-safe architecture is:
+  - nginx is the **primary owner** for `/ghost/`, `/ghost/api/`, `/content/images/`, `/r/`, `/members/`, `/webhooks/`, and `/unsubscribe/`;
+  - `server.js` only provides a **defensive fallback** for `/unsubscribe`, `/content/images/*`, and `/r/*` before SPA fallback;
+  - Ghost Admin branding depends on `/ghost/` and `/ghost/api/` preserving `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port`, plus `proxy_redirect` rewrites for localhost/internal Ghost URLs.
 - Do not create “documentation” files under runtime asset paths (for example under `public/content/images/**`) as a way to preserve operational behavior.
 - Document protection/routing rationale only in canonical docs: `AGENTS.md`, `ARCHITECTURE.md`, `DEPLOYMENT.md`, and relevant `public/docs/tech/*` docs.
 - If a Ghost Admin branding image URL is broken, fix by restoring/proxying the actual asset path and validating the URL directly, not by changing unrelated frontend routing.
+- When touching Ghost-owned route handling, update the regression contract in `e2e/ghost-infra-fallback.spec.ts` and run it so the nginx + Express safety-net behavior stays documented in code.
 
 For these areas: prefer the smallest valid patch and validate behavior directly.
 
