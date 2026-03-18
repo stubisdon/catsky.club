@@ -325,7 +325,7 @@ ghost restart
 7. **Email redirect:** Test a known Ghost redirect URL under `https://catsky.club/r/...`
 
 Note: the Express app includes a defensive pass-through for `/content/images/*` and `/r/*` if nginx route blocks are stale, but production should still treat nginx as the canonical owner of those prefixes.
-Also keep `X-Forwarded-Host` + `proxy_redirect` rewrite rules in those nginx blocks so Ghost absolute redirects never leak internal `localhost/127.0.0.1` hosts.
+Also keep `X-Forwarded-Host` + `proxy_redirect` rewrite rules in those nginx blocks so Ghost absolute redirects never leak internal `localhost/127.0.0.1` hosts. Express mirrors that protection on its direct Ghost calls by sending canonical `Host`, `X-Forwarded-Host`, and `X-Forwarded-Proto` headers derived from `GHOST_URL` whenever it handles tokenized unsubscribe links or Ghost infrastructure passthrough routes.
 
 ---
 

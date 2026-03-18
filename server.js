@@ -8,6 +8,8 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import crypto from 'crypto'
 import fs from 'fs'
+import http from 'http'
+import https from 'https'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -95,6 +97,76 @@ function mapGhostLocationHeader(value, req) {
   return value
 }
 
+function getCanonicalGhostHeaders(req) {
+  const publicGhostUrl = new URL(GHOST_URL)
+
+  return {
+    Accept: req.headers.accept || '*/*',
+    'Accept-Language': req.headers['accept-language'] || 'en',
+    'User-Agent': req.headers['user-agent'] || 'catsky-server',
+    Host: publicGhostUrl.host,
+    'X-Forwarded-Host': publicGhostUrl.host,
+    'X-Forwarded-Proto': publicGhostUrl.protocol.replace(/:$/, ''),
+  }
+}
+
+async function performGhostRequest(targetUrl, { method = 'GET', headers = {}, followRedirects = false, redirectsRemaining = 5 } = {}) {
+  const requestUrl = new URL(targetUrl)
+  const transport = requestUrl.protocol === 'https:' ? https : http
+
+  return await new Promise((resolve, reject) => {
+    const upstreamReq = transport.request(
+      requestUrl,
+      {
+        method,
+        headers,
+      },
+      (upstreamRes) => {
+        const chunks = []
+
+        upstreamRes.on('data', (chunk) => {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+        })
+
+        upstreamRes.on('end', async () => {
+          const location = upstreamRes.headers.location
+          const isRedirect =
+            followRedirects &&
+            redirectsRemaining > 0 &&
+            typeof location === 'string' &&
+            upstreamRes.statusCode &&
+            upstreamRes.statusCode >= 300 &&
+            upstreamRes.statusCode < 400
+
+          if (isRedirect) {
+            try {
+              const redirectedUrl = new URL(location, requestUrl).toString()
+              const redirectedResponse = await performGhostRequest(redirectedUrl, {
+                method,
+                headers,
+                followRedirects,
+                redirectsRemaining: redirectsRemaining - 1,
+              })
+              return resolve(redirectedResponse)
+            } catch (error) {
+              return reject(error)
+            }
+          }
+
+          return resolve({
+            status: upstreamRes.statusCode || 502,
+            headers: upstreamRes.headers,
+            body: Buffer.concat(chunks),
+          })
+        })
+      },
+    )
+
+    upstreamReq.on('error', reject)
+    upstreamReq.end()
+  })
+}
+
 async function proxyUnsubscribeToGhost(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     return res.status(405).json({ error: 'Method not allowed' })
@@ -105,19 +177,15 @@ async function proxyUnsubscribeToGhost(req, res) {
   const targetUrl = `${GHOST_INTERNAL_URL}${targetPath}${qs}`
 
   try {
-    const ghostRes = await fetch(targetUrl, {
+    const ghostRes = await performGhostRequest(targetUrl, {
       method: req.method,
-      headers: {
-        Accept: req.headers.accept || '*/*',
-        'Accept-Language': req.headers['accept-language'] || 'en',
-        'User-Agent': req.headers['user-agent'] || 'catsky-server',
-      },
-      redirect: 'manual',
+      headers: getCanonicalGhostHeaders(req),
     })
 
     res.status(ghostRes.status)
 
-    for (const [name, value] of ghostRes.headers.entries()) {
+    for (const [name, value] of Object.entries(ghostRes.headers)) {
+      if (value === undefined) continue
       if (name.toLowerCase() === 'location') {
         res.setHeader(name, mapGhostLocationHeader(value, req))
       } else {
@@ -127,8 +195,7 @@ async function proxyUnsubscribeToGhost(req, res) {
 
     if (req.method === 'HEAD') return res.end()
 
-    const body = Buffer.from(await ghostRes.arrayBuffer())
-    return res.send(body)
+    return res.send(ghostRes.body)
   } catch (error) {
     return res.status(502).json({
       error: 'Ghost unsubscribe upstream error',
@@ -146,19 +213,15 @@ async function proxyGhostInfraToGhost(req, res) {
   const targetUrl = `${GHOST_INTERNAL_URL}${req.path}${qs}`
 
   try {
-    const ghostRes = await fetch(targetUrl, {
+    const ghostRes = await performGhostRequest(targetUrl, {
       method: req.method,
-      headers: {
-        Accept: req.headers.accept || '*/*',
-        'Accept-Language': req.headers['accept-language'] || 'en',
-        'User-Agent': req.headers['user-agent'] || 'catsky-server',
-      },
-      redirect: 'manual',
+      headers: getCanonicalGhostHeaders(req),
     })
 
     res.status(ghostRes.status)
 
-    for (const [name, value] of ghostRes.headers.entries()) {
+    for (const [name, value] of Object.entries(ghostRes.headers)) {
+      if (value === undefined) continue
       if (name.toLowerCase() === 'location') {
         res.setHeader(name, mapGhostLocationHeader(value, req))
       } else {
@@ -168,8 +231,7 @@ async function proxyGhostInfraToGhost(req, res) {
 
     if (req.method === 'HEAD') return res.end()
 
-    const body = Buffer.from(await ghostRes.arrayBuffer())
-    return res.send(body)
+    return res.send(ghostRes.body)
   } catch (error) {
     return res.status(502).json({
       error: 'Ghost infrastructure upstream error',
@@ -255,14 +317,10 @@ async function unsubscribeAndConfirm(req, res) {
   const targetUrl = `${GHOST_INTERNAL_URL}/unsubscribe/?${new URLSearchParams({ uuid, key, newsletter }).toString()}`
 
   try {
-    const ghostRes = await fetch(targetUrl, {
+    const ghostRes = await performGhostRequest(targetUrl, {
       method: 'GET',
-      headers: {
-        Accept: req.headers.accept || '*/*',
-        'Accept-Language': req.headers['accept-language'] || 'en',
-        'User-Agent': req.headers['user-agent'] || 'catsky-server',
-      },
-      redirect: 'follow',
+      headers: getCanonicalGhostHeaders(req),
+      followRedirects: true,
     })
 
     return renderUnsubscribeConfirmationPage(res, { success: ghostRes.status < 500 })

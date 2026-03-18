@@ -5,6 +5,9 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 let mockGhostServer: ReturnType<typeof createServer>
 let appProcess: ChildProcessWithoutNullStreams
 let appBaseUrl = ''
+let seenHost = ''
+let seenForwardedHost = ''
+let seenForwardedProto = ''
 
 test.beforeAll(async () => {
   mockGhostServer = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -12,6 +15,14 @@ test.beforeAll(async () => {
       res.statusCode = 400
       return res.end('Missing URL')
     }
+
+    seenHost = req.headers.host || ''
+    seenForwardedHost = Array.isArray(req.headers['x-forwarded-host'])
+      ? req.headers['x-forwarded-host'][0] || ''
+      : req.headers['x-forwarded-host'] || ''
+    seenForwardedProto = Array.isArray(req.headers['x-forwarded-proto'])
+      ? req.headers['x-forwarded-proto'][0] || ''
+      : req.headers['x-forwarded-proto'] || ''
 
     if (req.url.startsWith('/unsubscribe/')) {
       res.statusCode = 200
@@ -65,4 +76,7 @@ test('shows a confirmation page for tokenized unsubscribe links', async ({ page 
   await expect(page.getByRole('heading', { name: 'You are unsubscribed' })).toBeVisible()
   await expect(page.getByText('You have been unsubscribed from this newsletter.')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Back to catsky.club' })).toBeVisible()
+  expect(seenHost).toBe('catsky.club')
+  expect(seenForwardedHost).toBe('catsky.club')
+  expect(seenForwardedProto).toBe('https')
 })

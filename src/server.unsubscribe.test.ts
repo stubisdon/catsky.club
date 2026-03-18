@@ -6,6 +6,9 @@ let mockGhostServer: ReturnType<typeof createServer>
 let appProcess: ChildProcessWithoutNullStreams
 let appBaseUrl = ''
 let seenPath = ''
+let seenHost = ''
+let seenForwardedHost = ''
+let seenForwardedProto = ''
 let responseMode: 'redirect' | 'ok' | 'fail' = 'redirect'
 
 beforeAll(async () => {
@@ -16,6 +19,13 @@ beforeAll(async () => {
     }
 
     seenPath = req.url
+    seenHost = req.headers.host || ''
+    seenForwardedHost = Array.isArray(req.headers['x-forwarded-host'])
+      ? req.headers['x-forwarded-host'][0] || ''
+      : req.headers['x-forwarded-host'] || ''
+    seenForwardedProto = Array.isArray(req.headers['x-forwarded-proto'])
+      ? req.headers['x-forwarded-proto'][0] || ''
+      : req.headers['x-forwarded-proto'] || ''
 
     if (req.url.startsWith('/unsubscribe/')) {
       if (responseMode === 'fail') {
@@ -86,6 +96,9 @@ describe('unsubscribe proxy in server.js', () => {
     const html = await res.text()
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
+    expect(seenHost).toBe('catsky.club')
+    expect(seenForwardedHost).toBe('catsky.club')
+    expect(seenForwardedProto).toBe('https')
     expect(res.status).toBe(200)
     expect(html).toContain('You are unsubscribed')
     expect(html).toContain('You have been unsubscribed from this newsletter.')
@@ -130,6 +143,9 @@ describe('unsubscribe proxy in server.js', () => {
     })
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc')
+    expect(seenHost).toBe('catsky.club')
+    expect(seenForwardedHost).toBe('catsky.club')
+    expect(seenForwardedProto).toBe('https')
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toBe(`${appBaseUrl}/unsubscribe/success/`)
   })
