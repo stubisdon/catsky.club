@@ -181,7 +181,7 @@ Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redir
 
 - unit/integration: Vitest (`npm run test`).
 - E2E: Playwright suite in `e2e/` with smoke-vs-matrix commands:
-  - `npm run test:e2e:setup` installs Playwright browser binaries (`chromium firefox webkit`) for local runs.
+  - `npm run test:e2e:setup` installs Playwright browser binaries plus required Linux host libraries (`--with-deps`) for local and CI-like runs.
   - `npm run test:e2e:landing` is the default smoke command (Chromium-only landing suite excluding `Performance`-tagged checks).
   - `npm run test:e2e` aliases the landing smoke flow for reliable baseline execution.
   - `npm run test:e2e:landing:matrix` and `npm run test:e2e:matrix` run full browser-matrix coverage when the environment is stable.
