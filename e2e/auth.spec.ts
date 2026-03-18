@@ -782,7 +782,7 @@ test.describe('Connect Page - Responsive Design', () => {
 
 
 test.describe('Welcome onboarding flow', () => {
-  test('welcome keeps the form visible, auto-recovers the session, and keeps the continue CTA styled', async ({ page }) => {
+  test('welcome keeps the form visible, keeps the continue CTA immediately clickable, and auto-recovers the session', async ({ page }) => {
     let memberChecks = 0
 
     await page.route('**/members/api/member**', (route) => {
@@ -808,8 +808,9 @@ test.describe('Welcome onboarding flow', () => {
     await expect(continueButton).toHaveCSS('border-top-width', '2px')
     await expect(continueButton).toHaveCSS('text-transform', 'lowercase')
 
-    await expect(continueButton).toBeDisabled()
-    await expect(continueButton).toBeEnabled({ timeout: 15000 })
+    await expect(continueButton).toBeEnabled()
+    await page.waitForTimeout(9500)
+    await expect(continueButton).toBeEnabled()
   })
 
   test('signup callback routes to welcome and profile submission continues to listen', async ({ page }) => {
