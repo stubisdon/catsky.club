@@ -5,7 +5,6 @@ import { navigateTo } from './router/navigation'
 
 const INITIAL_RETRY_DELAYS_MS = [0, 400, 1200, 2500, 5000]
 const BACKGROUND_RETRY_MS = 3000
-const SUBMIT_RETRY_DELAYS_MS = [0, 400, 1200]
 
 interface MemberProfilePayload {
   memberId: string
@@ -103,26 +102,6 @@ export default function Welcome() {
 
   const canSubmit = useMemo(() => firstName.trim().length > 0 && status !== 'loading', [firstName, status])
 
-  const resolveMemberForSubmit = useCallback(async () => {
-    if (member) return member
-
-    for (const delay of SUBMIT_RETRY_DELAYS_MS) {
-      if (delay > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delay))
-      }
-
-      const currentMember = await getCurrentMember()
-      if (currentMember?.id && currentMember?.email && syncMember(currentMember)) {
-        return {
-          id: currentMember.id,
-          email: currentMember.email,
-        }
-      }
-    }
-
-    return null
-  }, [member, syncMember])
-
   const retrySessionCheck = useCallback(async () => {
     setIsRetryingSession(true)
     setMemberCheckState('loading')
@@ -145,6 +124,7 @@ export default function Welcome() {
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!member) return
 
     const safeFirstName = firstName.trim()
     const safeLastName = lastName.trim()
@@ -158,16 +138,9 @@ export default function Welcome() {
     setStatus('loading')
     setError('')
 
-    const resolvedMember = await resolveMemberForSubmit()
-    if (!resolvedMember) {
-      setError('We are still confirming your session. Press refresh session or try continue again in a moment.')
-      setStatus('error')
-      return
-    }
-
     const payload: MemberProfilePayload = {
-      memberId: resolvedMember.id,
-      email: resolvedMember.email,
+      memberId: member.id,
+      email: member.email,
       firstName: safeFirstName,
       lastName: safeLastName,
     }
@@ -234,7 +207,7 @@ export default function Welcome() {
             <button
               type="submit"
               className="connect-portal-btn"
-              disabled={!canSubmit}
+              disabled={!canSubmit || memberCheckState !== 'ready'}
             >
               {status === 'loading' ? 'saving…' : 'continue →'}
             </button>
