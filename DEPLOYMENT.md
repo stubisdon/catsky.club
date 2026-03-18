@@ -192,6 +192,7 @@ sudo lsof -i :3001
 
 ### Ghost routes not working
 - Make sure your nginx config still has all the Ghost location blocks, including `/content/images/` (admin/email assets) and `/r/` (email tracking redirects)
+- In `/content/images/` and `/r/` nginx blocks, keep `X-Forwarded-Host` + `proxy_redirect` rewrites so any Ghost absolute redirects pointing at localhost/internal hosts are rewritten to `https://catsky.club/...`
 - Express includes a defensive fallback proxy for `/content/images/*` and `/r/*`, but this is only a safety net; nginx remains the primary owner for Ghost infrastructure routes
 - Check that Ghost is running: `ghost status`
 

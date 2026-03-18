@@ -214,6 +214,10 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_redirect http://127.0.0.1:2368/ https://$host/;
+        proxy_redirect http://localhost:2368/ https://$host/;
+        proxy_redirect http://localhost/ https://$host/;
     }
 
     # Ghost email click/open tracking redirects
@@ -224,6 +228,10 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_redirect http://127.0.0.1:2368/ https://$host/;
+        proxy_redirect http://localhost:2368/ https://$host/;
+        proxy_redirect http://localhost/ https://$host/;
     }
 
     # Ghost Members (subscriptions, sign-in, etc.)
@@ -308,6 +316,7 @@ ghost restart
 7. **Email redirect:** Test a known Ghost redirect URL under `https://catsky.club/r/...`
 
 Note: the Express app includes a defensive pass-through for `/content/images/*` and `/r/*` if nginx route blocks are stale, but production should still treat nginx as the canonical owner of those prefixes.
+Also keep `X-Forwarded-Host` + `proxy_redirect` rewrite rules in those nginx blocks so Ghost absolute redirects never leak internal `localhost/127.0.0.1` hosts.
 
 ---
 
