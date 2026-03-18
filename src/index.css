@@ -110,7 +110,7 @@ body {
   margin-bottom: 1.5rem;
 }
 
-.connect-portal-buttons .connect-portal-btn {
+.connect-portal-btn {
   display: inline-block;
   background: transparent;
   border: 2px solid var(--color-text);
@@ -125,9 +125,14 @@ body {
   text-decoration: none;
 }
 
-.connect-portal-buttons .connect-portal-btn:hover {
+.connect-portal-btn:hover:not(:disabled) {
   background: var(--color-text);
   color: var(--color-bg);
+}
+
+.connect-portal-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .connect-auth-form {
