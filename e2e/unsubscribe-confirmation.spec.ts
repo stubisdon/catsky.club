@@ -2,6 +2,12 @@ import { test, expect } from '@playwright/test'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 
+const reportedUnsubscribeParams = new URLSearchParams({
+  uuid: '4c66134d-e239-47e6-a247-22337c1aadea',
+  key: '572058d8884f2dd1a7628a39db92ca0e635565e494b4e170f188b92faf978fa9',
+  newsletter: '823f4d13-0f3a-4521-922e-d64c57871ae5',
+})
+
 let mockGhostServer: ReturnType<typeof createServer>
 let appProcess: ChildProcessWithoutNullStreams
 let appBaseUrl = ''
@@ -74,6 +80,30 @@ test('shows a confirmation page for tokenized unsubscribe links', async ({ page 
   await expect(page.getByRole('heading', { name: 'You are unsubscribed' })).toBeVisible()
   await expect(page.getByText('You have been unsubscribed from this newsletter.')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Back to catsky.club' })).toBeVisible()
+  expect(seenHostHeader).toBe('catsky.club')
+  expect(seenForwardedHostHeader).toBe('catsky.club')
+  expect(seenForwardedProtoHeader).toBe('https')
+  expect(seenForwardedPortHeader).toBe('443')
+})
+
+test('supports the exact reported unsubscribe link when clicked in-browser', async ({ page }) => {
+  const localUnsubscribeUrl = `${appBaseUrl}/unsubscribe/?${reportedUnsubscribeParams.toString()}`
+
+  await page.setContent(`
+    <main style="font-family: sans-serif; padding: 24px">
+      <h1>Newsletter email</h1>
+      <a id="unsubscribe-link" href="${localUnsubscribeUrl}">Unsubscribe</a>
+    </main>
+  `)
+
+  await expect(page.getByRole('heading', { name: 'Newsletter email' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Unsubscribe' })).toHaveAttribute('href', localUnsubscribeUrl)
+
+  await page.getByRole('link', { name: 'Unsubscribe' }).click()
+
+  await expect(page).toHaveURL(localUnsubscribeUrl)
+  await expect(page.getByRole('heading', { name: 'You are unsubscribed' })).toBeVisible()
+  await expect(page.getByText('You have been unsubscribed from this newsletter.')).toBeVisible()
   expect(seenHostHeader).toBe('catsky.club')
   expect(seenForwardedHostHeader).toBe('catsky.club')
   expect(seenForwardedProtoHeader).toBe('https')
