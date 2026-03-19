@@ -12,6 +12,7 @@ interface PageContainerProps {
 const containerStyle: CSSProperties = {
   width: '100%',
   padding: '2rem',
+  boxSizing: 'border-box',
   textAlign: 'left',
   letterSpacing: '0.05em',
   lineHeight: 1.8,

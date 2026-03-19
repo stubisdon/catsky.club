@@ -64,6 +64,7 @@ export const containerStyles = {
   page: {
     width: '100%',
     padding: '2rem',
+    boxSizing: 'border-box' as const,
     textAlign: 'left' as const,
     letterSpacing: '0.05em',
     lineHeight: 1.8,

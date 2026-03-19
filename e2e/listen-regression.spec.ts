@@ -41,4 +41,22 @@ test.describe('Listen page regressions', () => {
     expect(order.listIndex).toBeGreaterThan(-1)
     expect(order.playerIndex).toBeLessThan(order.listIndex)
   })
+
+  test('listen content panel stays within the viewport without padding-induced overflow', async ({ page }) => {
+    await page.goto('/listen')
+
+    const metrics = await page.locator('.app-container > div').first().evaluate((el) => {
+      const rect = el.getBoundingClientRect()
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        height: rect.height,
+        viewportHeight: window.innerHeight,
+      }
+    })
+
+    expect(metrics.top).toBeGreaterThanOrEqual(0)
+    expect(metrics.bottom).toBeLessThanOrEqual(metrics.viewportHeight)
+    expect(metrics.height).toBeLessThanOrEqual(metrics.viewportHeight)
+  })
 })
