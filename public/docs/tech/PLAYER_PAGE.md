@@ -74,7 +74,7 @@ Current supported sources:
 
 ## 2026-03 listen stability notes
 - Keep the selected-player module rendered above the track list so it remains visible immediately after selecting a public track.
-- Use `max-height: 100dvh` on the `/listen` content panel to avoid desktop browser chrome causing an extra phantom inner scrollbar.
+- Use `max-height: 100dvh` together with `box-sizing: border-box` on the `/listen` content panel so viewport-sized containers do not reintroduce a phantom inner scrollbar via padding.
 
 ## Related
 - `public/docs/tech/V1_UX_USE_CASES.md`

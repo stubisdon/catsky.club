@@ -185,6 +185,7 @@ export default function Listen() {
           width: '100%',
           maxWidth: '800px',
           padding: '2rem',
+          boxSizing: 'border-box',
           textAlign: 'left',
           letterSpacing: '0.05em',
           lineHeight: '1.8',
