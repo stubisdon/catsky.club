@@ -782,39 +782,24 @@ test.describe('Connect Page - Responsive Design', () => {
 
 
 test.describe('Welcome onboarding flow', () => {
-  test('welcome keeps the form visible, keeps the continue CTA immediately clickable, and auto-recovers the session', async ({ page }) => {
-    let memberChecks = 0
-
-    await page.route('**/members/api/member**', (route) => {
-      memberChecks += 1
-      const memberBody = memberChecks <= 5
-        ? { member: null }
-        : { member: { id: 'member-2', email: 'later@user.com', subscriptions: [] } }
-
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(memberBody),
-      })
-    })
-
+  test('welcome keeps the continue CTA immediately clickable and explains the background save', async ({ page }) => {
     await page.goto('/welcome')
 
-    await page.getByLabel(/first name/i).fill('Ada')
-    await page.getByLabel(/last name/i).fill('Lovelace')
+    await expect(page.getByText(/save this in the background while you keep browsing/i)).toBeVisible()
 
     const continueButton = page.getByRole('button', { name: /continue/i })
     await expect(continueButton).toBeVisible()
     await expect(continueButton).toHaveCSS('border-top-width', '2px')
     await expect(continueButton).toHaveCSS('text-transform', 'lowercase')
+    await expect(continueButton).toBeDisabled()
 
-    await expect(continueButton).toBeEnabled()
-    await page.waitForTimeout(9500)
+    await page.getByLabel(/first name/i).fill('Ada')
     await expect(continueButton).toBeEnabled()
   })
 
-  test('signup callback routes to welcome and profile submission continues to listen', async ({ page }) => {
+  test('signup callback routes to welcome and profile submission continues to listen without waiting for the profile save', async ({ page }) => {
     let memberChecks = 0
+    let profileRequestCount = 0
 
     await page.route('**/members/api/member**', (route) => {
       memberChecks += 1
@@ -829,11 +814,13 @@ test.describe('Welcome onboarding flow', () => {
       })
     })
 
-    await page.route('**/api/member-profile', (route) => {
-      route.fulfill({
-        status: 200,
+    await page.route('**/api/member-profile', async (route) => {
+      profileRequestCount += 1
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await route.fulfill({
+        status: 202,
         contentType: 'application/json',
-        body: JSON.stringify({ success: true }),
+        body: JSON.stringify({ queued: true }),
       })
     })
 
@@ -845,5 +832,6 @@ test.describe('Welcome onboarding flow', () => {
     await page.getByRole('button', { name: /continue/i }).click()
 
     await expect(page).toHaveURL(/\/listen$/)
+    await expect.poll(() => profileRequestCount).toBe(1)
   })
 })

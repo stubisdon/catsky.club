@@ -424,6 +424,104 @@ function mergeNameNote(currentNote, firstName, lastName) {
   return lines.join('\n')
 }
 
+function normalizeMemberIdentity(value) {
+  if (!value || typeof value !== 'object') return null
+
+  const member = value
+  const id = typeof member.id === 'string' ? member.id.trim() : ''
+  const email = typeof member.email === 'string' ? member.email.trim().toLowerCase() : ''
+
+  if (!id || !email) return null
+  return { id, email }
+}
+
+async function fetchGhostMemberFromSession({ cookieHeader, proxyHeaders }) {
+  if (!cookieHeader) return null
+
+  const memberUrl = new URL('/members/api/member/', GHOST_INTERNAL_URL)
+  memberUrl.searchParams.set('_', String(Date.now()))
+
+  const memberRes = await fetch(memberUrl, {
+    method: 'GET',
+    headers: {
+      ...proxyHeaders,
+      Cookie: cookieHeader,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      Pragma: 'no-cache',
+    },
+  })
+
+  if (!memberRes.ok) return null
+
+  const raw = await memberRes.text().catch(() => '')
+  if (!raw || !raw.trim()) return null
+
+  try {
+    const payload = JSON.parse(raw)
+    if (payload && typeof payload === 'object' && 'member' in payload) {
+      return normalizeMemberIdentity(payload.member)
+    }
+    return normalizeMemberIdentity(payload)
+  } catch {
+    return null
+  }
+}
+
+async function resolveMemberIdentityForProfileUpdate({ memberId, email, cookieHeader, proxyHeaders }) {
+  if (memberId && email) {
+    return { id: memberId, email }
+  }
+
+  const retryDelaysMs = [0, 400, 1200, 2500, 5000]
+
+  for (const delay of retryDelaysMs) {
+    if (delay > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+
+    const resolvedMember = await fetchGhostMemberFromSession({ cookieHeader, proxyHeaders })
+    if (resolvedMember) {
+      return resolvedMember
+    }
+  }
+
+  return null
+}
+
+async function updateMemberProfileInGhost({ memberId, email, firstName, lastName }) {
+  const memberRes = await ghostAdminFetch(`members/${memberId}/?include=subscriptions`, { method: 'GET' })
+  const payload = await memberRes.json().catch(() => null)
+  const fetchedMember = Array.isArray(payload?.members) ? payload.members[0] : null
+
+  if (!memberRes.ok || !fetchedMember) {
+    throw new Error('Member not found.')
+  }
+
+  const fetchedEmail = typeof fetchedMember.email === 'string' ? fetchedMember.email.trim().toLowerCase() : ''
+  if (fetchedEmail !== email) {
+    throw new Error('Member identity mismatch.')
+  }
+
+  const updateRes = await ghostAdminFetch(`members/${memberId}/`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      members: [
+        {
+          id: memberId,
+          email: fetchedMember.email,
+          name: composeMemberName(firstName, lastName),
+          note: mergeNameNote(fetchedMember.note, firstName, lastName),
+        },
+      ],
+    }),
+  })
+
+  const updatePayload = await updateRes.json().catch(() => null)
+  if (!updateRes.ok) {
+    throw new Error(`Failed to update member profile: ${JSON.stringify(updatePayload)}`)
+  }
+}
+
 // Serve static files from dist (production build) and public (additional assets)
 // Order matters: dist first (built assets), then public (audio, docs, etc.)
 app.use(express.static(path.join(__dirname, 'dist'), { 
@@ -457,52 +555,35 @@ app.post('/api/member-profile', async (req, res) => {
   const firstName = typeof req.body?.firstName === 'string' ? req.body.firstName.trim() : ''
   const lastName = typeof req.body?.lastName === 'string' ? req.body.lastName.trim() : ''
 
-  if (!memberId || !email || !firstName) {
-    return res.status(400).json({ error: 'memberId, email, and firstName are required.' })
+  if (!firstName) {
+    return res.status(400).json({ error: 'firstName is required.' })
   }
 
   if (!GHOST_ADMIN_API_KEY) {
     return res.status(500).json({ error: 'Ghost Admin API is not configured (missing GHOST_ADMIN_API_KEY)' })
   }
 
-  try {
-    const memberRes = await ghostAdminFetch(`members/${memberId}/?include=subscriptions`, { method: 'GET' })
-    const payload = await memberRes.json().catch(() => null)
-    const fetchedMember = Array.isArray(payload?.members) ? payload.members[0] : null
+  const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : ''
+  const proxyHeaders = createGhostProxyHeaders(req)
 
-    if (!memberRes.ok || !fetchedMember) {
-      return res.status(404).json({ error: 'Member not found.' })
-    }
+  void resolveMemberIdentityForProfileUpdate({ memberId, email, cookieHeader, proxyHeaders })
+    .then((resolvedMember) => {
+      if (!resolvedMember) {
+        throw new Error('Unable to resolve Ghost member from the current session.')
+      }
 
-    const fetchedEmail = typeof fetchedMember.email === 'string' ? fetchedMember.email.trim().toLowerCase() : ''
-    if (fetchedEmail !== email) {
-      return res.status(403).json({ error: 'Member identity mismatch.' })
-    }
-
-    const updateRes = await ghostAdminFetch(`members/${memberId}/`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        members: [
-          {
-            id: memberId,
-            email: fetchedMember.email,
-            name: composeMemberName(firstName, lastName),
-            note: mergeNameNote(fetchedMember.note, firstName, lastName),
-          },
-        ],
-      }),
+      return updateMemberProfileInGhost({
+        memberId: resolvedMember.id,
+        email: resolvedMember.email,
+        firstName,
+        lastName,
+      })
+    })
+    .catch((error) => {
+      console.error('[Member profile update failed]', error)
     })
 
-    const updatePayload = await updateRes.json().catch(() => null)
-    if (!updateRes.ok) {
-      return res.status(updateRes.status).json({ error: 'Failed to update member profile.', details: updatePayload })
-    }
-
-    return res.status(200).json({ success: true })
-  } catch (error) {
-    console.error('[Member profile update failed]', error)
-    return res.status(500).json({ error: 'Failed to update member profile.' })
-  }
+  return res.status(202).json({ queued: true })
 })
 
 
