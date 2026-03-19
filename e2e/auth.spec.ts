@@ -114,6 +114,7 @@ test.describe('Connect Page - Basic Elements', () => {
     await expect(continueLink).toBeVisible()
     await expect(continueLink).toHaveCSS('display', 'inline')
     await expect(continueLink).toHaveCSS('border-top-width', '0px')
+    await expect(continueLink).toHaveCSS('font-size', '14.4px')
   })
 })
 
