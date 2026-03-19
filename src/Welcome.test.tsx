@@ -31,8 +31,27 @@ describe('Welcome onboarding', () => {
     expect(navigateToMock).not.toHaveBeenCalled()
   })
 
-  it('queues the profile save with sendBeacon and navigates immediately', () => {
+  it('starts a keepalive fetch immediately and navigates without waiting', () => {
+    render(<Welcome />)
+
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Ada' } })
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Lovelace' } })
+    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/member-profile', expect.objectContaining({
+      method: 'POST',
+      credentials: 'include',
+      keepalive: true,
+      body: JSON.stringify({ firstName: 'Ada', lastName: 'Lovelace' }),
+    }))
+    expect(navigateToMock).toHaveBeenCalledWith('/listen')
+  })
+
+  it('falls back to sendBeacon if fetch cannot be queued', () => {
     const sendBeaconMock = vi.fn(() => true)
+    fetchMock.mockImplementation(() => {
+      throw new Error('queue failed')
+    })
     Object.defineProperty(window.navigator, 'sendBeacon', {
       configurable: true,
       value: sendBeaconMock,
@@ -41,31 +60,10 @@ describe('Welcome onboarding', () => {
     render(<Welcome />)
 
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Ada' } })
-    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Lovelace' } })
     fireEvent.click(screen.getByRole('button', { name: /continue/i }))
 
     expect(sendBeaconMock).toHaveBeenCalledOnce()
     expect(sendBeaconMock).toHaveBeenCalledWith('/api/member-profile', expect.any(Blob))
-    expect(fetchMock).not.toHaveBeenCalled()
-    expect(navigateToMock).toHaveBeenCalledWith('/listen')
-  })
-
-  it('falls back to keepalive fetch when sendBeacon is unavailable', () => {
-    Object.defineProperty(window.navigator, 'sendBeacon', {
-      configurable: true,
-      value: undefined,
-    })
-
-    render(<Welcome />)
-
-    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Ada' } })
-    fireEvent.click(screen.getByRole('button', { name: /continue/i }))
-
-    expect(fetchMock).toHaveBeenCalledWith('/api/member-profile', expect.objectContaining({
-      method: 'POST',
-      credentials: 'include',
-      keepalive: true,
-    }))
     expect(navigateToMock).toHaveBeenCalledWith('/listen')
   })
 })

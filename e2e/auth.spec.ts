@@ -797,22 +797,8 @@ test.describe('Welcome onboarding flow', () => {
     await expect(continueButton).toBeEnabled()
   })
 
-  test('signup callback routes to welcome and profile submission continues to listen without waiting for the profile save', async ({ page }) => {
-    let memberChecks = 0
+  test('signup callback opens welcome directly and profile submission continues to listen without waiting for the profile save', async ({ page }) => {
     let profileRequestCount = 0
-
-    await page.route('**/members/api/member**', (route) => {
-      memberChecks += 1
-      const memberBody = memberChecks < 2
-        ? { member: null }
-        : { member: { id: 'member-1', email: 'new@user.com', subscriptions: [] } }
-
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(memberBody),
-      })
-    })
 
     await page.route('**/api/member-profile', async (route) => {
       profileRequestCount += 1
@@ -826,6 +812,8 @@ test.describe('Welcome onboarding flow', () => {
 
     await page.goto('/connect?action=signup&success=true')
     await expect(page).toHaveURL(/\/welcome$/)
+    await expect(page.getByRole('heading', { name: /^welcome$/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /^connect$/i })).not.toBeVisible()
 
     await page.getByLabel(/first name/i).fill('Ada')
     await page.getByLabel(/last name/i).fill('Lovelace')

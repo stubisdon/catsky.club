@@ -18,8 +18,13 @@ function normalizePathname(pathname: string): string {
   return pathname
 }
 
-function resolveView(pathnameRaw: string): ResolvedView {
+function resolveView(pathnameRaw: string, search = ''): ResolvedView {
   const pathname = normalizePathname(pathnameRaw)
+  const params = new URLSearchParams(search)
+
+  if (pathname === '/connect' && params.get('action') === 'signup' && params.get('success') === 'true') {
+    return { view: 'welcome', normalizedPath: '/welcome' }
+  }
 
   if (pathname === '/') return { view: 'home' }
   if (pathname === '/watch') return { view: 'watch' }
@@ -32,13 +37,16 @@ function resolveView(pathnameRaw: string): ResolvedView {
 }
 
 export default function Router() {
-  const [view, setView] = useState<View>(() => resolveView(window.location.pathname).view)
+  const [view, setView] = useState<View>(() => resolveView(window.location.pathname, window.location.search).view)
 
   useEffect(() => {
     const handleLocationChange = () => {
-      const { view: nextView, normalizedPath } = resolveView(window.location.pathname)
-      if (normalizedPath && normalizedPath !== window.location.pathname) {
-        window.history.replaceState({}, '', normalizedPath)
+      const { view: nextView, normalizedPath } = resolveView(window.location.pathname, window.location.search)
+      if (normalizedPath) {
+        const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
+        if (normalizedPath !== currentPath) {
+          window.history.replaceState({}, '', normalizedPath)
+        }
       }
       setView(nextView)
     }

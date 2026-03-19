@@ -7,13 +7,43 @@ interface MemberProfilePayload {
   lastName: string
 }
 
+function queueMemberProfileSave(payload: MemberProfilePayload) {
+  const body = JSON.stringify(payload)
+
+  try {
+    void fetch('/api/member-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      keepalive: true,
+      body,
+    }).catch((err) => {
+      console.error('[welcome profile save failed after navigation]', err)
+    })
+    return
+  } catch (fetchError) {
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      try {
+        const queued = navigator.sendBeacon(
+          '/api/member-profile',
+          new Blob([body], { type: 'application/json' }),
+        )
+        if (queued) return
+      } catch {
+        // fall through to error logging below
+      }
+    }
+
+    console.error('[welcome profile save could not be queued]', fetchError)
+  }
+}
+
 export default function Welcome() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const canSubmit = useMemo(() => firstName.trim().length > 0 && !isSubmitting, [firstName, isSubmitting])
+  const canSubmit = useMemo(() => firstName.trim().length > 0, [firstName])
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -26,39 +56,12 @@ export default function Welcome() {
       return
     }
 
-    setIsSubmitting(true)
     setError('')
 
-    const payload: MemberProfilePayload = {
+    queueMemberProfileSave({
       firstName: safeFirstName,
       lastName: safeLastName,
-    }
-
-    const body = JSON.stringify(payload)
-    let requestQueued = false
-
-    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-      try {
-        requestQueued = navigator.sendBeacon(
-          '/api/member-profile',
-          new Blob([body], { type: 'application/json' }),
-        )
-      } catch {
-        requestQueued = false
-      }
-    }
-
-    if (!requestQueued) {
-      void fetch('/api/member-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        keepalive: true,
-        body,
-      }).catch((err) => {
-        console.error('[welcome profile save failed after navigation]', err)
-      })
-    }
+    })
 
     navigateTo('/listen')
   }
