@@ -65,7 +65,7 @@ Current behavior in `src/Connect.tsx`:
   - detects `?action=signin|signup&success=true`
   - retries member refresh with backoff
   - on successful `action=signup`, routes to `/welcome` before app entry
-  - `/welcome` collects first/last name, queues `POST /api/member-profile` immediately when the user presses continue, navigates straight into the app, and leaves the Ghost member lookup + profile update to the Express server so the user does not wait on session hydration.
+  - `/welcome` collects first/last name, starts `POST /api/member-profile` immediately when the user presses continue, normalizes the signup callback straight into `/welcome` (so `/connect` does not flash first), navigates straight into the app, and leaves the Ghost member lookup + profile update to the Express server so the user does not wait on session hydration.
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)
@@ -124,6 +124,7 @@ The Node server is intentionally small:
   - `POST /api/member-profile`:
     - validates `{ firstName, lastName }` (with optional legacy `memberId`/`email`)
     - returns `202` immediately
+    - accepts JSON and `text/plain` onboarding payloads so browser background-delivery APIs are both supported
     - resolves the Ghost member from the request cookie server-side, retries while the session hydrates, and then updates profile `name` + onboarding metadata in `note` asynchronously.
   - `GET /api/signups`:
     - token-protected with `x-signups-token`

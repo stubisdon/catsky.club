@@ -57,6 +57,7 @@ const SIGNUPS_API_TOKEN = process.env.SIGNUPS_API_TOKEN || ''
 
 app.use(cors())
 app.use(express.json())
+const memberProfileTextBodyParser = express.text({ type: ['text/plain', 'application/json', 'application/*+json'] })
 
 function getForwardedHeaderValue(value) {
   return (value || '').toString().split(',')[0].trim()
@@ -415,13 +416,16 @@ function composeMemberName(firstName, lastName) {
 }
 
 function mergeNameNote(currentNote, firstName, lastName) {
-  const lines = []
-  if (typeof currentNote === 'string' && currentNote.trim()) {
-    lines.push(currentNote.trim())
-  }
-  lines.push(`first_name:${firstName}`)
-  if (lastName) lines.push(`last_name:${lastName}`)
-  return lines.join('\n')
+  const preservedLines = typeof currentNote === 'string'
+    ? currentNote
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('first_name:') && !line.startsWith('last_name:'))
+    : []
+
+  preservedLines.push(`first_name:${firstName}`)
+  if (lastName) preservedLines.push(`last_name:${lastName}`)
+  return preservedLines.join('\n')
 }
 
 function normalizeMemberIdentity(value) {
@@ -472,7 +476,7 @@ async function resolveMemberIdentityForProfileUpdate({ memberId, email, cookieHe
     return { id: memberId, email }
   }
 
-  const retryDelaysMs = [0, 400, 1200, 2500, 5000]
+  const retryDelaysMs = [0, 400, 1200, 2500, 5000, 8000, 12000]
 
   for (const delay of retryDelaysMs) {
     if (delay > 0) {
@@ -486,6 +490,46 @@ async function resolveMemberIdentityForProfileUpdate({ memberId, email, cookieHe
   }
 
   return null
+}
+
+
+function parseMemberProfileBody(body) {
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    return body
+  }
+
+  if (typeof body === 'string' && body.trim()) {
+    try {
+      const parsed = JSON.parse(body)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed
+      }
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
+async function retryMemberProfileUpdate({ memberId, email, firstName, lastName }) {
+  const retryDelaysMs = [0, 500, 1500, 3000]
+  let lastError = null
+
+  for (const delay of retryDelaysMs) {
+    if (delay > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+
+    try {
+      await updateMemberProfileInGhost({ memberId, email, firstName, lastName })
+      return
+    } catch (error) {
+      lastError = error
+    }
+  }
+
+  throw lastError || new Error('Unable to update member profile.')
 }
 
 async function updateMemberProfileInGhost({ memberId, email, firstName, lastName }) {
@@ -549,11 +593,12 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }))
 
-app.post('/api/member-profile', async (req, res) => {
-  const memberId = typeof req.body?.memberId === 'string' ? req.body.memberId.trim() : ''
-  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : ''
-  const firstName = typeof req.body?.firstName === 'string' ? req.body.firstName.trim() : ''
-  const lastName = typeof req.body?.lastName === 'string' ? req.body.lastName.trim() : ''
+app.post('/api/member-profile', memberProfileTextBodyParser, async (req, res) => {
+  const parsedBody = parseMemberProfileBody(req.body)
+  const memberId = typeof parsedBody?.memberId === 'string' ? parsedBody.memberId.trim() : ''
+  const email = typeof parsedBody?.email === 'string' ? parsedBody.email.trim().toLowerCase() : ''
+  const firstName = typeof parsedBody?.firstName === 'string' ? parsedBody.firstName.trim() : ''
+  const lastName = typeof parsedBody?.lastName === 'string' ? parsedBody.lastName.trim() : ''
 
   if (!firstName) {
     return res.status(400).json({ error: 'firstName is required.' })
@@ -572,7 +617,7 @@ app.post('/api/member-profile', async (req, res) => {
         throw new Error('Unable to resolve Ghost member from the current session.')
       }
 
-      return updateMemberProfileInGhost({
+      return retryMemberProfileUpdate({
         memberId: resolvedMember.id,
         email: resolvedMember.email,
         firstName,
