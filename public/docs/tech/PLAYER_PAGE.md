@@ -44,16 +44,23 @@ interface Track {
   title: string
   audioSource: AudioSource
   access: 'released_public' | 'finished_unreleased_registered' | 'unfinished_demo_paid'
+  availableFrom?: 'YYYY-MM-DD'
+  lockedLabel?: string
   version?: string
   date?: string
 }
 ```
 
+### Scheduled unlock windows
+- Tracks may also define an `availableFrom` date for calendar-based embargoes.
+- Before that UTC date arrives, the track stays locked for **every** membership tier and uses its configured `lockedLabel`.
+- `Motherless Child` is currently embargoed until **April 10, 2026**, so even eligible members should only see the locked card and CTA before that date.
+
 ## UX Requirements
 - Public tracks playable without auth wall.
 - Locked tracks remain visible for discovery but cannot play.
 - Every locked state includes release-status copy and an upgrade CTA on hover.
-  - `Motherless Child` shows `coming Apr 10, 2026`.
+  - `Motherless Child` shows `coming Apr 10, 2026` and must remain locked for all listeners before that date.
   - `Sugar Daddy` shows `coming May 8, 2026`.
   - Other locked songs show `in progress`.
   - Hovering a locked card reveals `listen early` and routes to `/connect` on click.

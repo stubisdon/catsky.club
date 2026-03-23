@@ -9,6 +9,7 @@ import {
   openPortalAccount,
 } from './utils'
 import { TRACKS, type Track } from './config/tracks'
+import { getLockedTrackLabel, hasTrackAccess } from './utils/trackAccess'
 
 export default function Listen() {
   const [membershipTier, setMembershipTier] = useState<MembershipTier>('none')
@@ -67,21 +68,10 @@ export default function Listen() {
   const isPaid = effectiveTier === 'paid_5' || effectiveTier === 'paid_20'
   const isGhostMember = effectiveTier !== 'none'
 
-  const hasTrackAccess = useCallback((track: Track) => {
-    if (track.accessTier === 'public') return true
-    if (track.accessTier === 'free_member') return effectiveTier !== 'none'
-    if (track.accessTier === 'paid_5') return effectiveTier === 'paid_5' || effectiveTier === 'paid_20'
-    return effectiveTier === 'paid_20'
-  }, [effectiveTier])
+  const canAccessTrack = useCallback((track: Track) => hasTrackAccess(track, effectiveTier), [effectiveTier])
 
-  const getLockedTrackLabel = useCallback((track: Track) => {
-    if (track.title === 'Motherless Child') return 'coming Apr 10, 2026'
-    if (track.title === 'Sugar Daddy') return 'coming May 8, 2026'
-    return 'in progress'
-  }, [])
-
-  const accessibleTracks = TRACKS.filter(hasTrackAccess)
-  const lockedTracks = TRACKS.filter((track) => !hasTrackAccess(track))
+  const accessibleTracks = TRACKS.filter(canAccessTrack)
+  const lockedTracks = TRACKS.filter((track) => !canAccessTrack(track))
 
   useEffect(() => {
     try {
@@ -97,7 +87,7 @@ export default function Listen() {
       setTrackLoadError('Track not found')
       return
     }
-    if (!hasTrackAccess(track)) {
+    if (!canAccessTrack(track)) {
       navigateTo('/connect')
       return
     }
@@ -125,7 +115,7 @@ export default function Listen() {
         audioRef.current.src = ''
       }
     }
-  }, [hasTrackAccess])
+  }, [canAccessTrack])
 
   const handlePlayPause = useCallback(() => {
     if (!audioRef.current) return
