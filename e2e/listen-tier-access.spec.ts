@@ -98,10 +98,17 @@ test.describe('Listen catalog tier access', () => {
     await page.goto('/listen')
 
     const sugarDaddyCard = page.getByText('Sugar Daddy').locator('..').locator('..').first()
-    await sugarDaddyCard.hover()
+    await expect(sugarDaddyCard).toContainText('coming May 8, 2026')
 
-    await expect(page.getByText(/listen early/i)).toBeVisible()
+    await sugarDaddyCard.hover()
+    await expect(sugarDaddyCard).toContainText(/listen early/i)
+    await expect(sugarDaddyCard).not.toContainText('coming May 8, 2026')
+
+    await page.locator('h1').hover()
+    await expect(sugarDaddyCard).toContainText('coming May 8, 2026')
+    await expect(sugarDaddyCard).not.toContainText(/listen early/i)
   })
+
   test('clicking locked paid track routes user to /connect', async ({ page }) => {
     await mockMember(page, 0)
     await page.goto('/listen')
