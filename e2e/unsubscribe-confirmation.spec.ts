@@ -11,10 +11,28 @@ const reportedUnsubscribeParams = new URLSearchParams({
 let mockGhostServer: ReturnType<typeof createServer>
 let appProcess: ChildProcessWithoutNullStreams
 let appBaseUrl = ''
+let seenMethod = ''
 let seenHostHeader = ''
 let seenForwardedHostHeader = ''
 let seenForwardedProtoHeader = ''
 let seenForwardedPortHeader = ''
+
+async function waitForServer(url: string, timeoutMs = 45_000) {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      const response = await fetch(url, { redirect: 'manual' })
+      if (response.status >= 200) return
+    } catch {
+      // Retry until timeout.
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+
+  throw new Error(`Timed out waiting for server startup at ${url}`)
+}
 
 test.beforeAll(async () => {
   mockGhostServer = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -24,11 +42,18 @@ test.beforeAll(async () => {
     }
 
     seenHostHeader = String(req.headers.host || '')
+    seenMethod = String(req.method || '')
     seenForwardedHostHeader = String(req.headers['x-forwarded-host'] || '')
     seenForwardedProtoHeader = String(req.headers['x-forwarded-proto'] || '')
     seenForwardedPortHeader = String(req.headers['x-forwarded-port'] || '')
 
     if (req.url.startsWith('/unsubscribe/')) {
+      if (req.method === 'GET') {
+        res.statusCode = 302
+        res.setHeader('Location', 'https://catsky.club/?uuid=abc')
+        return res.end('confirm unsubscribe')
+      }
+
       res.statusCode = 200
       return res.end('unsubscribed')
     }
@@ -54,19 +79,14 @@ test.beforeAll(async () => {
     stdio: 'pipe',
   })
 
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Timed out waiting for server startup')), 15_000)
-    appProcess.stdout.on('data', (chunk) => {
-      if (String(chunk).includes('Server running on')) {
-        clearTimeout(timeout)
-        resolve()
-      }
-    })
-    appProcess.on('exit', (code) => {
-      clearTimeout(timeout)
-      reject(new Error(`server.js exited during startup with code ${code}`))
-    })
-  })
+  await Promise.race([
+    waitForServer(`${appBaseUrl}/`),
+    new Promise<never>((_, reject) => {
+      appProcess.on('exit', (code) => {
+        reject(new Error(`server.js exited during startup with code ${code}`))
+      })
+    }),
+  ])
 })
 
 test.afterAll(async () => {
@@ -80,6 +100,7 @@ test('shows a confirmation page for tokenized unsubscribe links', async ({ page 
   await expect(page.getByRole('heading', { name: 'You are unsubscribed' })).toBeVisible()
   await expect(page.getByText('You have been unsubscribed from this newsletter.')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Back to catsky.club' })).toBeVisible()
+  expect(seenMethod).toBe('POST')
   expect(seenHostHeader).toBe('catsky.club')
   expect(seenForwardedHostHeader).toBe('catsky.club')
   expect(seenForwardedProtoHeader).toBe('https')
@@ -104,6 +125,7 @@ test('supports the exact reported unsubscribe link when clicked in-browser', asy
   await expect(page).toHaveURL(localUnsubscribeUrl)
   await expect(page.getByRole('heading', { name: 'You are unsubscribed' })).toBeVisible()
   await expect(page.getByText('You have been unsubscribed from this newsletter.')).toBeVisible()
+  expect(seenMethod).toBe('POST')
   expect(seenHostHeader).toBe('catsky.club')
   expect(seenForwardedHostHeader).toBe('catsky.club')
   expect(seenForwardedProtoHeader).toBe('https')

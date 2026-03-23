@@ -5,6 +5,7 @@ const { defineConfig, devices } = require('@playwright/test')
  */
 module.exports = defineConfig({
   testDir: './e2e',
+  timeout: 60 * 1000,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -28,7 +29,7 @@ module.exports = defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], channel: 'chromium' },
     },
 
     {
@@ -44,7 +45,7 @@ module.exports = defineConfig({
     /* Test against mobile viewports. */
     {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      use: { ...devices['Pixel 5'], channel: 'chromium' },
     },
     {
       name: 'Mobile Safari',
