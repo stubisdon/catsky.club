@@ -5,7 +5,7 @@ import Connect from './Connect'
 const mocks = vi.hoisted(() => ({
   isSubscriberMock: vi.fn<() => Promise<boolean>>(),
   navigateToMock: vi.fn<(path: string) => void>(),
-  getCurrentMemberMock: vi.fn<() => Promise<{ id?: string; email?: string } | null>>(),
+  getCurrentMemberMock: vi.fn<() => Promise<{ id?: string; uuid?: string; email?: string } | null>>(),
 }))
 
 const { isSubscriberMock, navigateToMock, getCurrentMemberMock } = mocks
@@ -61,7 +61,7 @@ describe('Connect magic-link state refresh', () => {
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(true)
     getCurrentMemberMock.mockResolvedValue({
-      id: 'member-123',
+      uuid: 'member-uuid-123',
       email: 'ada@example.com',
     })
 
@@ -77,7 +77,8 @@ describe('Connect magic-link state refresh', () => {
     expect(window.location.search).toBe('')
     expect(window.sessionStorage.getItem('catsky_welcome_member')).toBe(
       JSON.stringify({
-        memberId: 'member-123',
+        memberId: '',
+        memberUuid: 'member-uuid-123',
         email: 'ada@example.com',
       }),
     )

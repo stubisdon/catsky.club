@@ -410,6 +410,17 @@ async function findMemberByEmail(email) {
   return null
 }
 
+async function findMemberByUuid(uuid) {
+  const filter = `uuid:'${uuid.replace(/'/g, "\\'")}'`
+  const qs = new URLSearchParams({ filter, limit: '1' })
+  const res = await ghostAdminFetch(`members/?${qs.toString()}`, { method: 'GET' })
+  if (!res.ok) return null
+  const data = await res.json()
+  const members = data && data.members
+  if (Array.isArray(members) && members.length > 0) return members[0]
+  return null
+}
+
 function composeMemberName(firstName, lastName) {
   return lastName ? `${firstName} ${lastName}` : firstName
 }
@@ -432,10 +443,11 @@ function normalizeMemberIdentity(value) {
 
   const member = value
   const id = typeof member.id === 'string' ? member.id.trim() : ''
+  const uuid = typeof member.uuid === 'string' ? member.uuid.trim() : ''
   const email = typeof member.email === 'string' ? member.email.trim().toLowerCase() : ''
 
-  if (!id || !email) return null
-  return { id, email }
+  if ((!id && !uuid) || !email) return null
+  return { id, uuid, email }
 }
 
 async function fetchGhostMemberFromSession({ cookieHeader, proxyHeaders }) {
@@ -470,9 +482,30 @@ async function fetchGhostMemberFromSession({ cookieHeader, proxyHeaders }) {
   }
 }
 
-async function resolveMemberIdentityForProfileUpdate({ memberId, email, cookieHeader, proxyHeaders }) {
+async function resolveMemberIdentityFromLookup({ memberId, memberUuid, email }) {
   if (memberId && email) {
     return { id: memberId, email }
+  }
+
+  const memberByUuid = memberUuid ? await findMemberByUuid(memberUuid) : null
+  const normalizedByUuid = normalizeMemberIdentity(memberByUuid)
+  if (normalizedByUuid?.id && normalizedByUuid.email === email) {
+    return { id: normalizedByUuid.id, email: normalizedByUuid.email }
+  }
+
+  const memberByEmail = email ? await findMemberByEmail(email) : null
+  const normalizedByEmail = normalizeMemberIdentity(memberByEmail)
+  if (normalizedByEmail?.id) {
+    return { id: normalizedByEmail.id, email: normalizedByEmail.email }
+  }
+
+  return null
+}
+
+async function resolveMemberIdentityForProfileUpdate({ memberId, memberUuid, email, cookieHeader, proxyHeaders }) {
+  const resolvedByLookup = await resolveMemberIdentityFromLookup({ memberId, memberUuid, email })
+  if (resolvedByLookup) {
+    return resolvedByLookup
   }
 
   const retryDelaysMs = [0, 400, 1200, 2500, 5000, 8000, 12000]
@@ -595,6 +628,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.post('/api/member-profile', memberProfileTextBodyParser, async (req, res) => {
   const parsedBody = parseMemberProfileBody(req.body)
   const memberId = typeof parsedBody?.memberId === 'string' ? parsedBody.memberId.trim() : ''
+  const memberUuid = typeof parsedBody?.memberUuid === 'string' ? parsedBody.memberUuid.trim() : ''
   const email = typeof parsedBody?.email === 'string' ? parsedBody.email.trim().toLowerCase() : ''
   const firstName = typeof parsedBody?.firstName === 'string' ? parsedBody.firstName.trim() : ''
   const lastName = typeof parsedBody?.lastName === 'string' ? parsedBody.lastName.trim() : ''
@@ -610,7 +644,7 @@ app.post('/api/member-profile', memberProfileTextBodyParser, async (req, res) =>
   const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : ''
   const proxyHeaders = createGhostProxyHeaders(req)
 
-  void resolveMemberIdentityForProfileUpdate({ memberId, email, cookieHeader, proxyHeaders })
+  void resolveMemberIdentityForProfileUpdate({ memberId, memberUuid, email, cookieHeader, proxyHeaders })
     .then((resolvedMember) => {
       if (!resolvedMember) {
         throw new Error('Unable to resolve Ghost member from the current session.')

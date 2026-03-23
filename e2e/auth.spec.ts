@@ -808,7 +808,7 @@ test.describe('Welcome onboarding flow', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           member: {
-            id: 'member-123',
+            uuid: 'member-uuid-123',
             email: 'ada@example.com',
             subscriptions: [],
           },
@@ -839,7 +839,7 @@ test.describe('Welcome onboarding flow', () => {
     await expect(page).toHaveURL(/\/listen$/)
     await expect.poll(() => profileRequestCount).toBe(1)
     await expect.poll(() => JSON.parse(profileRequestBody || '{}')).toMatchObject({
-      memberId: 'member-123',
+      memberUuid: 'member-uuid-123',
       email: 'ada@example.com',
       firstName: 'Ada',
       lastName: 'Lovelace',

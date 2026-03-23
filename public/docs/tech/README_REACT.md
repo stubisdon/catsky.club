@@ -100,7 +100,7 @@ npm start
 - `/listen` - Music player / tracks (Listen.tsx). `/player` redirects to `/listen`
 - `/watch` - Video content: trailer public, unreleased video gated for paid tiers (Watch.tsx)
 - `/connect` - Sign up, log in, account (Connect.tsx)
-- `/welcome` - New-user onboarding for first/last name after signup callback; signup callbacks normalize directly here, the onboarding flow hydrates the Ghost member id/email for the background save handoff, continue starts a background profile save, and the app immediately routes to `/listen` (Welcome.tsx)
+- `/welcome` - New-user onboarding for first/last name after signup callback; signup callbacks normalize directly here, the onboarding flow hydrates the Ghost Members identity (`uuid`/`email`) for the background save handoff, the server translates that identity to the Ghost Admin member record, continue starts a background profile save, and the app immediately routes to `/listen` (Welcome.tsx)
 - `/mission` - Mission statement (Mission.tsx)
 - `/blog` - Public blog posts (if configured in Ghost/content layer)
 

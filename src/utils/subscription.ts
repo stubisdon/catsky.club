@@ -14,6 +14,7 @@ const MEMBER_ENDPOINT = '/members/api/member/'
 
 interface GhostMember {
   id?: string
+  uuid?: string
   email?: string
   name?: string
   subscriptions?: Array<{
@@ -35,6 +36,7 @@ function looksLikeGhostMember(value: unknown): value is GhostMember {
   const candidate = value as GhostMember
   return (
     typeof candidate.id === 'string' ||
+    typeof candidate.uuid === 'string' ||
     typeof candidate.email === 'string' ||
     typeof candidate.name === 'string' ||
     Array.isArray(candidate.subscriptions)
@@ -162,6 +164,7 @@ export async function getCurrentMember(): Promise<GhostMember | null> {
   if (devOverride === 'free_subscriber' || devOverride === 'paid_subscriber') {
     return {
       id: 'dev-member',
+      uuid: 'dev-member-uuid',
       email: 'dev@localhost',
       name: 'Dev Member',
       subscriptions: devOverride === 'paid_subscriber' ? [{ status: 'active', price: { amount: 2000 } }] : [],

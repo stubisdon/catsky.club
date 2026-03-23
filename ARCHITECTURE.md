@@ -64,8 +64,9 @@ Current behavior in `src/Connect.tsx`:
 - Callback robustness:
   - detects `?action=signin|signup&success=true`
   - retries member refresh with backoff
-  - on successful `action=signup`, routes to `/welcome` before app entry and persists the resolved Ghost member id/email in `sessionStorage` for the onboarding handoff when the callback flows through `Connect`
-  - `/welcome` also hydrates the current Ghost member identity itself on mount so router-level signup callback normalization still carries member id/email into `POST /api/member-profile`; the page normalizes the signup callback straight into `/welcome` (so `/connect` does not flash first), navigates straight into the app, and leaves the Ghost profile update to the Express server so the user does not wait on client-side hydration.
+  - on successful `action=signup`, routes to `/welcome` before app entry and persists the resolved Ghost member identity in `sessionStorage` for the onboarding handoff when the callback flows through `Connect`
+  - `/welcome` also hydrates the current Ghost member identity itself on mount so router-level signup callback normalization still carries the real Ghost Members payload into `POST /api/member-profile`; in production this payload is typically `uuid` + `email` rather than an Admin API `id`, so the Express bridge must translate that identity back to the canonical Ghost Admin member record before updating `name`/`note`
+  - the page normalizes the signup callback straight into `/welcome` (so `/connect` does not flash first), navigates straight into the app, and leaves the Ghost profile update to the Express server so the user does not wait on client-side hydration.
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)
@@ -123,10 +124,10 @@ The Node server is intentionally small:
     - validates `{ name, contact }`
     - creates/reuses Ghost member via Ghost Admin API JWT auth.
   - `POST /api/member-profile`:
-    - validates `{ firstName, lastName }` (with optional legacy `memberId`/`email`)
+    - validates `{ firstName, lastName }` (with optional `memberId`, `memberUuid`, and `email`)
     - returns `202` immediately
     - accepts JSON and `text/plain` onboarding payloads so browser background-delivery APIs are both supported
-    - resolves the Ghost member from the request cookie server-side, retries while the session hydrates, and then updates profile `name` + onboarding metadata in `note` asynchronously.
+    - translates Ghost Members identities (`memberUuid`/`email`) into the canonical Ghost Admin member id, falls back to request-cookie session resolution when needed, retries while the session hydrates, and then updates profile `name` + onboarding metadata in `note` asynchronously.
   - `GET /api/signups`:
     - token-protected with `x-signups-token`
     - returns recent Ghost members.

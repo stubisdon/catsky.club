@@ -5,7 +5,7 @@ import Welcome from './Welcome'
 const { navigateToMock, fetchMock, getCurrentMemberMock } = vi.hoisted(() => ({
   navigateToMock: vi.fn<(path: string) => void>(),
   fetchMock: vi.fn(),
-  getCurrentMemberMock: vi.fn<() => Promise<{ id?: string; email?: string } | null>>(),
+  getCurrentMemberMock: vi.fn<() => Promise<{ id?: string; uuid?: string; email?: string } | null>>(),
 }))
 
 vi.mock('./router/navigation', () => ({
@@ -40,7 +40,8 @@ describe('Welcome onboarding', () => {
 
   it('starts a keepalive fetch immediately and navigates without waiting', async () => {
     window.sessionStorage.setItem('catsky_welcome_member', JSON.stringify({
-      memberId: 'member-123',
+      memberId: '',
+      memberUuid: 'member-uuid-123',
       email: 'ada@example.com',
     }))
 
@@ -55,7 +56,8 @@ describe('Welcome onboarding', () => {
       credentials: 'include',
       keepalive: true,
       body: JSON.stringify({
-        memberId: 'member-123',
+        memberId: '',
+        memberUuid: 'member-uuid-123',
         email: 'ada@example.com',
         firstName: 'Ada',
         lastName: 'Lovelace',
@@ -67,7 +69,7 @@ describe('Welcome onboarding', () => {
 
   it('resolves member identity in the background when storage is empty', async () => {
     getCurrentMemberMock.mockResolvedValue({
-      id: 'member-456',
+      uuid: 'member-uuid-456',
       email: 'grace@example.com',
     })
 
@@ -78,7 +80,8 @@ describe('Welcome onboarding', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/member-profile', expect.objectContaining({
       body: JSON.stringify({
-        memberId: 'member-456',
+        memberId: '',
+        memberUuid: 'member-uuid-456',
         email: 'grace@example.com',
         firstName: 'Grace',
         lastName: '',

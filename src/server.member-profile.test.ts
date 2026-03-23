@@ -15,6 +15,24 @@ beforeAll(async () => {
       return res.end('Missing URL')
     }
 
+    if (req.url.startsWith('/ghost/api/admin/members/?')) {
+      const requestUrl = new URL(req.url, 'http://127.0.0.1:4556')
+      const filter = requestUrl.searchParams.get('filter') || ''
+
+      if (filter === "uuid:'member-uuid-123'") {
+        res.statusCode = 200
+        res.setHeader('Content-Type', 'application/json')
+        return res.end(JSON.stringify({
+          members: [{
+            id: 'member-123',
+            uuid: 'member-uuid-123',
+            email: 'ada@example.com',
+            note: 'existing-note',
+          }],
+        }))
+      }
+    }
+
     if (req.url.startsWith('/ghost/api/admin/members/member-123/')) {
       if (req.method === 'GET') {
         res.statusCode = 200
@@ -22,6 +40,7 @@ beforeAll(async () => {
         return res.end(JSON.stringify({
           members: [{
             id: 'member-123',
+            uuid: 'member-uuid-123',
             email: 'ada@example.com',
             note: 'existing-note',
           }],
@@ -86,7 +105,7 @@ afterAll(async () => {
 })
 
 describe('member profile background updates', () => {
-  test('accepts text payloads and forwards the captured names to Ghost', async () => {
+  test('accepts text payloads with a member uuid and forwards the captured names to Ghost', async () => {
     updateRequestBody = ''
     updateRequestHeaders = {}
 
@@ -96,7 +115,7 @@ describe('member profile background updates', () => {
         'Content-Type': 'text/plain;charset=UTF-8',
       },
       body: JSON.stringify({
-        memberId: 'member-123',
+        memberUuid: 'member-uuid-123',
         email: 'ada@example.com',
         firstName: 'Ada',
         lastName: 'Lovelace',
