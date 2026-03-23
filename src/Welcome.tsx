@@ -1,14 +1,58 @@
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, PageTitle } from './components'
 import { navigateTo } from './router/navigation'
+import { getCurrentMember } from './utils'
 
 interface MemberProfilePayload {
+  memberId?: string
+  email?: string
   firstName: string
   lastName: string
 }
 
+const WELCOME_MEMBER_STORAGE_KEY = 'catsky_welcome_member'
+
+function readWelcomeMemberIdentity() {
+  if (typeof window === 'undefined') return null
+
+  try {
+    const raw = window.sessionStorage.getItem(WELCOME_MEMBER_STORAGE_KEY)
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as { memberId?: string; email?: string } | null
+    const memberId = typeof parsed?.memberId === 'string' ? parsed.memberId.trim() : ''
+    const email = typeof parsed?.email === 'string' ? parsed.email.trim().toLowerCase() : ''
+
+    if (!memberId || !email) return null
+    return { memberId, email }
+  } catch {
+    return null
+  }
+}
+
+function storeWelcomeMemberIdentity(member: { id?: string; email?: string } | null) {
+  const memberId = typeof member?.id === 'string' ? member.id.trim() : ''
+  const email = typeof member?.email === 'string' ? member.email.trim().toLowerCase() : ''
+
+  if (!memberId || !email) return null
+
+  try {
+    window.sessionStorage.setItem(WELCOME_MEMBER_STORAGE_KEY, JSON.stringify({ memberId, email }))
+  } catch {
+    // ignore storage failures
+  }
+
+  return { memberId, email }
+}
+
 function queueMemberProfileSave(payload: MemberProfilePayload) {
   const body = JSON.stringify(payload)
+
+  try {
+    window.sessionStorage.removeItem(WELCOME_MEMBER_STORAGE_KEY)
+  } catch {
+    // ignore storage failures
+  }
 
   try {
     void fetch('/api/member-profile', {
@@ -43,6 +87,16 @@ export default function Welcome() {
   const [lastName, setLastName] = useState('')
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    void getCurrentMember()
+      .then((member) => {
+        storeWelcomeMemberIdentity(member)
+      })
+      .catch(() => {
+        // ignore background identity hydration failures
+      })
+  }, [])
+
   const canSubmit = useMemo(() => firstName.trim().length > 0, [firstName])
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -58,10 +112,29 @@ export default function Welcome() {
 
     setError('')
 
-    queueMemberProfileSave({
+    const profilePayload = {
       firstName: safeFirstName,
       lastName: safeLastName,
-    })
+    }
+
+    const storedIdentity = readWelcomeMemberIdentity()
+    if (storedIdentity) {
+      queueMemberProfileSave({
+        ...storedIdentity,
+        ...profilePayload,
+      })
+    } else {
+      void getCurrentMember()
+        .then((member) => {
+          queueMemberProfileSave({
+            ...storeWelcomeMemberIdentity(member),
+            ...profilePayload,
+          })
+        })
+        .catch(() => {
+          queueMemberProfileSave(profilePayload)
+        })
+    }
 
     navigateTo('/listen')
   }

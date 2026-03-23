@@ -2,20 +2,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen } from '@testing-library/react'
 import Connect from './Connect'
 
-const { isSubscriberMock, navigateToMock } = vi.hoisted(() => ({
+const mocks = vi.hoisted(() => ({
   isSubscriberMock: vi.fn<() => Promise<boolean>>(),
   navigateToMock: vi.fn<(path: string) => void>(),
+  getCurrentMemberMock: vi.fn<() => Promise<{ id?: string; email?: string } | null>>(),
 }))
+
+const { isSubscriberMock, navigateToMock, getCurrentMemberMock } = mocks
 
 vi.mock('./utils', () => ({
   clearLocalSessionFlags: vi.fn(),
+  getCurrentMember: mocks.getCurrentMemberMock,
   triggerPortalSignOut: vi.fn(),
   setDevMemberOverride: vi.fn(),
-  isSubscriber: isSubscriberMock,
+  isSubscriber: mocks.isSubscriberMock,
 }))
 
 vi.mock('./router/navigation', () => ({
-  navigateTo: navigateToMock,
+  navigateTo: mocks.navigateToMock,
 }))
 
 describe('Connect magic-link state refresh', () => {
@@ -27,6 +31,8 @@ describe('Connect magic-link state refresh', () => {
     vi.useFakeTimers()
     vi.clearAllMocks()
     isSubscriberMock.mockResolvedValue(false)
+    getCurrentMemberMock.mockResolvedValue(null)
+    window.sessionStorage.clear()
     window.history.replaceState({}, '', '/connect')
   })
 
@@ -54,6 +60,10 @@ describe('Connect magic-link state refresh', () => {
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(true)
+    getCurrentMemberMock.mockResolvedValue({
+      id: 'member-123',
+      email: 'ada@example.com',
+    })
 
     window.history.replaceState({}, '', '/connect?action=signup&success=true')
 
@@ -65,5 +75,11 @@ describe('Connect magic-link state refresh', () => {
 
     expect(navigateToMock).toHaveBeenCalledWith('/welcome')
     expect(window.location.search).toBe('')
+    expect(window.sessionStorage.getItem('catsky_welcome_member')).toBe(
+      JSON.stringify({
+        memberId: 'member-123',
+        email: 'ada@example.com',
+      }),
+    )
   })
 })

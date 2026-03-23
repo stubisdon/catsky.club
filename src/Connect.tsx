@@ -3,6 +3,7 @@ import { PageTitle, Link } from './components'
 import { navigateTo } from './router/navigation'
 import {
   clearLocalSessionFlags,
+  getCurrentMember,
   triggerPortalSignOut,
   isSubscriber,
   setDevMemberOverride,
@@ -60,6 +61,20 @@ function handlePortalClick(e: React.MouseEvent<HTMLAnchorElement>) {
 const PORTAL_HASH_REGEX = /^#\/portal\/(signup|signin|account)/
 
 const MAGIC_LINK_API = '/members/api/send-magic-link/'
+const WELCOME_MEMBER_STORAGE_KEY = 'catsky_welcome_member'
+
+function storeWelcomeMemberIdentity(member: { id?: string; email?: string } | null) {
+  const memberId = typeof member?.id === 'string' ? member.id.trim() : ''
+  const email = typeof member?.email === 'string' ? member.email.trim().toLowerCase() : ''
+
+  if (!memberId || !email) return
+
+  try {
+    window.sessionStorage.setItem(WELCOME_MEMBER_STORAGE_KEY, JSON.stringify({ memberId, email }))
+  } catch {
+    // ignore storage failures
+  }
+}
 
 export default function Connect() {
   const [portalHashActive, setPortalHashActive] = useState(false)
@@ -129,6 +144,8 @@ export default function Connect() {
         if (loggedIn) {
           setShowAuthForm(false)
           if (params.get('action') === 'signup') {
+            const member = await getCurrentMember().catch(() => null)
+            storeWelcomeMemberIdentity(member)
             const next = new URL(window.location.href)
             next.searchParams.delete('action')
             next.searchParams.delete('success')

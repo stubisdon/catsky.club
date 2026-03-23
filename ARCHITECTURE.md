@@ -64,8 +64,8 @@ Current behavior in `src/Connect.tsx`:
 - Callback robustness:
   - detects `?action=signin|signup&success=true`
   - retries member refresh with backoff
-  - on successful `action=signup`, routes to `/welcome` before app entry
-  - `/welcome` collects first/last name, starts `POST /api/member-profile` immediately when the user presses continue, normalizes the signup callback straight into `/welcome` (so `/connect` does not flash first), navigates straight into the app, and leaves the Ghost member lookup + profile update to the Express server so the user does not wait on session hydration.
+  - on successful `action=signup`, routes to `/welcome` before app entry and persists the resolved Ghost member id/email in `sessionStorage` for the onboarding handoff when the callback flows through `Connect`
+  - `/welcome` also hydrates the current Ghost member identity itself on mount so router-level signup callback normalization still carries member id/email into `POST /api/member-profile`; the page normalizes the signup callback straight into `/welcome` (so `/connect` does not flash first), navigates straight into the app, and leaves the Ghost profile update to the Express server so the user does not wait on client-side hydration.
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)

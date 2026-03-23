@@ -800,9 +800,25 @@ test.describe('Welcome onboarding flow', () => {
 
   test('signup callback opens welcome directly and profile submission continues to listen without waiting for the profile save', async ({ page }) => {
     let profileRequestCount = 0
+    let profileRequestBody = ''
+
+    await page.route('**/members/api/member**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: {
+            id: 'member-123',
+            email: 'ada@example.com',
+            subscriptions: [],
+          },
+        }),
+      })
+    })
 
     await page.route('**/api/member-profile', async (route) => {
       profileRequestCount += 1
+      profileRequestBody = route.request().postData() || ''
       await new Promise((resolve) => setTimeout(resolve, 1500))
       await route.fulfill({
         status: 202,
@@ -822,5 +838,11 @@ test.describe('Welcome onboarding flow', () => {
 
     await expect(page).toHaveURL(/\/listen$/)
     await expect.poll(() => profileRequestCount).toBe(1)
+    await expect.poll(() => JSON.parse(profileRequestBody || '{}')).toMatchObject({
+      memberId: 'member-123',
+      email: 'ada@example.com',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+    })
   })
 })
