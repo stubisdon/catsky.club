@@ -42,6 +42,21 @@ test.describe('Listen page regressions', () => {
     expect(order.playerIndex).toBeLessThan(order.listIndex)
   })
 
+  test('listen page avoids a phantom scrollbar even when desktop browsers render larger text', async ({ page }) => {
+    await page.setViewportSize({ width: 1728, height: 900 })
+    await page.goto('/listen')
+    await page.addStyleTag({ content: 'body { font-size: 28px !important; }' })
+
+    const metrics = await page.locator('.listen-page-shell > div').first().evaluate((el) => ({
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      overflowAmount: el.scrollHeight - el.clientHeight,
+    }))
+
+    expect(metrics.scrollHeight).toBe(metrics.clientHeight)
+    expect(metrics.overflowAmount).toBe(0)
+  })
+
   test('listen content panel stays top-anchored so the track list does not waste viewport height', async ({ page }) => {
     await page.goto('/listen')
 
