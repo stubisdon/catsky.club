@@ -11,6 +11,7 @@ let seenHostHeader = ''
 let seenForwardedHostHeader = ''
 let seenForwardedProtoHeader = ''
 let seenForwardedPortHeader = ''
+let seenMethod = ''
 
 beforeAll(async () => {
   mockGhostServer = createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -20,6 +21,7 @@ beforeAll(async () => {
     }
 
     seenPath = req.url
+    seenMethod = String(req.method || '')
     seenHostHeader = String(req.headers.host || '')
     seenForwardedHostHeader = String(req.headers['x-forwarded-host'] || '')
     seenForwardedProtoHeader = String(req.headers['x-forwarded-proto'] || '')
@@ -94,6 +96,7 @@ describe('unsubscribe proxy in server.js', () => {
     const html = await res.text()
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
+    expect(seenMethod).toBe('POST')
     expect(seenHostHeader).toBe('catsky.club')
     expect(seenForwardedHostHeader).toBe('catsky.club')
     expect(seenForwardedProtoHeader).toBe('https')
@@ -115,6 +118,7 @@ describe('unsubscribe proxy in server.js', () => {
     const html = await res.text()
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
+    expect(seenMethod).toBe('POST')
     expect(seenHostHeader).toBe('catsky.club')
     expect(res.status).toBe(200)
     expect(html).toContain('You are unsubscribed')
@@ -130,6 +134,7 @@ describe('unsubscribe proxy in server.js', () => {
 
     const html = await res.text()
 
+    expect(seenMethod).toBe('POST')
     expect(res.status).toBe(502)
     expect(html).toContain('Unable to confirm unsubscribe')
   })
@@ -143,6 +148,7 @@ describe('unsubscribe proxy in server.js', () => {
     })
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc')
+    expect(seenMethod).toBe('GET')
     expect(seenHostHeader).toBe('catsky.club')
     expect(seenForwardedHostHeader).toBe('catsky.club')
     expect(seenForwardedProtoHeader).toBe('https')
@@ -164,6 +170,7 @@ describe('unsubscribe proxy in server.js', () => {
     })
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc')
+    expect(seenMethod).toBe('GET')
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toBe('https://catsky.club/unsubscribe/success/')
   })

@@ -27,6 +27,13 @@ function hasPublicProxyContractInConfig(block: string) {
   )
 }
 
+function hasUnsubscribeProxyContractInConfig(block: string) {
+  return (
+    block.includes('proxy_set_header Host $host;')
+    && block.includes('proxy_set_header X-Forwarded-Proto $scheme;')
+  )
+}
+
 test.beforeAll(async () => {
   mockGhostServer = createServer((req: IncomingMessage, res: ServerResponse) => {
     if (!req.url) {
@@ -55,6 +62,18 @@ test.beforeAll(async () => {
 
       res.statusCode = 302
       res.setHeader('Location', 'http://127.0.0.1:4557/welcome')
+      return res.end('redirect')
+    }
+
+    if (req.url.startsWith('/unsubscribe/')) {
+      if (!hasPublicProxyHeaders(req)) {
+        res.statusCode = 301
+        res.setHeader('Location', `https://${publicHost}${req.url}`)
+        return res.end('canonical redirect required')
+      }
+
+      res.statusCode = 302
+      res.setHeader('Location', 'http://127.0.0.1:4557/unsubscribe/success/')
       return res.end('redirect')
     }
 
@@ -128,6 +147,18 @@ test('rewrites Ghost redirect locations for /r routes after satisfying Ghost can
   expect(response.headers()['location']).toBe(`https://${publicHost}/welcome`)
 })
 
+test('keeps non-tokenized /unsubscribe requests on the public host in the Express fallback path', async ({ request }) => {
+  const response = await request.get(`${appBaseUrl}/unsubscribe?uuid=abc`, {
+    maxRedirects: 0,
+    headers: {
+      'x-forwarded-host': publicHost,
+      'x-forwarded-proto': 'https',
+    },
+  })
+  expect(response.status()).toBe(302)
+  expect(response.headers()['location']).toBe(`https://${publicHost}/unsubscribe/success/`)
+})
+
 
 const nginxGhostRouteContracts = [
   {
@@ -156,6 +187,20 @@ for (const contract of nginxGhostRouteContracts) {
       const block = text.slice(blockStart, blockEnd)
 
       expect(hasPublicProxyContractInConfig(block)).toBe(true)
+    }
+  })
+
+  test(`documents unsubscribe proxy routes in ${contract.file}`, async () => {
+    const text = readFileSync(contract.file, 'utf8')
+
+    for (const route of ['location = /unsubscribe', 'location /unsubscribe/']) {
+      const blockStart = text.indexOf(route)
+      expect(blockStart, `${contract.file} should define ${route}`).toBeGreaterThanOrEqual(0)
+
+      const blockEnd = text.indexOf('}', blockStart)
+      const block = text.slice(blockStart, blockEnd)
+
+      expect(hasUnsubscribeProxyContractInConfig(block)).toBe(true)
     }
   })
 }
