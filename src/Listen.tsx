@@ -169,7 +169,7 @@ export default function Listen() {
   const currentTrack = currentTrackId ? TRACKS.find(t => t.id === currentTrackId) : null
 
   return (
-    <div className="app-container">
+    <div className="app-container listen-page-shell">
       <div
         style={{
           width: '100%',
@@ -179,7 +179,7 @@ export default function Listen() {
           textAlign: 'left',
           letterSpacing: '0.05em',
           lineHeight: '1.8',
-          maxHeight: '100dvh',
+          height: '100dvh',
           overflowY: 'auto',
           userSelect: 'text',
           WebkitUserSelect: 'text',

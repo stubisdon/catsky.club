@@ -75,6 +75,10 @@ body {
   box-sizing: border-box;
 }
 
+.listen-page-shell {
+  align-items: flex-start;
+}
+
 /* Ensure Ghost Portal can overlay our full-screen app */
 #ghost-portal-root {
   position: fixed;
