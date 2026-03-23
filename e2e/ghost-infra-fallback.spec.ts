@@ -8,6 +8,23 @@ let appProcess: ChildProcessWithoutNullStreams
 let appBaseUrl = ''
 const publicHost = 'catsky.club'
 
+async function waitForServer(url: string, timeoutMs = 45_000) {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      const response = await fetch(url, { redirect: 'manual' })
+      if (response.status >= 200) return
+    } catch {
+      // Retry until timeout.
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+
+  throw new Error(`Timed out waiting for server startup at ${url}`)
+}
+
 function hasPublicProxyHeaders(req: IncomingMessage) {
   return (
     req.headers.host === publicHost
@@ -58,6 +75,18 @@ test.beforeAll(async () => {
       return res.end('redirect')
     }
 
+    if (req.url.startsWith('/unsubscribe/')) {
+      if (!hasPublicProxyHeaders(req)) {
+        res.statusCode = 301
+        res.setHeader('Location', `https://${publicHost}${req.url}`)
+        return res.end('canonical redirect required')
+      }
+
+      res.statusCode = 302
+      res.setHeader('Location', 'http://127.0.0.1:4557/?uuid=abc')
+      return res.end('redirect')
+    }
+
     if (req.url.startsWith('/welcome')) {
       res.statusCode = 200
       return res.end('ok')
@@ -84,19 +113,14 @@ test.beforeAll(async () => {
     stdio: 'pipe',
   })
 
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Timed out waiting for server startup')), 15_000)
-    appProcess.stdout.on('data', (chunk) => {
-      if (String(chunk).includes('Server running on')) {
-        clearTimeout(timeout)
-        resolve()
-      }
-    })
-    appProcess.on('exit', (code) => {
-      clearTimeout(timeout)
-      reject(new Error(`server.js exited during startup with code ${code}`))
-    })
-  })
+  await Promise.race([
+    waitForServer(`${appBaseUrl}/`),
+    new Promise<never>((_, reject) => {
+      appProcess.on('exit', (code) => {
+        reject(new Error(`server.js exited during startup with code ${code}`))
+      })
+    }),
+  ])
 })
 
 test.afterAll(async () => {
@@ -104,28 +128,40 @@ test.afterAll(async () => {
   await new Promise<void>((resolve) => mockGhostServer.close(() => resolve()))
 })
 
-test('passes through Ghost image assets without canonical redirect loops', async ({ request }) => {
-  const response = await request.get(`${appBaseUrl}/content/images/2023/06/catsky-club-favicon-1.png`, {
-    maxRedirects: 0,
+test('passes through Ghost image assets without canonical redirect loops', async () => {
+  const response = await fetch(`${appBaseUrl}/content/images/2023/06/catsky-club-favicon-1.png`, {
+    redirect: 'manual',
     headers: {
       'x-forwarded-host': publicHost,
       'x-forwarded-proto': 'https',
     },
   })
-  expect(response.status()).toBe(200)
-  expect(response.headers()['content-type']).toContain('image/png')
+  expect(response.status).toBe(200)
+  expect(response.headers.get('content-type')).toContain('image/png')
 })
 
-test('rewrites Ghost redirect locations for /r routes after satisfying Ghost canonical host checks', async ({ request }) => {
-  const response = await request.get(`${appBaseUrl}/r/test-redirect`, {
-    maxRedirects: 0,
+test('rewrites Ghost redirect locations for /r routes after satisfying Ghost canonical host checks', async () => {
+  const response = await fetch(`${appBaseUrl}/r/test-redirect`, {
+    redirect: 'manual',
     headers: {
       'x-forwarded-host': publicHost,
       'x-forwarded-proto': 'https',
     },
   })
-  expect(response.status()).toBe(302)
-  expect(response.headers()['location']).toBe(`https://${publicHost}/welcome`)
+  expect(response.status).toBe(302)
+  expect(response.headers.get('location')).toBe(`https://${publicHost}/welcome`)
+})
+
+test('passes through non-tokenized /unsubscribe routes with the public-host proxy contract', async () => {
+  const response = await fetch(`${appBaseUrl}/unsubscribe?uuid=abc`, {
+    redirect: 'manual',
+    headers: {
+      'x-forwarded-host': publicHost,
+      'x-forwarded-proto': 'https',
+    },
+  })
+  expect(response.status).toBe(302)
+  expect(response.headers.get('location')).toBe(`https://${publicHost}/?uuid=abc`)
 })
 
 
