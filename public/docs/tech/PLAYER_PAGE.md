@@ -82,6 +82,7 @@ Current supported sources:
 ## 2026-03 listen stability notes
 - Keep the selected-player module rendered above the track list so it remains visible immediately after selecting a public track.
 - Keep the `/listen` shell top-aligned (`align-items: flex-start`) so long track lists use the full viewport instead of wasting space on vertical centering and showing the scrollbar earlier than necessary.
+- Keep the `/listen` header spacing compact (`1rem 1.5rem` shell padding, tighter title/account spacing, and slightly slimmer track cards) so the default catalog still fits at common desktop heights even when browser text renders a bit larger than Chromium defaults.
 - Use a fixed `height: 100dvh` together with `box-sizing: border-box` on the `/listen` content panel so viewport-sized containers do not reintroduce a phantom inner scrollbar via padding.
 
 ## Related

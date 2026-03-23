@@ -174,7 +174,7 @@ export default function Listen() {
         style={{
           width: '100%',
           maxWidth: '800px',
-          padding: '2rem',
+          padding: '1rem 1.5rem',
           boxSizing: 'border-box',
           textAlign: 'left',
           letterSpacing: '0.05em',
@@ -185,10 +185,10 @@ export default function Listen() {
           WebkitUserSelect: 'text',
         }}
       >
-        <PageTitle>listen</PageTitle>
+        <PageTitle style={{ marginBottom: '0.75rem' }}>listen</PageTitle>
 
         {isGhostMember && (
-          <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', opacity: 0.8 }}>
+          <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', opacity: 0.8 }}>
             <a
               href="#/portal/account"
               data-portal="account"
@@ -294,13 +294,13 @@ export default function Listen() {
               <p>No tracks available at this time.</p>
             </div>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
             {accessibleTracks.map(track => (
               <div
                 key={track.id}
                 style={{
                   border: '1px solid rgba(255, 255, 255, 0.3)',
-                  padding: '1rem',
+                  padding: '0.85rem 1rem',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   backgroundColor: currentTrackId === track.id ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
@@ -387,7 +387,7 @@ export default function Listen() {
                       key={track.id}
                       style={{
                         border: '1px solid rgba(255, 255, 255, 0.1)',
-                        padding: '1rem',
+                        padding: '0.85rem 1rem',
                         opacity: 0.6,
                         position: 'relative',
                         cursor: 'pointer',
