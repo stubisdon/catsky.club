@@ -144,7 +144,7 @@ After a successful signup callback (`/connect?action=signup&success=true`), the 
 - `last_name` (optional)
 
 The onboarding form queues `POST /api/member-profile` on the Express server (`server.js`, port `3001`) and immediately continues to `/listen`.
-The Express server resolves the Ghost member from the request cookie and retries the profile update in the background, so `/welcome` no longer waits on client-side session hydration before letting the user continue.
+The Express server translates the Ghost Members identity returned by `/members/api/member/` (typically `uuid` + `email`, not a Ghost Admin member id), falls back to request-cookie session resolution when needed, and retries the profile update in the background, so `/welcome` no longer waits on client-side session hydration before letting the user continue.
 
 - Create a local secrets file (gitignored) named `.env.server` next to `server.js`.
 - Use `ENV_SERVER.example` as a template.

@@ -63,14 +63,15 @@ const PORTAL_HASH_REGEX = /^#\/portal\/(signup|signin|account)/
 const MAGIC_LINK_API = '/members/api/send-magic-link/'
 const WELCOME_MEMBER_STORAGE_KEY = 'catsky_welcome_member'
 
-function storeWelcomeMemberIdentity(member: { id?: string; email?: string } | null) {
+function storeWelcomeMemberIdentity(member: { id?: string; uuid?: string; email?: string } | null) {
   const memberId = typeof member?.id === 'string' ? member.id.trim() : ''
+  const memberUuid = typeof member?.uuid === 'string' ? member.uuid.trim() : ''
   const email = typeof member?.email === 'string' ? member.email.trim().toLowerCase() : ''
 
-  if (!memberId || !email) return
+  if ((!memberId && !memberUuid) || !email) return
 
   try {
-    window.sessionStorage.setItem(WELCOME_MEMBER_STORAGE_KEY, JSON.stringify({ memberId, email }))
+    window.sessionStorage.setItem(WELCOME_MEMBER_STORAGE_KEY, JSON.stringify({ memberId, memberUuid, email }))
   } catch {
     // ignore storage failures
   }
