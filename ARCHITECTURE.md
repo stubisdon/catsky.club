@@ -90,6 +90,7 @@ Important: script order is intentional; this patch script runs before Portal loa
 
 - Track catalog lives in `src/config/tracks.ts`.
 - Access tiers per track: `public`, `free_member`, `paid_5`, `paid_20`.
+- Tracks can also define `availableFrom` + `lockedLabel` metadata for date-based embargoes that should stay locked even when the listener's membership tier would otherwise qualify.
 - Current track list is SoundCloud-based.
 
 ### 4.2 Playback behavior
@@ -97,7 +98,7 @@ Important: script order is intentional; this patch script runs before Portal loa
 In `src/Listen.tsx`:
 
 - membership tier is loaded first (`getMembershipTier`).
-- accessible vs locked tracks computed client-side from tier.
+- accessible vs locked tracks computed client-side from tier plus any track-level embargo date.
 - selecting locked tracks redirects to `/connect`.
 - supports:
   - direct audio element path (`audioRef`) for `direct` sources,

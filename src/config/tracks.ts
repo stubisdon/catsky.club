@@ -7,6 +7,8 @@ export interface Track {
   title: string
   audioSource: AudioSource
   accessTier: TrackAccessTier
+  availableFrom?: string
+  lockedLabel?: string
   version?: string
   date?: string
 }
@@ -46,6 +48,8 @@ export const TRACKS: Track[] = [
     id: '4',
     title: 'Motherless Child',
     accessTier: 'free_member',
+    availableFrom: '2026-04-10',
+    lockedLabel: 'coming Apr 10, 2026',
     audioSource: {
       type: 'soundcloud',
       trackUrl: 'https://soundcloud.com/catsky_club/catsky-motherless-child/s-VKabkUnt9Jf',
@@ -55,6 +59,7 @@ export const TRACKS: Track[] = [
     id: '5',
     title: 'Sugar Daddy',
     accessTier: 'paid_5',
+    lockedLabel: 'coming May 8, 2026',
     audioSource: {
       type: 'soundcloud',
       trackUrl: 'https://soundcloud.com/catsky_club/catsky-sugar-daddy/s-aX8EIUCGf9C',
