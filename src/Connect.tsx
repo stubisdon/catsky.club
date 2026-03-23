@@ -4,7 +4,8 @@ import { navigateTo } from './router/navigation'
 import {
   clearLocalSessionFlags,
   triggerPortalSignOut,
-  isSubscriber,
+  getMembershipTier,
+  type MembershipTier,
   setDevMemberOverride,
 } from './utils'
 
@@ -61,9 +62,16 @@ const PORTAL_HASH_REGEX = /^#\/portal\/(signup|signin|account)/
 
 const MAGIC_LINK_API = '/members/api/send-magic-link/'
 
+function getMembershipLabel(tier: MembershipTier): string {
+  if (tier === 'paid_20') return '$20 member'
+  if (tier === 'paid_5') return '$5 member'
+  if (tier === 'free') return 'free member'
+  return 'guest'
+}
+
 export default function Connect() {
   const [portalHashActive, setPortalHashActive] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
+  const [membershipTier, setMembershipTier] = useState<MembershipTier | null>(null)
   const [showAuthForm, setShowAuthForm] = useState(false)
   const [authEntryPoint, setAuthEntryPoint] = useState<'signup' | 'signin'>('signup')
   const [authEmail, setAuthEmail] = useState('')
@@ -78,15 +86,15 @@ export default function Connect() {
   }, [])
 
   const refreshMemberStatus = useCallback(async () => {
-    const loggedIn = await isSubscriber()
-    setIsLoggedIn(loggedIn)
-    return loggedIn
+    const tier = await getMembershipTier()
+    setMembershipTier(tier)
+    return tier
   }, [])
 
   useEffect(() => {
     let cancelled = false
-    isSubscriber().then((loggedIn) => {
-      if (!cancelled) setIsLoggedIn(loggedIn)
+    getMembershipTier().then((tier) => {
+      if (!cancelled) setMembershipTier(tier)
     })
     return () => { cancelled = true }
   }, [])
@@ -125,8 +133,8 @@ export default function Connect() {
           if (cancelled) return
         }
 
-        const loggedIn = await refreshMemberStatus()
-        if (loggedIn) {
+        const tier = await refreshMemberStatus()
+        if (tier !== 'none') {
           setShowAuthForm(false)
           if (params.get('action') === 'signup') {
             const next = new URL(window.location.href)
@@ -171,7 +179,7 @@ export default function Connect() {
     triggerPortalSignOut()
     clearLocalSessionFlags()
     setDevMemberOverride(false) // clear dev override so localhost stays in sync
-    setIsLoggedIn(false)
+    setMembershipTier('none')
     // Re-check after Ghost has processed signout so UI stays in sync
     setTimeout(refreshMemberStatus, 500)
   }, [refreshMemberStatus])
@@ -232,6 +240,10 @@ export default function Connect() {
     }
   }, [])
 
+  const isLoggedIn = membershipTier !== null && membershipTier !== 'none'
+  const isFreeMember = membershipTier === 'free'
+  const isPaidMember = membershipTier === 'paid_5' || membershipTier === 'paid_20'
+
   return (
     <div className="app-container">
       <div className="connect-content">
@@ -239,7 +251,7 @@ export default function Connect() {
 
         {/* Portal links: set hash so Ghost Portal opens; if it didn’t init, fallback opens Ghost in new tab */}
         <div className="connect-portal-buttons">
-          {isLoggedIn !== true && (
+          {!isLoggedIn && (
             <>
               {!showAuthForm ? (
                 <>
@@ -295,7 +307,7 @@ export default function Connect() {
               )}
             </>
           )}
-          {isLoggedIn === true && (
+          {isLoggedIn && (
             <>
               <a
                 href="#/portal/account"
@@ -324,6 +336,71 @@ export default function Connect() {
         )}
 
         <div style={{ marginBottom: '2rem', opacity: 0.9 }}>
+          {membershipTier !== null && (
+            <div style={{ marginTop: '1.5rem', maxWidth: '32rem' }}>
+              <p style={{ margin: '0 0 1rem' }}>
+                current access: {getMembershipLabel(membershipTier)}
+              </p>
+
+              {!isLoggedIn && (
+                <div style={{ display: 'grid', gap: '0.9rem' }}>
+                  <p style={{ margin: 0 }}>
+                    sign up free to unlock finished unreleased songs, then upgrade in account when you want demos and the unreleased video.
+                  </p>
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    <div style={{ border: '1px solid rgba(255,255,255,0.22)', padding: '0.9rem 1rem' }}>
+                      <strong>$5 / month</strong>
+                      <div style={{ opacity: 0.8 }}>unfinished demos + unreleased music video access.</div>
+                    </div>
+                    <div style={{ border: '1px solid rgba(255,255,255,0.22)', padding: '0.9rem 1rem' }}>
+                      <strong>$20 / month</strong>
+                      <div style={{ opacity: 0.8 }}>same V1 access, with a higher support level for the project.</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isFreeMember && (
+                <div style={{ display: 'grid', gap: '0.9rem' }}>
+                  <p style={{ margin: 0 }}>
+                    upgrade in account whenever you want to move from finished unreleased songs into demos and the unreleased video room.
+                  </p>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <a
+                      href="#/portal/account"
+                      data-portal="account"
+                      className="connect-portal-btn"
+                      onClick={handlePortalClick}
+                    >
+                      choose $5 / month →
+                    </a>
+                    <a
+                      href="#/portal/account"
+                      data-portal="account"
+                      className="connect-portal-btn"
+                      onClick={handlePortalClick}
+                    >
+                      choose $20 / month →
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {isPaidMember && (
+                <div style={{ display: 'grid', gap: '0.9rem' }}>
+                  <p style={{ margin: 0 }}>
+                    you already have paid access to unfinished demos in listen and the unreleased video path in watch.
+                  </p>
+                  {membershipTier === 'paid_5' && (
+                    <p style={{ margin: 0, opacity: 0.8 }}>
+                      if you want to support at $20 instead, open account and change your tier there.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ marginTop: '1.5rem' }}>
             <Link href="/listen" style={{ fontSize: '0.9rem' }}>
               continue →
@@ -348,7 +425,7 @@ export default function Connect() {
             <button
               type="button"
               onClick={() => {
-                setDevMemberOverride(true)
+                setDevMemberOverride(true, 'free')
                 refreshMemberStatus()
               }}
               style={{
@@ -361,7 +438,43 @@ export default function Connect() {
                 textTransform: 'lowercase',
               }}
             >
-              simulate logged in
+              simulate free
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDevMemberOverride(true, 'paid_5')
+                refreshMemberStatus()
+              }}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.4)',
+                color: 'rgba(255,255,255,0.9)',
+                padding: '0.25rem 0.5rem',
+                cursor: 'pointer',
+                letterSpacing: '0.05em',
+                textTransform: 'lowercase',
+              }}
+            >
+              simulate $5
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDevMemberOverride(true, 'paid_20')
+                refreshMemberStatus()
+              }}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.4)',
+                color: 'rgba(255,255,255,0.9)',
+                padding: '0.25rem 0.5rem',
+                cursor: 'pointer',
+                letterSpacing: '0.05em',
+                textTransform: 'lowercase',
+              }}
+            >
+              simulate $20
             </button>
             <button
               type="button"

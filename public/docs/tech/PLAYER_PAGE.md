@@ -26,6 +26,7 @@ The Listen page (`/listen`) is the primary music destination. It must support al
   - released music
   - finished unreleased songs
   - unfinished demos
+- In the current V1 build, the full paid demo catalog is available at `$5`; there are no listen-only `$20` exclusives.
 
 ### 4) Paid $20
 - V1.0 parity with $5 for listening features.

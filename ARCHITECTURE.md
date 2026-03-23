@@ -24,7 +24,7 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 
 - `/` → `src/App.tsx` (landing page)
 - `/listen` → `src/Listen.tsx` (tier-gated tracks)
-- `/watch` → `src/Watch.tsx` (video teaser + connect CTA)
+- `/watch` → `src/Watch.tsx` (public teaser + paid-member video unlock path)
 - `/connect` → `src/Connect.tsx` (magic-link auth UI + account/logout)
 - `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name)
 - `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
@@ -53,7 +53,7 @@ Primary member check flow:
 
 Dev override support (local only):
 
-- `catsky_dev_member` + `catsky_dev_paid` in localStorage via `setDevMemberOverride()`.
+- `catsky_dev_member` + `catsky_dev_paid` + `catsky_dev_tier` in localStorage via `setDevMemberOverride()`.
 
 ### 3.2 Connect authentication UX
 
@@ -69,7 +69,8 @@ Current behavior in `src/Connect.tsx`:
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)
-  - logout action that **must** call `triggerPortalSignOut()`.
+  - logout action that **must** call `triggerPortalSignOut()`
+  - current access messaging plus explicit `$5` / `$20` upgrade CTAs for free members.
 
 ### 3.3 Ghost Portal wiring and hardening
 
@@ -98,6 +99,7 @@ In `src/Listen.tsx`:
 
 - membership tier is loaded first (`getMembershipTier`).
 - accessible vs locked tracks computed client-side from tier.
+- V1 paid listening access currently gives `$5` and `$20` members the same paid demo catalog, matching the V1 UX contract that `$20` differentiation is deferred.
 - selecting locked tracks redirects to `/connect`.
 - supports:
   - direct audio element path (`audioRef`) for `direct` sources,
@@ -108,6 +110,15 @@ Helpers:
 
 - `src/utils/audioHelpers.ts` generates SoundCloud embed URLs and supports direct URLs.
 - `src/utils/soundcloudTracks.ts` offers parsing utilities for SoundCloud share links.
+
+## 4.3 Watch page gating
+
+In `src/Watch.tsx`:
+
+- the public YouTube trailer remains open to every visitor,
+- guests are sent to `/connect`,
+- free members are prompted to upgrade in Ghost Portal account,
+- `$5` and `$20` members get a direct link to the members-only Ghost post for the unreleased video (`/music-video-is-done/` on production).
 
 ## 5) Express server architecture (`server.js`)
 

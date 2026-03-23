@@ -77,6 +77,25 @@ test.describe('Connect Page - Basic Elements', () => {
     await expect(accountLink).toBeVisible()
   })
 
+  test('free member sees explicit $5 and $20 upgrade actions', async ({ page }) => {
+    await page.route('**/members/api/member**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: { id: 'test-member', email: 'test@example.com', subscriptions: [] },
+        }),
+      })
+    })
+
+    await page.goto('/connect')
+    await page.waitForLoadState('networkidle')
+
+    await expect(page.getByText(/current access: free member/i)).toBeVisible()
+    await expect(page.getByRole('link', { name: /choose \$5 \/ month/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: /choose \$20 \/ month/i })).toBeVisible()
+  })
+
   test('connect page has log out link when logged in', async ({ page }) => {
     await page.route('**/members/api/member**', (route) => {
       route.fulfill({

@@ -1,4 +1,31 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
+
+function mockMember(page: Page, amount?: number) {
+  return page.route('**/members/api/member**', (route) => {
+    if (amount === undefined) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ member: null }),
+      })
+      return
+    }
+
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        member: {
+          id: 'watch-member',
+          email: 'watch@example.com',
+          subscriptions: amount > 0
+            ? [{ id: 'sub-1', status: 'active', price: { amount, currency: 'USD' } }]
+            : [],
+        },
+      }),
+    })
+  })
+}
 
 /**
  * Watch Page Tests
@@ -102,15 +129,17 @@ test.describe('Watch Page - YouTube Video', () => {
 
 test.describe('Watch Page - Content', () => {
   test('displays teaser description', async ({ page }) => {
+    await mockMember(page)
     await page.goto('/watch')
     await page.waitForLoadState('networkidle')
 
     // Check for description text about accessing full video
-    const description = page.getByText(/get access to the full music video/i)
+    const description = page.getByText(/trailer is public\. the unreleased full video opens for paid members\./i)
     await expect(description).toBeVisible()
   })
 
   test('displays get access CTA button', async ({ page }) => {
+    await mockMember(page)
     await page.goto('/watch')
     await page.waitForLoadState('networkidle')
 
@@ -120,6 +149,7 @@ test.describe('Watch Page - Content', () => {
   })
 
   test('get access button links to connect page', async ({ page }) => {
+    await mockMember(page)
     await page.goto('/watch')
     await page.waitForLoadState('networkidle')
 
@@ -132,6 +162,7 @@ test.describe('Watch Page - Content', () => {
   })
 
   test('get access button has hover effect', async ({ page }) => {
+    await mockMember(page)
     await page.goto('/watch')
     await page.waitForLoadState('networkidle')
 
@@ -155,6 +186,25 @@ test.describe('Watch Page - Content', () => {
 
     // Background should be different on hover
     expect(hoverBg).not.toBe(initialBg)
+  })
+
+  test('free members see upgrade CTA for the unreleased video', async ({ page }) => {
+    await mockMember(page, 0)
+    await page.goto('/watch')
+    await page.waitForLoadState('networkidle')
+
+    await expect(page.getByText(/upgrade to \$5 \/ month in account to unlock the unreleased video too\./i)).toBeVisible()
+    await expect(page.getByRole('link', { name: /upgrade to \$5/i })).toBeVisible()
+  })
+
+  test('$5 members can open the unreleased video post', async ({ page }) => {
+    await mockMember(page, 500)
+    await page.goto('/watch')
+    await page.waitForLoadState('networkidle')
+
+    const paidLink = page.getByRole('link', { name: /open unreleased video/i })
+    await expect(paidLink).toBeVisible()
+    await expect(paidLink).toHaveAttribute('href', /music-video-is-done/)
   })
 })
 

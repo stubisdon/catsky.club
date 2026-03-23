@@ -39,11 +39,13 @@ This document is updated to reflect the current V1.0 product vision.
 - Gains access to finished unreleased songs.
 - Can unsubscribe from newsletters.
 - Can upgrade to $5 or $20.
+- `/connect` should show those upgrade options explicitly, not only a generic account link.
 
 ### $5 Tier
 - Retains all free capabilities.
 - Gains access to unfinished demos.
 - Gains access to unreleased music video.
+- In the current implementation, `/listen` unlocks the full paid demo catalog and `/watch` unlocks the members-only video post.
 
 ### $20 Tier
 - Includes all $5 capabilities for V1.0.
@@ -61,6 +63,7 @@ This document is updated to reflect the current V1.0 product vision.
 ### Upgrade flow
 - Upgrade options: $5 and $20 monthly.
 - Upgrade CTA appears on locked-content surfaces and account area.
+- Free members should see labeled `$5 / month` and `$20 / month` actions on `/connect`.
 
 ### Newsletter controls
 - Subscription preference visible in account/settings.

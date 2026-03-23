@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, render, screen } from '@testing-library/react'
 import Connect from './Connect'
 
-const { isSubscriberMock, navigateToMock } = vi.hoisted(() => ({
-  isSubscriberMock: vi.fn<() => Promise<boolean>>(),
+const { getMembershipTierMock, navigateToMock } = vi.hoisted(() => ({
+  getMembershipTierMock: vi.fn<() => Promise<'none' | 'free' | 'paid_5' | 'paid_20'>>(),
   navigateToMock: vi.fn<(path: string) => void>(),
 }))
 
@@ -11,7 +11,7 @@ vi.mock('./utils', () => ({
   clearLocalSessionFlags: vi.fn(),
   triggerPortalSignOut: vi.fn(),
   setDevMemberOverride: vi.fn(),
-  isSubscriber: isSubscriberMock,
+  getMembershipTier: getMembershipTierMock,
 }))
 
 vi.mock('./router/navigation', () => ({
@@ -26,15 +26,15 @@ describe('Connect magic-link state refresh', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.clearAllMocks()
-    isSubscriberMock.mockResolvedValue(false)
+    getMembershipTierMock.mockResolvedValue('none')
     window.history.replaceState({}, '', '/connect')
   })
 
   it('updates to logged-in buttons after signin magic-link success callback', async () => {
-    isSubscriberMock
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true)
+    getMembershipTierMock
+      .mockResolvedValueOnce('none')
+      .mockResolvedValueOnce('none')
+      .mockResolvedValueOnce('free')
 
     window.history.replaceState({}, '', '/connect?action=signin&success=true')
 
@@ -50,10 +50,10 @@ describe('Connect magic-link state refresh', () => {
   })
 
   it('routes signup callbacks to welcome after login state is ready', async () => {
-    isSubscriberMock
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true)
+    getMembershipTierMock
+      .mockResolvedValueOnce('none')
+      .mockResolvedValueOnce('none')
+      .mockResolvedValueOnce('free')
 
     window.history.replaceState({}, '', '/connect?action=signup&success=true')
 

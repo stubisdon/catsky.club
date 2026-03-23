@@ -1,7 +1,7 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
-function mockMember(page: any, amount?: number) {
-  return page.route('**/members/api/member/', (route) => {
+function mockMember(page: Page, amount?: number) {
+  return page.route('**/members/api/member**', (route) => {
     if (amount === undefined) {
       route.fulfill({
         status: 200,
@@ -50,15 +50,16 @@ test.describe('Listen catalog tier access', () => {
     await expect(sugarDaddyContainer).toBeVisible()
   })
 
-  test('$5 member unlocks Sugar Daddy but $20 tracks stay locked', async ({ page }) => {
+  test('$5 member unlocks every paid demo in v1', async ({ page }) => {
     await mockMember(page, 500)
     await page.goto('/listen')
 
     const sugarDaddyLocked = page.locator('div').filter({ hasText: /^Sugar Daddy.*coming May 8, 2026$/i })
     await expect(sugarDaddyLocked).toHaveCount(0)
 
-    const overpricedLocked = page.locator('div').filter({ hasText: /^Overpriced Airbnb.*in progress$/i }).first()
-    await expect(overpricedLocked).toBeVisible()
+    await expect(page.getByText('Overpriced Airbnb')).toBeVisible()
+    await expect(page.getByText('Nova')).toBeVisible()
+    await expect(page.getByText('Vision')).toBeVisible()
   })
 
 
@@ -69,7 +70,7 @@ test.describe('Listen catalog tier access', () => {
     const sugarDaddyCard = page.locator('div').filter({ hasText: /^Sugar Daddy.*coming May 8, 2026$/i }).first()
     await sugarDaddyCard.hover()
 
-    await expect(sugarDaddyCard.getByText('listen early')).toBeVisible()
+    await expect(page.getByText('listen early')).toBeVisible()
   })
   test('clicking locked paid track routes user to /connect', async ({ page }) => {
     await mockMember(page, 0)

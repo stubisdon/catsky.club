@@ -43,6 +43,7 @@ function looksLikeGhostMember(value: unknown): value is GhostMember {
 
 const DEV_MEMBER_KEY = 'catsky_dev_member'
 const DEV_PAID_KEY = 'catsky_dev_paid'
+const DEV_TIER_KEY = 'catsky_dev_tier'
 
 /** Only in Vite dev: allow simulating logged-in state for localhost testing (cookie is on prod domain). */
 function getDevOverride(): SubscriptionStatus | null {
@@ -50,6 +51,9 @@ function getDevOverride(): SubscriptionStatus | null {
     try {
       const member = window.localStorage?.getItem(DEV_MEMBER_KEY)
       if (member === '1' || member === 'true') {
+        const tier = window.localStorage?.getItem(DEV_TIER_KEY)
+        if (tier === 'paid_5' || tier === 'paid_20') return 'paid_subscriber'
+        if (tier === 'free') return 'free_subscriber'
         const paid = window.localStorage?.getItem(DEV_PAID_KEY)
         return paid === '1' || paid === 'true' ? 'paid_subscriber' : 'free_subscriber'
       }
@@ -78,14 +82,16 @@ function getHighestPaidTier(member: GhostMember): MembershipTier {
   return 'free'
 }
 
-export function setDevMemberOverride(loggedIn: boolean, paid = false): void {
+export function setDevMemberOverride(loggedIn: boolean, tier: 'free' | 'paid_5' | 'paid_20' = 'free'): void {
   try {
     if (loggedIn) {
       window.localStorage.setItem(DEV_MEMBER_KEY, '1')
-      window.localStorage.setItem(DEV_PAID_KEY, paid ? '1' : '0')
+      window.localStorage.setItem(DEV_PAID_KEY, tier === 'paid_5' || tier === 'paid_20' ? '1' : '0')
+      window.localStorage.setItem(DEV_TIER_KEY, tier)
     } else {
       window.localStorage.removeItem(DEV_MEMBER_KEY)
       window.localStorage.removeItem(DEV_PAID_KEY)
+      window.localStorage.removeItem(DEV_TIER_KEY)
     }
   } catch {
     // ignore
@@ -127,8 +133,16 @@ export async function checkSubscriptionStatus(): Promise<SubscriptionStatus> {
 
 export async function getMembershipTier(): Promise<MembershipTier> {
   const devOverride = getDevOverride()
-  if (devOverride === 'paid_subscriber') return 'paid_20'
-  if (devOverride === 'free_subscriber') return 'free'
+  if (devOverride === 'paid_subscriber' || devOverride === 'free_subscriber') {
+    try {
+      const tier = window.localStorage?.getItem(DEV_TIER_KEY)
+      if (tier === 'paid_5' || tier === 'paid_20' || tier === 'free') return tier
+    } catch {
+      // ignore
+    }
+    if (devOverride === 'paid_subscriber') return 'paid_20'
+    return 'free'
+  }
 
   try {
     const member = await fetchMember()
@@ -160,11 +174,20 @@ export async function isSubscriber(): Promise<boolean> {
 export async function getCurrentMember(): Promise<GhostMember | null> {
   const devOverride = getDevOverride()
   if (devOverride === 'free_subscriber' || devOverride === 'paid_subscriber') {
+    let amount = 0
+    try {
+      const tier = window.localStorage?.getItem(DEV_TIER_KEY)
+      if (tier === 'paid_20') amount = 2000
+      else if (tier === 'paid_5') amount = 500
+      else if (devOverride === 'paid_subscriber') amount = 2000
+    } catch {
+      amount = devOverride === 'paid_subscriber' ? 2000 : 0
+    }
     return {
       id: 'dev-member',
       email: 'dev@localhost',
       name: 'Dev Member',
-      subscriptions: devOverride === 'paid_subscriber' ? [{ status: 'active', price: { amount: 2000 } }] : [],
+      subscriptions: amount > 0 ? [{ status: 'active', price: { amount } }] : [],
     }
   }
 
