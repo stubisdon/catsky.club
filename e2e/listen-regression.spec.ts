@@ -42,21 +42,26 @@ test.describe('Listen page regressions', () => {
     expect(order.playerIndex).toBeLessThan(order.listIndex)
   })
 
-  test('listen content panel stays within the viewport without padding-induced overflow', async ({ page }) => {
+  test('listen content panel stays top-anchored so the track list does not waste viewport height', async ({ page }) => {
     await page.goto('/listen')
 
-    const metrics = await page.locator('.app-container > div').first().evaluate((el) => {
+    const metrics = await page.locator('.listen-page-shell > div').first().evaluate((el) => {
       const rect = el.getBoundingClientRect()
+      const heading = el.querySelector('h1')
+      const headingRect = heading?.getBoundingClientRect()
       return {
         top: rect.top,
         bottom: rect.bottom,
         height: rect.height,
         viewportHeight: window.innerHeight,
+        headingTop: headingRect?.top ?? null,
       }
     })
 
-    expect(metrics.top).toBeGreaterThanOrEqual(0)
+    expect(metrics.top).toBe(0)
     expect(metrics.bottom).toBeLessThanOrEqual(metrics.viewportHeight)
     expect(metrics.height).toBeLessThanOrEqual(metrics.viewportHeight)
+    expect(metrics.headingTop).not.toBeNull()
+    expect(metrics.headingTop!).toBeLessThan(80)
   })
 })
