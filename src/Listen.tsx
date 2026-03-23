@@ -382,6 +382,7 @@ export default function Listen() {
               <>
                 {lockedTracks.map(track => {
                   const isHovered = hoveredLockedTrackId === track.id
+                  const lockedStatusLabel = isHovered ? 'listen early' : getLockedTrackLabel(track)
                   return (
                     <div
                       key={track.id}
@@ -412,13 +413,17 @@ export default function Listen() {
                             </div>
                           )}
                         </div>
-                        <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>{getLockedTrackLabel(track)}</div>
-                      </div>
-                      {isHovered && (
-                        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: 0.9 }}>
-                          listen early
+                        <div
+                          style={{
+                            fontSize: '0.85rem',
+                            opacity: isHovered ? 0.9 : 0.7,
+                            letterSpacing: isHovered ? '0.06em' : undefined,
+                            textTransform: isHovered ? 'uppercase' : undefined,
+                          }}
+                        >
+                          {lockedStatusLabel}
                         </div>
-                      )}
+                      </div>
                     </div>
                   )
                 })}

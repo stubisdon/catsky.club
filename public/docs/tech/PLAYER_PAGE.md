@@ -63,7 +63,8 @@ interface Track {
   - `Motherless Child` shows `coming Apr 10, 2026` and must remain locked for all listeners before that date.
   - `Sugar Daddy` shows `coming May 8, 2026`.
   - Other locked songs show `in progress`.
-  - Hovering a locked card reveals `listen early` and routes to `/connect` on click.
+  - Hovering a locked card replaces the status copy with `LISTEN EARLY`, then restores the original status when the hover/focus state ends.
+  - Clicking a locked card routes to `/connect`.
 - Copy should be concise and non-manipulative.
 
 ## Audio Sources
@@ -84,6 +85,7 @@ Current supported sources:
 - Keep the `/listen` shell top-aligned (`align-items: flex-start`) so long track lists use the full viewport instead of wasting space on vertical centering and showing the scrollbar earlier than necessary.
 - Keep the `/listen` header spacing compact (`1rem 1.5rem` shell padding, tighter title/account spacing, and slightly slimmer track cards) so the default catalog still fits at common desktop heights even when browser text renders a bit larger than Chromium defaults.
 - Use a fixed `height: 100dvh` together with `box-sizing: border-box` on the `/listen` content panel so viewport-sized containers do not reintroduce a phantom inner scrollbar via padding.
+- Preserve regression coverage for both guest and free-member states so the account row cannot silently reintroduce either body-level or panel-level phantom scrolling on the default desktop `/listen` layout.
 
 ## Related
 - `public/docs/tech/V1_UX_USE_CASES.md`

@@ -48,13 +48,54 @@ test.describe('Listen page regressions', () => {
     await page.addStyleTag({ content: 'body { font-size: 28px !important; }' })
 
     const metrics = await page.locator('.listen-page-shell > div').first().evaluate((el) => ({
-      scrollHeight: el.scrollHeight,
-      clientHeight: el.clientHeight,
-      overflowAmount: el.scrollHeight - el.clientHeight,
+      panelScrollHeight: el.scrollHeight,
+      panelClientHeight: el.clientHeight,
+      panelOverflowAmount: el.scrollHeight - el.clientHeight,
+      windowInnerHeight: window.innerHeight,
+      bodyScrollHeight: document.body.scrollHeight,
+      bodyClientHeight: document.body.clientHeight,
+      documentScrollHeight: document.documentElement.scrollHeight,
+      documentClientHeight: document.documentElement.clientHeight,
     }))
 
-    expect(metrics.scrollHeight).toBe(metrics.clientHeight)
-    expect(metrics.overflowAmount).toBe(0)
+    expect(metrics.panelScrollHeight).toBe(metrics.panelClientHeight)
+    expect(metrics.panelOverflowAmount).toBe(0)
+    expect(metrics.bodyScrollHeight).toBe(metrics.windowInnerHeight)
+    expect(metrics.bodyClientHeight).toBe(metrics.windowInnerHeight)
+    expect(metrics.documentScrollHeight).toBe(metrics.windowInnerHeight)
+    expect(metrics.documentClientHeight).toBe(metrics.windowInnerHeight)
+  })
+
+  test('free-member listen page also stays scrollbar-free with account chrome visible', async ({ page }) => {
+    await page.route('**/members/api/member/', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: {
+            id: 'free-member',
+            email: 'member@example.com',
+            subscriptions: [],
+          },
+        }),
+      })
+    })
+
+    await page.setViewportSize({ width: 1728, height: 900 })
+    await page.goto('/listen')
+    await page.addStyleTag({ content: 'body { font-size: 28px !important; }' })
+
+    const metrics = await page.locator('.listen-page-shell > div').first().evaluate((el) => ({
+      panelScrollHeight: el.scrollHeight,
+      panelClientHeight: el.clientHeight,
+      bodyScrollHeight: document.body.scrollHeight,
+      documentScrollHeight: document.documentElement.scrollHeight,
+      windowInnerHeight: window.innerHeight,
+    }))
+
+    expect(metrics.panelScrollHeight).toBe(metrics.panelClientHeight)
+    expect(metrics.bodyScrollHeight).toBe(metrics.windowInnerHeight)
+    expect(metrics.documentScrollHeight).toBe(metrics.windowInnerHeight)
   })
 
   test('listen content panel stays top-anchored so the track list does not waste viewport height', async ({ page }) => {
