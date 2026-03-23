@@ -334,7 +334,7 @@ ghost restart
 2. **Ghost Admin:** Visit `https://catsky.club/ghost/` - should show Ghost admin
 3. **API:** Test `https://catsky.club/ghost/api/content/settings/?key=YOUR_KEY`
 4. **Members:** Test member signup/login at `https://catsky.club/members/`
-5. **Unsubscribe links:** open a real newsletter unsubscribe URL (all newsletter links, including `/unsubscribe?...` and `/unsubscribe/?...` formats) and confirm it shows a Catsky unsubscribe confirmation message (instead of silently redirecting to `/`) and never redirects to a localhost/127.0.0.1 address
+5. **Unsubscribe links:** open a real newsletter unsubscribe URL (all newsletter links, including `/unsubscribe?...` and `/unsubscribe/?...` formats) and confirm it shows a Catsky unsubscribe confirmation message (instead of silently redirecting to `/`), never redirects to a localhost/127.0.0.1 address, and actually removes the member from the targeted Ghost newsletter. Remember that Ghost performs the real unsubscribe on `POST /unsubscribe/?...`; a `GET`-only proxy can look successful while leaving the newsletter subscription unchanged.
 6. **Ghost image asset:** Test a known Ghost image URL under `https://catsky.club/content/images/...`
 7. **Email redirect:** Test a known Ghost redirect URL under `https://catsky.club/r/...`
 
