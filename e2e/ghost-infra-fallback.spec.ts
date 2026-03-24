@@ -168,15 +168,15 @@ test('keeps non-tokenized /unsubscribe requests on the public host in the Expres
 const nginxGhostRouteContracts = [
   {
     file: 'catsky.club-ssl.conf',
-    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/', '/members/'],
+    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/'],
   },
   {
     file: 'nginx.conf.example',
-    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/', '/members/'],
+    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/'],
   },
   {
     file: 'nginx-ssl-update.txt',
-    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/', '/members/'],
+    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/'],
   },
 ]
 
@@ -193,6 +193,20 @@ for (const contract of nginxGhostRouteContracts) {
 
       expect(hasPublicProxyContractInConfig(block)).toBe(true)
     }
+  })
+
+  test(`documents /members/ proxy route in ${contract.file}`, async () => {
+    const text = readFileSync(contract.file, 'utf8')
+    const blockStart = text.indexOf('location /members/')
+    expect(blockStart, `${contract.file} should define /members/`).toBeGreaterThanOrEqual(0)
+
+    const blockEnd = text.indexOf('}', blockStart)
+    const block = text.slice(blockStart, blockEnd)
+
+    expect(block.includes('proxy_set_header Host $host;')).toBe(true)
+    expect(block.includes('proxy_set_header X-Forwarded-Proto $scheme;')).toBe(true)
+    expect(block.includes('proxy_set_header X-Forwarded-Host $host;')).toBe(false)
+    expect(block.includes('proxy_set_header X-Forwarded-Port $server_port;')).toBe(false)
   })
 
   test(`documents unsubscribe proxy routes in ${contract.file}`, async () => {
