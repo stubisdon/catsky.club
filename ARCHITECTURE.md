@@ -24,8 +24,8 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 
 - `/` → `src/App.tsx` (landing page)
 - `/listen` → `src/Listen.tsx` (tier-gated tracks; V1 paid-demo catalog currently unlocks at `$5` with `$20` parity)
-- `/watch` → `src/Watch.tsx` (public teaser + `$5` upgrade prompt for free/guest users + unreleased-video entrypoint for paid tiers)
-- `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + upgrade/account/logout actions)
+- `/watch` → `src/Watch.tsx` (public teaser + plan/perk upgrade prompt for free/guest users + unreleased-video entrypoint for paid tiers)
+- `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + plan-name/perk upgrade messaging + account/logout actions)
 - `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name)
 - `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
 - unknown paths → normalized to `/` in router
