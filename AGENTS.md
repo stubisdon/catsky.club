@@ -113,6 +113,8 @@ Minimum screenshot set:
 Execution requirements:
 
 - Prefer browser automation so screenshots are reproducible.
+- Use `npm run screenshots:journey` as the default reproducible screenshot command in this repo. It starts Vite on `127.0.0.1:3000`, waits for app-shell readiness, and exports a 3-step journey into `artifacts/ui-journey/`.
+- If Playwright browser binaries or OS deps are missing, run `npm run test:e2e:setup` first and retry screenshot capture before declaring an environment blocker.
 - Include screenshots in the final task summary with clear labels in journey order.
 - If capture is blocked by environment/tooling, explicitly state what was attempted and why evidence could not be collected.
 - Do not mark the task done without screenshot evidence for user-visible changes unless a hard blocker is documented.

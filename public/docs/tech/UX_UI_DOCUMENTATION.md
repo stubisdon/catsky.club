@@ -84,6 +84,7 @@ For any task that changes user-visible UX/UI behavior, provide a screenshot sequ
 3. End state confirming completion (or locked/error outcome if that is the expected path).
 
 Evidence should be ordered and labeled so reviewers can reconstruct the flow without running the app locally.
+For reproducible baseline evidence in this repo, run `npm run screenshots:journey` to export ordered journey screenshots to `artifacts/ui-journey/`.
 
 ## QA Checklist
 - Visitor can complete each P0 use case without dead ends.
