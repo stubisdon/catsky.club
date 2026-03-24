@@ -30,7 +30,12 @@ function hasPublicProxyContractInConfig(block: string) {
 function hasUnsubscribeProxyContractInConfig(block: string) {
   return (
     block.includes('proxy_set_header Host $host;')
+    && block.includes('proxy_set_header X-Forwarded-Host $host;')
     && block.includes('proxy_set_header X-Forwarded-Proto $scheme;')
+    && block.includes('proxy_set_header X-Forwarded-Port $server_port;')
+    && block.includes('proxy_redirect http://127.0.0.1:2368/ https://$host/;')
+    && block.includes('proxy_redirect http://localhost:2368/ https://$host/;')
+    && block.includes('proxy_redirect http://localhost/ https://$host/;')
   )
 }
 
