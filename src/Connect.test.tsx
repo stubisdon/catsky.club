@@ -3,26 +3,26 @@ import { act, render, screen } from '@testing-library/react'
 import Connect from './Connect'
 
 const mocks = vi.hoisted(() => ({
-  isSubscriberMock: vi.fn<() => Promise<boolean>>(),
+  getMembershipTierMock: vi.fn<() => Promise<'none' | 'free' | 'paid_5' | 'paid_20'>>(),
   navigateToMock: vi.fn<(path: string) => void>(),
   getCurrentMemberMock: vi.fn<() => Promise<{ id?: string; uuid?: string; email?: string } | null>>(),
 }))
 
-const { isSubscriberMock, navigateToMock, getCurrentMemberMock } = mocks
+const { getMembershipTierMock, navigateToMock, getCurrentMemberMock } = mocks
 
 vi.mock('./utils', () => ({
   clearLocalSessionFlags: vi.fn(),
   getCurrentMember: mocks.getCurrentMemberMock,
+  getMembershipTier: mocks.getMembershipTierMock,
   triggerPortalSignOut: vi.fn(),
   setDevMemberOverride: vi.fn(),
-  isSubscriber: mocks.isSubscriberMock,
 }))
 
 vi.mock('./router/navigation', () => ({
   navigateTo: mocks.navigateToMock,
 }))
 
-describe('Connect magic-link state refresh', () => {
+describe('Connect membership states and magic-link refresh', () => {
   afterEach(() => {
     vi.useRealTimers()
   })
@@ -30,17 +30,31 @@ describe('Connect magic-link state refresh', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.clearAllMocks()
-    isSubscriberMock.mockResolvedValue(false)
+    getMembershipTierMock.mockResolvedValue('none')
     getCurrentMemberMock.mockResolvedValue(null)
     window.sessionStorage.clear()
     window.history.replaceState({}, '', '/connect')
   })
 
+  it('shows upgrade options for free members', async () => {
+    getMembershipTierMock.mockResolvedValue('free')
+
+    render(<Connect />)
+
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+
+    expect(screen.getByText('your current plan: free member')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'upgrade to $5 / month' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'upgrade to $20 / month' })).toBeInTheDocument()
+  })
+
   it('updates to logged-in buttons after signin magic-link success callback', async () => {
-    isSubscriberMock
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true)
+    getMembershipTierMock
+      .mockResolvedValueOnce('none')
+      .mockResolvedValueOnce('none')
+      .mockResolvedValueOnce('paid_5')
 
     window.history.replaceState({}, '', '/connect?action=signin&success=true')
 
@@ -52,14 +66,15 @@ describe('Connect magic-link state refresh', () => {
 
     expect(screen.getByRole('link', { name: 'account' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'sign up →' })).not.toBeInTheDocument()
+    expect(screen.getByText('paid access active ($5 / month)')).toBeInTheDocument()
     expect(navigateToMock).not.toHaveBeenCalled()
   })
 
   it('routes signup callbacks to welcome after login state is ready', async () => {
-    isSubscriberMock
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true)
+    getMembershipTierMock
+      .mockResolvedValueOnce('none')
+      .mockResolvedValueOnce('none')
+      .mockResolvedValueOnce('paid_5')
     getCurrentMemberMock.mockResolvedValue({
       uuid: 'member-uuid-123',
       email: 'ada@example.com',
