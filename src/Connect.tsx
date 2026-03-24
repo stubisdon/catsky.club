@@ -31,7 +31,11 @@ function handlePortalClick(e: React.MouseEvent<HTMLAnchorElement>) {
   const href = e.currentTarget.getAttribute('href') || '#/portal/signup'
   const hash = href.startsWith('#') ? href : `#${href}`
   window.location.hash = hash
-  window.dispatchEvent(new HashChangeEvent('hashchange'))
+  try {
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+  } catch {
+    window.dispatchEvent(new Event('hashchange'))
+  }
   setTimeout(() => {
     const fallbackUrl = getPortalFallbackUrl(hash)
     try {
@@ -332,18 +336,21 @@ export default function Connect() {
         {isLoggedIn && membershipTier === 'free' && (
           <div style={{ marginTop: '1.25rem', opacity: 0.9 }}>
             <p style={{ marginBottom: '0.75rem' }}>your current plan: free member</p>
-            <p style={{ marginBottom: '1rem' }}>unlock demos + unreleased video:</p>
+            <p style={{ marginBottom: '1rem' }}>unlock demos + unreleased video with a paid plan:</p>
             <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-              <a href="#/portal/account/plans" onClick={handlePortalClick} className="connect-portal-btn">upgrade to $5 / month</a>
-              <a href="#/portal/account/plans" onClick={handlePortalClick} className="connect-portal-btn">upgrade to $20 / month</a>
+              <a href="#/portal/account/plans" onClick={handlePortalClick} className="connect-portal-btn">upgrade to supporter plan</a>
+              <a href="#/portal/account/plans" onClick={handlePortalClick} className="connect-portal-btn">upgrade to backstage plan</a>
             </div>
+            <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', opacity: 0.85 }}>
+              paid plans include unfinished demos and unreleased music videos.
+            </p>
           </div>
         )}
 
         {isLoggedIn && (membershipTier === 'paid_5' || membershipTier === 'paid_20') && (
           <div style={{ marginTop: '1.25rem', opacity: 0.9 }}>
             <p>
-              paid access active ({membershipTier === 'paid_20' ? '$20 / month' : '$5 / month'})
+              paid access active ({membershipTier === 'paid_20' ? 'backstage plan' : 'supporter plan'})
             </p>
           </div>
         )}
