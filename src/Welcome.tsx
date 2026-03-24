@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { CSSProperties, FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, PageTitle } from './components'
 import { navigateTo } from './router/navigation'
 import { getCurrentMember } from './utils'
@@ -12,6 +12,21 @@ interface MemberProfilePayload {
 }
 
 const WELCOME_MEMBER_STORAGE_KEY = 'catsky_welcome_member'
+
+
+const fieldLabelStyle: CSSProperties = {
+  opacity: 0.9,
+  display: 'flex',
+  alignItems: 'baseline',
+  gap: '0.4rem',
+  flexWrap: 'wrap',
+}
+
+const fieldLabelNoteStyle: CSSProperties = {
+  fontSize: '0.72rem',
+  opacity: 0.62,
+  letterSpacing: '0.03em',
+}
 
 function readWelcomeMemberIdentity() {
   if (typeof window === 'undefined') return null
@@ -152,7 +167,10 @@ export default function Welcome() {
         </p>
 
         <form onSubmit={onSubmit} className="connect-auth-form" noValidate>
-          <label htmlFor="firstName" style={{ opacity: 0.9 }}>first name *</label>
+          <label htmlFor="firstName" style={fieldLabelStyle}>
+            <span>first name</span>
+            <span style={fieldLabelNoteStyle} aria-hidden="true">*</span>
+          </label>
           <input
             id="firstName"
             type="text"
@@ -163,7 +181,10 @@ export default function Welcome() {
             required
           />
 
-          <label htmlFor="lastName" style={{ opacity: 0.9 }}>last name (optional)</label>
+          <label htmlFor="lastName" style={fieldLabelStyle}>
+            <span>last name</span>
+            <span style={fieldLabelNoteStyle}>(optional)</span>
+          </label>
           <input
             id="lastName"
             type="text"

@@ -783,7 +783,7 @@ test.describe('Connect Page - Responsive Design', () => {
 
 
 test.describe('Welcome onboarding flow', () => {
-  test('welcome keeps the continue CTA immediately clickable and explains the background save', async ({ page }) => {
+  test('welcome keeps the continue CTA immediately clickable and styles field notes as secondary helper text', async ({ page }) => {
     await page.goto('/welcome')
 
     await expect(page.getByText(/save this in the background while you keep browsing/i)).toBeVisible()
@@ -793,6 +793,17 @@ test.describe('Welcome onboarding flow', () => {
     await expect(continueButton).toHaveCSS('border-top-width', '2px')
     await expect(continueButton).toHaveCSS('text-transform', 'lowercase')
     await expect(continueButton).toBeDisabled()
+
+    const firstNameLabel = page.locator('label[for="firstName"]')
+    const firstNameText = firstNameLabel.locator('span').first()
+    const firstNameNote = firstNameLabel.getByText('*')
+    await expect(firstNameNote).toHaveCSS('font-size', '11.52px')
+    await expect(firstNameText).not.toHaveCSS('font-size', '11.52px')
+
+    const lastNameLabel = page.locator('label[for="lastName"]')
+    const optionalNote = lastNameLabel.getByText('(optional)')
+    await expect(optionalNote).toHaveCSS('font-size', '11.52px')
+    await expect(optionalNote).toHaveCSS('opacity', '0.62')
 
     await page.getByLabel(/first name/i).fill('Ada')
     await expect(continueButton).toBeEnabled()

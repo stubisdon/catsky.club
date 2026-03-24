@@ -37,6 +37,7 @@ Be extra careful in:
 - `index.html` Ghost Portal patch/hardening script (script order is intentional),
 - `src/utils/subscription.ts` and auth/session flows,
 - `src/Connect.tsx` login/signup/callback behavior,
+- `src/Welcome.tsx` post-signup onboarding handoff, background profile save, and lightweight field-label note styling,
 - `vite.config.ts` proxy + cookie/redirect rewriting,
 - `server.js` env loading, static serving order, and SPA fallback.
 - nginx templates: `catsky.club-ssl.conf`, `nginx.conf.example`, `nginx-ssl-update.txt` (Ghost route ownership must stay intact).

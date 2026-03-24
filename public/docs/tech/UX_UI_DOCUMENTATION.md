@@ -25,6 +25,7 @@ This document is updated to reflect the current V1.0 product vision.
 - `/connect` — sign up, sign in, upgrade, unsubscribe/account controls
 - `/welcome` — post-signup first/last name collection for new users
 - `/welcome` should open immediately after a successful signup callback without flashing `/connect`, let a new user type their name and press **continue** immediately, and queue the profile save in the background so the user lands in the app without waiting for client-side session hydration or Ghost profile writes to finish.
+- `/welcome` field requirement hints should read like helper notes, not primary copy: keep the required `*` and optional `(optional)` indicators smaller and visually quieter than the field label text.
 
 ## Required UX Behavior
 

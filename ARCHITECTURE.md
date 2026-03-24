@@ -67,6 +67,7 @@ Current behavior in `src/Connect.tsx`:
   - on successful `action=signup`, routes to `/welcome` before app entry and persists the resolved Ghost member identity in `sessionStorage` for the onboarding handoff when the callback flows through `Connect`
   - `/welcome` also hydrates the current Ghost member identity itself on mount so router-level signup callback normalization still carries the real Ghost Members payload into `POST /api/member-profile`; in production this payload is typically `uuid` + `email` rather than an Admin API `id`, so the Express bridge must translate that identity back to the canonical Ghost Admin member record before updating `name`/`note`
   - the page normalizes the signup callback straight into `/welcome` (so `/connect` does not flash first), navigates straight into the app, and leaves the Ghost profile update to the Express server so the user does not wait on client-side hydration.
+  - the `/welcome` form keeps required/optional indicators visually secondary (`*` and `(optional)` render as note-style helper text) so the onboarding step stays calm and readable while still conveying field requirements.
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)
