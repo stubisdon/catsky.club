@@ -256,11 +256,6 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Port $server_port;
-        proxy_redirect http://127.0.0.1:2368/ https://$host/;
-        proxy_redirect http://localhost:2368/ https://$host/;
-        proxy_redirect http://localhost/ https://$host/;
     }
 
     # Ghost newsletter unsubscribe links
@@ -344,7 +339,7 @@ ghost restart
 7. **Email redirect:** Test a known Ghost redirect URL under `https://catsky.club/r/...`
 
 Note: the Express app includes a defensive pass-through for `/content/images/*` and `/r/*` if nginx route blocks are stale, but production should still treat nginx as the canonical owner of those prefixes. Admin/logo correctness at `/ghost/` and `/ghost/api/` depends on the same forwarded-host contract. The Express fallback must forward the canonical public `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port` values derived from `GHOST_URL` so Ghost serves the asset/redirect directly instead of emitting a canonical redirect back to the same public URL or treating newsletter unsubscribe traffic as localhost/internal-only.
-Also keep `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-Port`, and `proxy_redirect` rewrite rules in those nginx blocks so Ghost absolute redirects never leak internal `localhost/127.0.0.1` hosts.
+Also keep `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-Port`, and `proxy_redirect` rewrite rules in the Ghost branding/asset/email blocks (`/ghost/`, `/ghost/api/`, `/content/images/`, `/r/`, and unsubscribe locations) so Ghost absolute redirects never leak internal `localhost/127.0.0.1` hosts. Keep `/members/` on the standard Ghost reverse-proxy headers (`Host`, `X-Forwarded-For`, `X-Forwarded-Proto`) to avoid regressing Ghost Admin audience/tag filtering.
 
 ---
 
