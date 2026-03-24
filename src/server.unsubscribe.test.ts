@@ -96,7 +96,7 @@ describe('unsubscribe proxy in server.js', () => {
     const html = await res.text()
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
-    expect(seenMethod).toBe('POST')
+    expect(seenMethod).toBe('GET')
     expect(seenHostHeader).toBe('catsky.club')
     expect(seenForwardedHostHeader).toBe('catsky.club')
     expect(seenForwardedProtoHeader).toBe('https')
@@ -118,7 +118,7 @@ describe('unsubscribe proxy in server.js', () => {
     const html = await res.text()
 
     expect(seenPath).toBe('/unsubscribe/?uuid=abc&key=xyz&newsletter=n1')
-    expect(seenMethod).toBe('POST')
+    expect(seenMethod).toBe('GET')
     expect(seenHostHeader).toBe('catsky.club')
     expect(res.status).toBe(200)
     expect(html).toContain('You are unsubscribed')
@@ -134,7 +134,7 @@ describe('unsubscribe proxy in server.js', () => {
 
     const html = await res.text()
 
-    expect(seenMethod).toBe('POST')
+    expect(seenMethod).toBe('GET')
     expect(res.status).toBe(502)
     expect(html).toContain('Unable to confirm unsubscribe')
   })
