@@ -333,13 +333,13 @@ ghost restart
 1. **Frontend:** Visit `https://catsky.club` - should show your custom frontend
 2. **Ghost Admin:** Visit `https://catsky.club/ghost/` - should show Ghost admin
 3. **API:** Test `https://catsky.club/ghost/api/content/settings/?key=YOUR_KEY`
-4. **Members:** Test member signup/login at `https://catsky.club/members/`, then confirm Ghost Admin post audience/tag filters still resolve tagged members when preparing a newsletter send.
-5. **Unsubscribe links:** open a real newsletter unsubscribe URL (all newsletter links, including `/unsubscribe?...` and `/unsubscribe/?...` formats) and confirm it shows a Catsky unsubscribe confirmation message (instead of silently redirecting to `/`), never redirects to a localhost/127.0.0.1 address, and actually removes the member from the targeted Ghost newsletter. The Express fallback should call Ghost’s canonical `GET /unsubscribe/?...` entry flow (not a synthetic `POST /unsubscribe/` request, which Ghost does not expose).
+4. **Members:** Test member signup/login at `https://catsky.club/members/`
+5. **Unsubscribe links:** open a real newsletter unsubscribe URL (all newsletter links, including `/unsubscribe?...` and `/unsubscribe/?...` formats) and confirm it shows a Catsky unsubscribe confirmation message (instead of silently redirecting to `/`), never redirects to a localhost/127.0.0.1 address, and actually removes the member from the targeted Ghost newsletter. Remember that Ghost performs the real unsubscribe on `POST /unsubscribe/?...`; a `GET`-only proxy can look successful while leaving the newsletter subscription unchanged.
 6. **Ghost image asset:** Test a known Ghost image URL under `https://catsky.club/content/images/...`
 7. **Email redirect:** Test a known Ghost redirect URL under `https://catsky.club/r/...`
 
 Note: the Express app includes a defensive pass-through for `/content/images/*` and `/r/*` if nginx route blocks are stale, but production should still treat nginx as the canonical owner of those prefixes. Admin/logo correctness at `/ghost/` and `/ghost/api/` depends on the same forwarded-host contract. The Express fallback must forward the canonical public `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port` values derived from `GHOST_URL` so Ghost serves the asset/redirect directly instead of emitting a canonical redirect back to the same public URL or treating newsletter unsubscribe traffic as localhost/internal-only.
-Also keep `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-Port`, and `proxy_redirect` rewrite rules in the Ghost branding/asset/email blocks (`/ghost/`, `/ghost/api/`, `/content/images/`, `/r/`, and unsubscribe locations) so Ghost absolute redirects never leak internal `localhost/127.0.0.1` hosts. Keep `/members/` on the standard Ghost reverse-proxy headers (`Host`, `X-Forwarded-For`, `X-Forwarded-Proto`) to avoid regressing Ghost Admin audience/tag filtering.
+Also keep `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-Port`, and `proxy_redirect` rewrite rules in those nginx blocks so Ghost absolute redirects never leak internal `localhost/127.0.0.1` hosts.
 
 ---
 
