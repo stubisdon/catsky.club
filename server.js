@@ -337,8 +337,9 @@ async function unsubscribeAndConfirm(req, res) {
 
   try {
     const ghostRes = await requestGhostUpstream(targetUrl, {
-      method: 'POST',
+      method: 'GET',
       headers: createGhostProxyHeaders(req),
+      redirect: 'follow',
     })
 
     return renderUnsubscribeConfirmationPage(res, { success: ghostRes.status >= 200 && ghostRes.status < 300 })
