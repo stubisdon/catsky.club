@@ -168,15 +168,15 @@ test('keeps non-tokenized /unsubscribe requests on the public host in the Expres
 const nginxGhostRouteContracts = [
   {
     file: 'catsky.club-ssl.conf',
-    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/'],
+    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/', '/members/'],
   },
   {
     file: 'nginx.conf.example',
-    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/'],
+    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/', '/members/'],
   },
   {
     file: 'nginx-ssl-update.txt',
-    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/'],
+    routes: ['/ghost/', '/ghost/api/', '/content/images/', '/r/', '/members/'],
   },
 ]
 
