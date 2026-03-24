@@ -5,6 +5,10 @@ function getReleaseInstant(availableFrom: string): number {
   return Date.parse(`${availableFrom}T00:00:00.000Z`)
 }
 
+function hasAnnouncedReleaseDate(track: Track): boolean {
+  return typeof track.announcedReleaseDate === 'string' && track.announcedReleaseDate.trim().length > 0
+}
+
 export function isTrackAvailableByDate(track: Track, now = new Date()): boolean {
   if (!track.availableFrom) return true
 
@@ -18,8 +22,13 @@ export function isTrackAvailableByDate(track: Track, now = new Date()): boolean 
 }
 
 export function hasTrackAccess(track: Track, membershipTier: MembershipTier, now = new Date()): boolean {
-  if (!isTrackAvailableByDate(track, now)) return false
   if (track.accessTier === 'public') return true
+
+  if (membershipTier === 'free' && hasAnnouncedReleaseDate(track)) {
+    return true
+  }
+
+  if (!isTrackAvailableByDate(track, now)) return false
   if (track.accessTier === 'free_member') return membershipTier !== 'none'
   if (track.accessTier === 'paid_5') return membershipTier === 'paid_5' || membershipTier === 'paid_20'
   return membershipTier === 'paid_20'
