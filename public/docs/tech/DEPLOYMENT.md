@@ -256,6 +256,11 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_redirect http://127.0.0.1:2368/ https://$host/;
+        proxy_redirect http://localhost:2368/ https://$host/;
+        proxy_redirect http://localhost/ https://$host/;
     }
 
     # Ghost newsletter unsubscribe links
@@ -333,7 +338,7 @@ ghost restart
 1. **Frontend:** Visit `https://catsky.club` - should show your custom frontend
 2. **Ghost Admin:** Visit `https://catsky.club/ghost/` - should show Ghost admin
 3. **API:** Test `https://catsky.club/ghost/api/content/settings/?key=YOUR_KEY`
-4. **Members:** Test member signup/login at `https://catsky.club/members/`
+4. **Members:** Test member signup/login at `https://catsky.club/members/`, then confirm Ghost Admin post audience/tag filters still resolve tagged members when preparing a newsletter send.
 5. **Unsubscribe links:** open a real newsletter unsubscribe URL (all newsletter links, including `/unsubscribe?...` and `/unsubscribe/?...` formats) and confirm it shows a Catsky unsubscribe confirmation message (instead of silently redirecting to `/`), never redirects to a localhost/127.0.0.1 address, and actually removes the member from the targeted Ghost newsletter. Remember that Ghost performs the real unsubscribe on `POST /unsubscribe/?...`; a `GET`-only proxy can look successful while leaving the newsletter subscription unchanged.
 6. **Ghost image asset:** Test a known Ghost image URL under `https://catsky.club/content/images/...`
 7. **Email redirect:** Test a known Ghost redirect URL under `https://catsky.club/r/...`
