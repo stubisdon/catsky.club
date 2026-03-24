@@ -130,12 +130,17 @@
           return originalThen.call(this, wrapped, onRejected);
         };
 
+        function isMemberSessionUrl(url) {
+          return typeof url === 'string' && url.indexOf('/members/api/member/') !== -1;
+        }
+
         var originalJson = Response.prototype.json;
         Response.prototype.json = function() {
           var self = this;
           return originalJson.call(self).then(fixIfNeeded).catch(function(e) {
             if (e && (e instanceof SyntaxError || (typeof e.message === 'string' && e.message.indexOf('JSON') !== -1))) {
-              return fixIfNeeded({});
+              var emptyUrl = (self && self.url ? String(self.url) : '');
+              if (isMemberSessionUrl(emptyUrl)) return fixIfNeeded({ member: null });
             }
             throw e;
           });
@@ -157,10 +162,11 @@
           return response.clone().text().then(function(text) {
             try {
               if (!text || text.trim() === '') {
-                // Ghost can return 200 with empty body for /members/api/member/ when not logged in; avoid JSON parse errors downstream
-                var emptyBody = url.indexOf('/member') !== -1 ? '{"member":null}' : '{}';
-                var data = fixIfNeeded(JSON.parse(emptyBody));
-                _portalFixLog('patched empty response: ' + url.split('?')[0]);
+                // Ghost can return 200 with empty body for /members/api/member/ when not logged in; avoid JSON parse errors downstream.
+                // For non-member endpoints, keep the original empty response so Portal can run its own endpoint-specific handling.
+                if (!isMemberSessionUrl(url)) return response;
+                var data = fixIfNeeded({ member: null });
+                _portalFixLog('patched empty member response: ' + url.split('?')[0]);
                 var r = new Response(JSON.stringify(data), {
                   status: response.status,
                   statusText: response.statusText,
@@ -296,4 +302,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
