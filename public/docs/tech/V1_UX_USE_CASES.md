@@ -47,8 +47,8 @@ This document defines the **authoritative V1.0 user experience scope**. If any o
 
 
 ## Current implementation notes (March 24, 2026)
-- `/connect` shows explicit upgrade actions for free members to move to `$5 / month` or `$20 / month`.
-- `/watch` keeps the trailer public and shows a `$5 / month` upgrade CTA for non-paid users.
+- `/connect` shows explicit paid-plan upgrade actions for free members using plan names/perks (no price text in CTA copy).
+- `/watch` keeps the trailer public and shows a plan/perk upgrade CTA for non-paid users without price text.
 - `$5` and `$20` both unlock current V1 paid listen demos and the unreleased video entry point; higher-tier differentiation remains deferred.
 
 ## Priority Rules

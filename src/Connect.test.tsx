@@ -46,8 +46,9 @@ describe('Connect membership states and magic-link refresh', () => {
     })
 
     expect(screen.getByText('your current plan: free member')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'upgrade to $5 / month' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'upgrade to $20 / month' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'upgrade to supporter plan' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'upgrade to backstage plan' })).toBeInTheDocument()
+    expect(screen.getByText('paid plans include unfinished demos and unreleased music videos.')).toBeInTheDocument()
   })
 
   it('updates to logged-in buttons after signin magic-link success callback', async () => {
@@ -66,8 +67,25 @@ describe('Connect membership states and magic-link refresh', () => {
 
     expect(screen.getByRole('link', { name: 'account' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'sign up →' })).not.toBeInTheDocument()
-    expect(screen.getByText('paid access active ($5 / month)')).toBeInTheDocument()
+    expect(screen.getByText('paid access active (supporter plan)')).toBeInTheDocument()
     expect(navigateToMock).not.toHaveBeenCalled()
+  })
+
+  it('sets portal plans hash when free-member upgrade action is clicked', async () => {
+    getMembershipTierMock.mockResolvedValue('free')
+
+    render(<Connect />)
+
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+
+    await act(async () => {
+      screen.getByRole('link', { name: 'upgrade to supporter plan' }).click()
+      await vi.advanceTimersByTimeAsync(10)
+    })
+
+    expect(window.location.hash).toBe('#/portal/account/plans')
   })
 
   it('routes signup callbacks to welcome after login state is ready', async () => {

@@ -56,12 +56,15 @@ export default function Watch() {
         <>
           <div style={{ opacity: 0.9, marginBottom: '2rem' }}>
             <p style={{ marginBottom: '1.5rem' }}>
-              upgrade to $5 / month to unlock the unreleased music video.
+              unlock the unreleased music video with a paid plan.
+            </p>
+            <p style={{ marginBottom: '1.5rem', fontSize: '0.9rem', opacity: 0.85 }}>
+              supporter + backstage plans include unfinished demos and unreleased music videos.
             </p>
           </div>
 
           <div style={{ marginBottom: '2rem' }}>
-            <Link href="/connect" variant="button">upgrade for $5 / month</Link>
+            <Link href="/connect" variant="button">view plans + upgrade</Link>
           </div>
         </>
       ) : (

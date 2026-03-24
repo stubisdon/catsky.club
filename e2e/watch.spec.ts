@@ -32,8 +32,8 @@ test.describe('Membership gating on watch page', () => {
     await mockMember(page, 0)
     await page.goto('/watch')
 
-    await expect(page.getByText(/upgrade to \$5 \/ month/i)).toBeVisible()
-    await expect(page.getByRole('link', { name: 'upgrade for $5 / month' })).toHaveAttribute('href', '/connect')
+    await expect(page.getByText(/unlock the unreleased music video with a paid plan/i)).toBeVisible()
+    await expect(page.getByRole('link', { name: 'view plans + upgrade' })).toHaveAttribute('href', '/connect')
   })
 
   test('paid $5 members can open the unreleased video post', async ({ page }) => {
