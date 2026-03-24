@@ -23,9 +23,9 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 ### Route map
 
 - `/` → `src/App.tsx` (landing page)
-- `/listen` → `src/Listen.tsx` (tier-gated tracks)
-- `/watch` → `src/Watch.tsx` (video teaser + connect CTA)
-- `/connect` → `src/Connect.tsx` (magic-link auth UI + account/logout)
+- `/listen` → `src/Listen.tsx` (tier-gated tracks; V1 paid-demo catalog currently unlocks at `$5` with `$20` parity)
+- `/watch` → `src/Watch.tsx` (public teaser + `$5` upgrade prompt for free/guest users + unreleased-video entrypoint for paid tiers)
+- `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + upgrade/account/logout actions)
 - `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name)
 - `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
 - unknown paths → normalized to `/` in router
@@ -99,8 +99,9 @@ Important: script order is intentional; this patch script runs before Portal loa
 
 In `src/Listen.tsx`:
 
-- membership tier is loaded first (`getMembershipTier`).
+- membership tier is loaded first (`getMembershipTier`) with `none`, `free`, `paid_5`, and `paid_20` resolution.
 - accessible vs locked tracks computed client-side from tier plus any track-level embargo date.
+- V1 currently keeps paid access parity between `$5` and `$20` on listen demo tracks.
 - selecting locked tracks redirects to `/connect`.
 - supports:
   - direct audio element path (`audioRef`) for `direct` sources,

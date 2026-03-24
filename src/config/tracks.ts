@@ -68,7 +68,7 @@ export const TRACKS: Track[] = [
   {
     id: '6',
     title: 'Overpriced Airbnb',
-    accessTier: 'paid_20',
+    accessTier: 'paid_5',
     audioSource: {
       type: 'soundcloud',
       trackUrl: 'https://soundcloud.com/catsky_club/overpriced-airbnb/s-u9k6bZFCZSI',
@@ -77,7 +77,7 @@ export const TRACKS: Track[] = [
   {
     id: '7',
     title: 'Nova',
-    accessTier: 'paid_20',
+    accessTier: 'paid_5',
     audioSource: {
       type: 'soundcloud',
       trackUrl: 'https://soundcloud.com/catsky_club/nova-v1/s-yckE6Pvc2jO',
@@ -86,7 +86,7 @@ export const TRACKS: Track[] = [
   {
     id: '8',
     title: 'Vision',
-    accessTier: 'paid_20',
+    accessTier: 'paid_5',
     audioSource: {
       type: 'soundcloud',
       trackUrl: 'https://soundcloud.com/catsky_club/vision-v1/s-L5q3Tw7Jyvp',

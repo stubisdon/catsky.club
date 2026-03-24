@@ -45,6 +45,12 @@ This document defines the **authoritative V1.0 user experience scope**. If any o
 - In V1.0, $20 includes all $5 capabilities.
 - Differentiation beyond $5 is intentionally deferred unless explicitly documented in business docs.
 
+
+## Current implementation notes (March 24, 2026)
+- `/connect` shows explicit upgrade actions for free members to move to `$5 / month` or `$20 / month`.
+- `/watch` keeps the trailer public and shows a `$5 / month` upgrade CTA for non-paid users.
+- `$5` and `$20` both unlock current V1 paid listen demos and the unreleased video entry point; higher-tier differentiation remains deferred.
+
 ## Priority Rules
 - **P0 (must ship):** all use cases 1–8, 10–12.
 - **P1 (if time allows):** polish, personalization, advanced analytics.

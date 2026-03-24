@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
-function mockMember(page: any, amount?: number) {
+function mockMember(page: Page, amount?: number) {
   return page.route('**/members/api/member/', (route) => {
     if (amount === undefined) {
       route.fulfill({
@@ -27,7 +27,7 @@ function mockMember(page: any, amount?: number) {
   })
 }
 
-async function freezeClientDate(page: any, isoDate: string) {
+async function freezeClientDate(page: Page, isoDate: string) {
   await page.addInitScript(({ nowIso }) => {
     const fixedNow = new Date(nowIso).valueOf()
     const RealDate = Date
@@ -80,7 +80,7 @@ test.describe('Listen catalog tier access', () => {
     await expect(sugarDaddyContainer).toBeVisible()
   })
 
-  test('paid members still see Motherless Child locked before Apr 10, 2026', async ({ page }) => {
+  test('paid $5 members unlock demo tracks while date locks still apply', async ({ page }) => {
     await freezeClientDate(page, '2026-03-19T12:00:00.000Z')
     await mockMember(page, 500)
     await page.goto('/listen')
@@ -88,8 +88,7 @@ test.describe('Listen catalog tier access', () => {
     const motherlessChildLocked = page.locator('div').filter({ hasText: /^Motherless Child.*coming Apr 10, 2026$/i }).first()
     await expect(motherlessChildLocked).toBeVisible()
 
-    const overpricedLocked = page.locator('div').filter({ hasText: /^Overpriced Airbnb.*in progress$/i }).first()
-    await expect(overpricedLocked).toBeVisible()
+    await expect(page.getByText('Overpriced Airbnb')).toBeVisible()
   })
 
 

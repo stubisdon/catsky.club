@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { PageTitle, Link } from './components'
 import { navigateTo } from './router/navigation'
 import {
   clearLocalSessionFlags,
   getCurrentMember,
+  getMembershipTier,
+  type MembershipTier,
   triggerPortalSignOut,
-  isSubscriber,
   setDevMemberOverride,
 } from './utils'
 
@@ -43,7 +44,6 @@ function handlePortalClick(e: React.MouseEvent<HTMLAnchorElement>) {
         current.hostname === 'www.' + fallback.hostname ||
         fallback.hostname === 'www.' + current.hostname
       const alreadyOnConnect = current.pathname.replace(/\/+$/, '') === '/connect'
-      // Never open a new tab on localhost (Portal loads in-page via proxy); same origin/site or already on /connect: stay
       if (isLocalhost || sameOrigin || (sameSite && alreadyOnConnect)) return
       const root = document.getElementById('ghost-portal-root')
       const hasPortal = root?.querySelector('[class*="popup"], [class*="modal"], iframe') != null
@@ -79,12 +79,14 @@ function storeWelcomeMemberIdentity(member: { id?: string; uuid?: string; email?
 
 export default function Connect() {
   const [portalHashActive, setPortalHashActive] = useState(false)
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null)
+  const [membershipTier, setMembershipTier] = useState<MembershipTier | null>(null)
   const [showAuthForm, setShowAuthForm] = useState(false)
   const [authEntryPoint, setAuthEntryPoint] = useState<'signup' | 'signin'>('signup')
   const [authEmail, setAuthEmail] = useState('')
   const [authStatus, setAuthStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [authError, setAuthError] = useState<string | null>(null)
+
+  const isLoggedIn = useMemo(() => membershipTier !== null && membershipTier !== 'none', [membershipTier])
 
   useEffect(() => {
     const check = () => setPortalHashActive(PORTAL_HASH_REGEX.test(window.location.hash))
@@ -94,34 +96,30 @@ export default function Connect() {
   }, [])
 
   const refreshMemberStatus = useCallback(async () => {
-    const loggedIn = await isSubscriber()
-    setIsLoggedIn(loggedIn)
-    return loggedIn
+    const tier = await getMembershipTier()
+    setMembershipTier(tier)
+    return tier
   }, [])
 
   useEffect(() => {
     let cancelled = false
-    isSubscriber().then((loggedIn) => {
-      if (!cancelled) setIsLoggedIn(loggedIn)
+    getMembershipTier().then((tier) => {
+      if (!cancelled) setMembershipTier(tier)
     })
     return () => { cancelled = true }
   }, [])
 
-  // After closing the Portal (e.g. after sign-in), re-check so we hide sign up / log in
   const wasPortalActive = React.useRef(false)
   useEffect(() => {
     if (portalHashActive) {
       wasPortalActive.current = true
     } else if (wasPortalActive.current) {
       wasPortalActive.current = false
-      // Brief delay so cookie from login response is set before we refetch
       const t = setTimeout(refreshMemberStatus, 300)
       return () => clearTimeout(t)
     }
   }, [portalHashActive, refreshMemberStatus])
 
-  // Magic-link callbacks land on /connect?action=signin&success=true.
-  // Re-check the Ghost member session a few times so buttons update reliably.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const isMagicLinkSuccess =
@@ -141,8 +139,8 @@ export default function Connect() {
           if (cancelled) return
         }
 
-        const loggedIn = await refreshMemberStatus()
-        if (loggedIn) {
+        const tier = await refreshMemberStatus()
+        if (tier !== 'none') {
           setShowAuthForm(false)
           if (params.get('action') === 'signup') {
             const member = await getCurrentMember().catch(() => null)
@@ -165,7 +163,6 @@ export default function Connect() {
     }
   }, [refreshMemberStatus])
 
-  // Refresh auth state when returning to this tab (common after opening email links).
   useEffect(() => {
     const onFocus = () => {
       if (document.visibilityState === 'hidden') return
@@ -185,12 +182,10 @@ export default function Connect() {
 
   const handleLogout = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
-    // Trigger Ghost Portal sign out first (clears member cookie); hidden trigger is in DOM at load so Portal bound to it
     triggerPortalSignOut()
     clearLocalSessionFlags()
-    setDevMemberOverride(false) // clear dev override so localhost stays in sync
-    setIsLoggedIn(false)
-    // Re-check after Ghost has processed signout so UI stays in sync
+    setDevMemberOverride(false)
+    setMembershipTier('none')
     setTimeout(refreshMemberStatus, 500)
   }, [refreshMemberStatus])
 
@@ -255,9 +250,8 @@ export default function Connect() {
       <div className="connect-content">
         <PageTitle>connect</PageTitle>
 
-        {/* Portal links: set hash so Ghost Portal opens; if it didn’t init, fallback opens Ghost in new tab */}
         <div className="connect-portal-buttons">
-          {isLoggedIn !== true && (
+          {!isLoggedIn && (
             <>
               {!showAuthForm ? (
                 <>
@@ -313,7 +307,7 @@ export default function Connect() {
               )}
             </>
           )}
-          {isLoggedIn === true && (
+          {isLoggedIn && (
             <>
               <a
                 href="#/portal/account"
@@ -334,6 +328,25 @@ export default function Connect() {
             </>
           )}
         </div>
+
+        {isLoggedIn && membershipTier === 'free' && (
+          <div style={{ marginTop: '1.25rem', opacity: 0.9 }}>
+            <p style={{ marginBottom: '0.75rem' }}>your current plan: free member</p>
+            <p style={{ marginBottom: '1rem' }}>unlock demos + unreleased video:</p>
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <a href="#/portal/account/plans" onClick={handlePortalClick} className="connect-portal-btn">upgrade to $5 / month</a>
+              <a href="#/portal/account/plans" onClick={handlePortalClick} className="connect-portal-btn">upgrade to $20 / month</a>
+            </div>
+          </div>
+        )}
+
+        {isLoggedIn && (membershipTier === 'paid_5' || membershipTier === 'paid_20') && (
+          <div style={{ marginTop: '1.25rem', opacity: 0.9 }}>
+            <p>
+              paid access active ({membershipTier === 'paid_20' ? '$20 / month' : '$5 / month'})
+            </p>
+          </div>
+        )}
 
         {portalHashActive && typeof window !== 'undefined' && window.location?.hostname !== 'catsky.club' && (
           <p className="connect-portal-hint" style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '0.75rem' }}>
@@ -360,13 +373,15 @@ export default function Connect() {
               display: 'flex',
               gap: '0.5rem',
               alignItems: 'center',
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end',
             }}
           >
             <span style={{ letterSpacing: '0.05em' }}>Dev:</span>
             <button
               type="button"
               onClick={() => {
-                setDevMemberOverride(true)
+                setDevMemberOverride(true, 'free')
                 refreshMemberStatus()
               }}
               style={{
@@ -379,7 +394,43 @@ export default function Connect() {
                 textTransform: 'lowercase',
               }}
             >
-              simulate logged in
+              simulate free
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDevMemberOverride(true, 'paid_5')
+                refreshMemberStatus()
+              }}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.4)',
+                color: 'rgba(255,255,255,0.9)',
+                padding: '0.25rem 0.5rem',
+                cursor: 'pointer',
+                letterSpacing: '0.05em',
+                textTransform: 'lowercase',
+              }}
+            >
+              simulate paid $5
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDevMemberOverride(true, 'paid_20')
+                refreshMemberStatus()
+              }}
+              style={{
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.4)',
+                color: 'rgba(255,255,255,0.9)',
+                padding: '0.25rem 0.5rem',
+                cursor: 'pointer',
+                letterSpacing: '0.05em',
+                textTransform: 'lowercase',
+              }}
+            >
+              simulate paid $20
             </button>
             <button
               type="button"

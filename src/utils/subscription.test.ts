@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { checkSubscriptionStatus } from './subscription'
+import { checkSubscriptionStatus, getMembershipTier } from './subscription'
 
-describe('checkSubscriptionStatus', () => {
+describe('subscription utilities', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
@@ -32,5 +32,20 @@ describe('checkSubscriptionStatus', () => {
     )
 
     await expect(checkSubscriptionStatus()).resolves.toBe('free_subscriber')
+  })
+
+  it('returns paid_5 for active $5 subscriptions', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({
+        member: {
+          email: 'tier@example.com',
+          subscriptions: [{ status: 'active', price: { amount: 500 } }],
+        },
+      }), {
+        status: 200,
+      })
+    )
+
+    await expect(getMembershipTier()).resolves.toBe('paid_5')
   })
 })

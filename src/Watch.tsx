@@ -1,6 +1,24 @@
+import { useEffect, useMemo, useState } from 'react'
 import { PageContainer, PageTitle, Link } from './components'
+import { getMembershipTier, type MembershipTier } from './utils'
+
+const UNRELEASED_VIDEO_POST = '/members/unreleased-video/'
 
 export default function Watch() {
+  const [tier, setTier] = useState<MembershipTier>('none')
+
+  useEffect(() => {
+    let cancelled = false
+    getMembershipTier().then((value) => {
+      if (!cancelled) setTier(value)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const isPaid = useMemo(() => tier === 'paid_5' || tier === 'paid_20', [tier])
+
   return (
     <PageContainer maxWidth="900px">
       <div style={{ marginBottom: '2rem' }}>
@@ -34,15 +52,30 @@ export default function Watch() {
         </div>
       </div>
 
-      <div style={{ opacity: 0.9, marginBottom: '2rem' }}>
-        <p style={{ marginBottom: '1.5rem' }}>
-          get access to the full music video
-        </p>
-      </div>
+      {!isPaid ? (
+        <>
+          <div style={{ opacity: 0.9, marginBottom: '2rem' }}>
+            <p style={{ marginBottom: '1.5rem' }}>
+              upgrade to $5 / month to unlock the unreleased music video.
+            </p>
+          </div>
 
-      <div style={{ marginBottom: '2rem' }}>
-        <Link href="/connect" variant="button">get access</Link>
-      </div>
+          <div style={{ marginBottom: '2rem' }}>
+            <Link href="/connect" variant="button">upgrade for $5 / month</Link>
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ opacity: 0.9, marginBottom: '2rem' }}>
+            <p style={{ marginBottom: '1.5rem' }}>
+              your paid membership includes the unreleased video.
+            </p>
+          </div>
+          <div style={{ marginBottom: '2rem' }}>
+            <a href={UNRELEASED_VIDEO_POST} className="connect-portal-btn">open unreleased video post</a>
+          </div>
+        </>
+      )}
     </PageContainer>
   )
 }
