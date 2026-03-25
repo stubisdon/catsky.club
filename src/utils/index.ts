@@ -21,11 +21,13 @@ export {
 export {
   type SubscriptionStatus,
   type MembershipTier,
+  type PaidPlanOption,
   checkSubscriptionStatus,
   getMembershipTier,
   isPaidSubscriber,
   isSubscriber,
   getCurrentMember,
+  getPaidPlanOptions,
   setDevMemberOverride,
 } from './subscription'
 
@@ -35,5 +37,6 @@ export {
   openPortalSignIn,
   openPortalSignUp,
   openPortalAccount,
+  openPortalAccountPlans,
   triggerPortalSignOut,
 } from './memberSession'

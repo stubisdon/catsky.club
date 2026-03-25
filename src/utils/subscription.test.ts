@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { checkSubscriptionStatus, getMembershipTier } from './subscription'
+import { checkSubscriptionStatus, getMembershipTier, getPaidPlanOptions } from './subscription'
 
 describe('subscription utilities', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    delete (window as Window & { __PORTAL_SETTINGS_CACHE__?: unknown }).__PORTAL_SETTINGS_CACHE__
   })
 
   it('treats empty 200 responses as logged out instead of throwing', async () => {
@@ -47,5 +48,20 @@ describe('subscription utilities', () => {
     )
 
     await expect(getMembershipTier()).resolves.toBe('paid_5')
+  })
+
+  it('returns paid plan names/perks from cached Ghost tier settings', async () => {
+    (window as Window & { __PORTAL_SETTINGS_CACHE__?: unknown }).__PORTAL_SETTINGS_CACHE__ = {
+      tiers: [
+        { name: 'Free', type: 'free', monthly_price: { amount: 0 } },
+        { name: 'Supporter', type: 'paid', monthly_price: { amount: 500 }, benefits: ['unfinished demos'] },
+        { name: 'Backstage', type: 'paid', monthly_price: { amount: 2000 }, benefits: [{ name: 'unreleased videos' }] },
+      ],
+    }
+
+    await expect(getPaidPlanOptions()).resolves.toEqual([
+      { name: 'Supporter', monthlyAmount: 500, perks: ['unfinished demos'] },
+      { name: 'Backstage', monthlyAmount: 2000, perks: ['unreleased videos'] },
+    ])
   })
 })

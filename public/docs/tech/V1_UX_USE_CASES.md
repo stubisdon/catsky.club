@@ -47,8 +47,9 @@ This document defines the **authoritative V1.0 user experience scope**. If any o
 
 
 ## Current implementation notes (March 24, 2026)
-- `/connect` shows explicit upgrade actions for free members to move to `$5 / month` or `$20 / month`.
-- `/watch` keeps the trailer public and shows a `$5 / month` upgrade CTA for non-paid users.
+- `/connect` shows explicit paid-plan upgrade actions for free members using plan names/perks hydrated from Ghost backend tiers (no price text in CTA copy).
+- `/connect` plan upgrade clicks open Ghost Portal account plans via the dedicated `account/plans` portal trigger.
+- `/watch` keeps the trailer public and shows a plan/perk upgrade CTA for non-paid users without price text.
 - `/listen` lets registered free users play songs with announced release dates while keeping in-progress/no-date demos locked to paid tiers.
 - `$5` and `$20` both unlock current V1 paid listen demos and the unreleased video entry point; higher-tier differentiation remains deferred.
 
