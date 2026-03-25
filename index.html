@@ -130,8 +130,19 @@
           return originalThen.call(this, wrapped, onRejected);
         };
 
+        function safeParsePathname(url) {
+          if (typeof url !== 'string' || !url) return '';
+          try {
+            return new URL(url, defaultUrl).pathname || '';
+          } catch (e) {
+            var withoutQuery = url.split('?')[0] || '';
+            return withoutQuery.split('#')[0] || '';
+          }
+        }
+
         function isMemberSessionUrl(url) {
-          return typeof url === 'string' && url.indexOf('/members/api/member/') !== -1;
+          var pathname = safeParsePathname(url);
+          return pathname === '/members/api/member/' || pathname === '/members/api/member';
         }
 
         var originalJson = Response.prototype.json;

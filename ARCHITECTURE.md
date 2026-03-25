@@ -95,7 +95,7 @@ Important: script order is intentional; this patch script runs before Portal loa
 
 - Track catalog lives in `src/config/tracks.ts`.
 - Access tiers per track: `public`, `free_member`, `paid_5`, `paid_20`.
-- Tracks can also define `availableFrom` + `lockedLabel` metadata for date-based embargoes that should stay locked even when the listener's membership tier would otherwise qualify.
+- Tracks can define `announcedReleaseDate` to mark finished songs that free registered users can access, and optionally `availableFrom` + `lockedLabel` metadata for explicit UTC date-based embargoes.
 - Current track list is SoundCloud-based.
 
 ### 4.2 Playback behavior
@@ -103,7 +103,7 @@ Important: script order is intentional; this patch script runs before Portal loa
 In `src/Listen.tsx`:
 
 - membership tier is loaded first (`getMembershipTier`) with `none`, `free`, `paid_5`, and `paid_20` resolution.
-- accessible vs locked tracks computed client-side from tier plus any track-level embargo date.
+- accessible vs locked tracks computed client-side from tier, announced release-date eligibility for free members, plus any explicit track-level embargo date.
 - V1 currently keeps paid access parity between `$5` and `$20` on listen demo tracks.
 - selecting locked tracks redirects to `/connect`.
 - supports:
@@ -202,6 +202,7 @@ Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redir
 - unit/integration: Vitest (`npm run test`).
 - E2E: Playwright suite in `e2e/` with smoke-vs-matrix commands:
 - E2E startup contract now runs through `scripts/playwright-webserver.mjs`, which binds Vite to `127.0.0.1:3000` with `--strictPort` and blocks until the app shell is actually reachable before Playwright begins navigation.
+  - `npm run screenshots:journey` captures a reproducible 3-step desktop UI evidence set (`/`, `/listen`, `/connect`) to `artifacts/ui-journey/` by starting Vite on `127.0.0.1:3000` and waiting for app-shell readiness before navigation.
   - `npm run test:e2e:setup` installs Playwright browser binaries plus required Linux host libraries (`--with-deps`) for local and CI-like runs.
   - `npm run test:e2e:landing` is the default smoke command (Chromium-only landing suite excluding `Performance`-tagged checks).
   - `npm run test:e2e` aliases the landing smoke flow for reliable baseline execution.

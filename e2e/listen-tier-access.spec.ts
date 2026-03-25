@@ -67,7 +67,7 @@ test.describe('Listen catalog tier access', () => {
     await expect(page.getByText('coming Apr 10, 2026')).toBeVisible()
   })
 
-  test('free member can see free-only tracks but not paid tracks', async ({ page }) => {
+  test('free member can play tracks with announced release dates but not in-progress demos', async ({ page }) => {
     await freezeClientDate(page, '2026-03-19T12:00:00.000Z')
     await mockMember(page, 0)
     await page.goto('/listen')
@@ -76,8 +76,8 @@ test.describe('Listen catalog tier access', () => {
     const motherlessChildLocked = page.locator('div').filter({ hasText: /^Motherless Child.*coming Apr 10, 2026$/i }).first()
     await expect(motherlessChildLocked).toBeVisible()
 
-    const sugarDaddyContainer = page.locator('div').filter({ hasText: /^Sugar Daddy.*coming May 8, 2026$/i }).first()
-    await expect(sugarDaddyContainer).toBeVisible()
+    await expect(page.getByText('Sugar Daddy')).toBeVisible()
+    await expect(page.locator('div').filter({ hasText: /^Overpriced Airbnb.*in progress$/i }).first()).toBeVisible()
   })
 
   test('paid $5 members unlock demo tracks while date locks still apply', async ({ page }) => {

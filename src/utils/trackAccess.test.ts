@@ -29,6 +29,17 @@ describe('trackAccess', () => {
     expect(hasTrackAccess(track, 'paid_20', new Date('2026-04-09T23:59:59.999Z'))).toBe(false)
   })
 
+  it('lets registered free users access tracks that have an announced release date', () => {
+    const track: Track = {
+      ...baseTrack,
+      accessTier: 'paid_5',
+      announcedReleaseDate: '2026-05-08',
+    }
+
+    expect(hasTrackAccess(track, 'free', new Date('2026-03-01T00:00:00.000Z'))).toBe(true)
+    expect(hasTrackAccess(track, 'none', new Date('2026-03-01T00:00:00.000Z'))).toBe(false)
+  })
+
   it('unlocks future-dated tracks on their release date using UTC midnight', () => {
     const track: Track = {
       ...baseTrack,
