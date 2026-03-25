@@ -25,7 +25,7 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 - `/` → `src/App.tsx` (landing page)
 - `/listen` → `src/Listen.tsx` (tier-gated tracks; V1 paid-demo catalog currently unlocks at `$5` with `$20` parity)
 - `/watch` → `src/Watch.tsx` (public teaser + plan/perk upgrade prompt for free/guest users + unreleased-video entrypoint for paid tiers)
-- `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + plan-name/perk upgrade messaging + account/logout actions)
+- `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + Ghost-tier-name/perk upgrade messaging + account/logout actions)
 - `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name)
 - `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
 - unknown paths → normalized to `/` in router
@@ -54,6 +54,7 @@ Primary member check flow:
 Dev override support (local only):
 
 - `catsky_dev_member` + `catsky_dev_paid` in localStorage via `setDevMemberOverride()`.
+- Paid plan labels/perks shown in `/connect` are hydrated from Ghost tier definitions (`__PORTAL_SETTINGS_CACHE__.tiers` first, then `/ghost/api/content/tiers/?key=...` fallback) so frontend copy tracks backend tier names.
 
 ### 3.2 Connect authentication UX
 
@@ -71,6 +72,7 @@ Current behavior in `src/Connect.tsx`:
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)
+  - upgrade entry uses the hidden `data-portal="account/plans"` trigger so plan CTA clicks open the Ghost-managed plans screen directly
   - logout action that **must** call `triggerPortalSignOut()`.
 
 ### 3.3 Ghost Portal wiring and hardening
