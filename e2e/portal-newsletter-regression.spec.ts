@@ -65,6 +65,35 @@ test.describe('Ghost portal empty-json fallbacks', () => {
     expect(result.jsonError).toContain('SyntaxError')
   })
 
+  test('member session payloads are passed through unchanged when non-empty', async ({ page }) => {
+    await page.route('**/members/api/member/**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          member: {
+            id: 'm_1',
+            newsletters: [{ id: 'catsky', title: 'Catsky Club', subscribed: false }],
+          },
+        }),
+      })
+    })
+
+    await page.goto('/connect')
+
+    const result = await page.evaluate(async () => {
+      const response = await fetch('/members/api/member/?refresh=true')
+      return response.json()
+    })
+
+    expect(result).toEqual({
+      member: {
+        id: 'm_1',
+        newsletters: [{ id: 'catsky', title: 'Catsky Club', subscribed: false }],
+      },
+    })
+  })
+
   test('empty member session response still resolves to member-null payload', async ({ page }) => {
     await page.route('**/members/api/member/**', async (route) => {
       await route.fulfill({

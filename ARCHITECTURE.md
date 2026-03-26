@@ -83,7 +83,7 @@ Current behavior in `src/Connect.tsx`:
 - patches JSON from Ghost endpoints to normalize signup access and tier visibility,
 - hardens `fetch` / `Response.json` / XHR behavior against empty JSON responses,
 - synthesizes a narrowly-scoped fallback for empty JSON member-session reads (`{ member: null }` for `/members/api/member/`) while preserving native response bodies for newsletter mutation endpoints (`/members/api/member/newsletters/...`),
-- limits JSON payload rewriting to Ghost content settings/tiers reads and member-session reads so member mutation payloads are passed through unchanged,
+- limits JSON payload rewriting to Ghost content settings/tiers reads only; member-session payloads are passed through unchanged when non-empty,
 - rewrites production URLs where needed,
 - prefetches and caches Ghost settings,
 - dynamically loads patched Portal script from jsDelivr,
