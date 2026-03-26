@@ -6,7 +6,6 @@ import {
   type MembershipTier,
   getDirectAudioUrl,
   getSoundCloudEmbedUrl,
-  openPortalAccount,
 } from './utils'
 import { TRACKS, type Track } from './config/tracks'
 import { getLockedTrackLabel, hasTrackAccess } from './utils/trackAccess'
@@ -192,10 +191,6 @@ export default function Listen() {
             <a
               href="#/portal/account"
               data-portal="account"
-              onClick={(e) => {
-                e.preventDefault()
-                openPortalAccount()
-              }}
               style={{
                 color: 'rgba(255, 255, 255, 0.7)',
                 textDecoration: 'none',
