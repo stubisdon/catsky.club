@@ -10,6 +10,8 @@ import {
   type PaidPlanOption,
   triggerPortalSignOut,
   setDevMemberOverride,
+  openPortalAccount,
+  openPortalAccountPlans,
 } from './utils'
 
 const CONNECT_BODY_CLASS = 'route-connect'
@@ -160,6 +162,16 @@ export default function Connect() {
     setTimeout(refreshMemberStatus, 500)
   }, [refreshMemberStatus])
 
+  const handleOpenPortalAccount = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    openPortalAccount()
+  }, [])
+
+  const handleOpenPortalPlans = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    openPortalAccountPlans()
+  }, [])
+
   const openAuthForm = useCallback((entryPoint: 'signup' | 'signin') => {
     setAuthEntryPoint(entryPoint)
     setShowAuthForm(true)
@@ -298,6 +310,7 @@ export default function Connect() {
                 href="#/portal/account"
                 data-portal="account"
                 className="connect-portal-btn"
+                onClick={handleOpenPortalAccount}
               >
                 account
               </a>
@@ -324,6 +337,7 @@ export default function Connect() {
                   href="#/portal/account/plans"
                   data-portal="account/plans"
                   className="connect-portal-btn"
+                  onClick={handleOpenPortalPlans}
                 >
                   upgrade to {plan.name}
                 </a>
