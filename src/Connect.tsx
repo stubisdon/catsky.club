@@ -5,9 +5,7 @@ import {
   clearLocalSessionFlags,
   getCurrentMember,
   getMembershipTier,
-  getPaidPlanOptions,
-  openPortalAccount,
-  openPortalAccountPlans,
+  getPlanOptions,
   type MembershipTier,
   type PaidPlanOption,
   triggerPortalSignOut,
@@ -44,6 +42,7 @@ export default function Connect() {
   const [authStatus, setAuthStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [authError, setAuthError] = useState<string | null>(null)
   const [paidPlans, setPaidPlans] = useState<PaidPlanOption[]>([])
+  const [freePlanName, setFreePlanName] = useState<string | null>(null)
 
   const isLoggedIn = useMemo(() => membershipTier !== null && membershipTier !== 'none', [membershipTier])
 
@@ -70,8 +69,11 @@ export default function Connect() {
 
   useEffect(() => {
     let cancelled = false
-    getPaidPlanOptions().then((tiers) => {
-      if (!cancelled) setPaidPlans(tiers)
+    getPlanOptions().then((planOptions) => {
+      if (!cancelled) {
+        setPaidPlans(planOptions.paidPlans)
+        setFreePlanName(planOptions.freePlanName)
+      }
     })
     return () => {
       cancelled = true
@@ -157,16 +159,6 @@ export default function Connect() {
     setMembershipTier('none')
     setTimeout(refreshMemberStatus, 500)
   }, [refreshMemberStatus])
-
-  const handlePlanUpgrade = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
-    openPortalAccountPlans()
-  }, [])
-
-  const handleAccountClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
-    openPortalAccount()
-  }, [])
 
   const openAuthForm = useCallback((entryPoint: 'signup' | 'signin') => {
     setAuthEntryPoint(entryPoint)
@@ -306,7 +298,6 @@ export default function Connect() {
                 href="#/portal/account"
                 data-portal="account"
                 className="connect-portal-btn"
-                onClick={handleAccountClick}
               >
                 account
               </a>
@@ -324,14 +315,14 @@ export default function Connect() {
 
         {isLoggedIn && membershipTier === 'free' && (
           <div style={{ marginTop: '1.25rem', opacity: 0.9 }}>
-            <p style={{ marginBottom: '0.75rem' }}>your current plan: free member</p>
+            <p style={{ marginBottom: '0.75rem' }}>your current plan: {freePlanName ?? 'Free'}</p>
             <p style={{ marginBottom: '1rem' }}>unlock more with a paid plan:</p>
             <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
               {planOptions.map((plan) => (
                 <a
                   key={plan.id ?? plan.name}
                   href="#/portal/account/plans"
-                  onClick={handlePlanUpgrade}
+                  data-portal="account/plans"
                   className="connect-portal-btn"
                 >
                   upgrade to {plan.name}

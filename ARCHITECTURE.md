@@ -55,6 +55,7 @@ Dev override support (local only):
 
 - `catsky_dev_member` + `catsky_dev_paid` in localStorage via `setDevMemberOverride()`.
 - Paid plan labels/perks shown in `/connect` are hydrated from Ghost tier definitions (`__PORTAL_SETTINGS_CACHE__.tiers` first, then `/ghost/api/content/tiers/?key=...` fallback) so frontend copy tracks backend tier names.
+- The free-tier label shown in `/connect` is also hydrated from Ghost tier definitions, so the displayed free plan name stays in sync with Ghost backend naming.
 
 ### 3.2 Connect authentication UX
 
@@ -72,7 +73,7 @@ Current behavior in `src/Connect.tsx`:
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)
-  - upgrade entry uses the hidden `data-portal="account/plans"` trigger so plan CTA clicks open the Ghost-managed plans screen directly
+  - free-member upgrade links use direct `data-portal="account/plans"` anchors so Ghost Portal receives the trusted user click and opens the Ghost-managed plans screen directly
   - logout action that **must** call `triggerPortalSignOut()`.
 
 ### 3.3 Ghost Portal wiring and hardening
