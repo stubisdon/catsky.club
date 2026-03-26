@@ -10,6 +10,7 @@ const PORT = Number(process.env.PLAYWRIGHT_WEB_PORT || 3000)
 const BASE_URL = `http://${HOST}:${PORT}`
 const OUTPUT_DIR = process.env.UI_SCREENSHOT_OUTPUT_DIR || 'artifacts/ui-journey'
 const SERVER_READY_TIMEOUT_MS = Number(process.env.UI_SCREENSHOT_READY_TIMEOUT_MS || 120000)
+const PLAYWRIGHT_INSTALL_CMD = process.platform === 'win32' ? 'npx.cmd' : 'npx'
 
 const JOURNEY_STEPS = [
   {
@@ -96,6 +97,47 @@ async function shutdownServer(child) {
   })
 }
 
+async function runCommand(command, args) {
+  await new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      stdio: 'inherit',
+      env: process.env,
+    })
+
+    child.once('error', reject)
+    child.once('exit', (code) => {
+      if (code === 0) {
+        resolve()
+        return
+      }
+
+      reject(new Error(`${command} ${args.join(' ')} exited with code ${code ?? 'unknown'}`))
+    })
+  })
+}
+
+function isMissingBrowserExecutableError(error) {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  return error.message.includes("Executable doesn't exist")
+}
+
+async function launchChromiumWithAutoInstall() {
+  try {
+    return await chromium.launch({ headless: true })
+  } catch (error) {
+    if (!isMissingBrowserExecutableError(error)) {
+      throw error
+    }
+
+    console.warn('[ui-screenshots] Chromium browser binary missing; running Playwright install for chromium and retrying.')
+    await runCommand(PLAYWRIGHT_INSTALL_CMD, ['playwright', 'install', '--with-deps', 'chromium'])
+    return chromium.launch({ headless: true })
+  }
+}
+
 async function run() {
   const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', HOST, '--port', String(PORT), '--strictPort'], {
     stdio: ['ignore', 'inherit', 'inherit'],
@@ -111,7 +153,7 @@ async function run() {
 
     await mkdir(OUTPUT_DIR, { recursive: true })
 
-    const browser = await chromium.launch({ headless: true })
+    const browser = await launchChromiumWithAutoInstall()
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     const page = await context.newPage()
 
