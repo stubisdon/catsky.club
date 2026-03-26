@@ -107,7 +107,7 @@
         function fixIfNeeded(v) {
           if (v && typeof v === 'object' && (v.settings || v.site)) v = fixPortalSettings(v);
           if (v && typeof v === 'object' && v.tiers) v = fixPortalTiers(v);
-          if (v && typeof v === 'object' && !Array.isArray(v) && (v.title !== undefined || v.newsletters !== undefined || v.members_enabled !== undefined)) ensureSiteHasUrl(v);
+          if (v && typeof v === 'object' && !Array.isArray(v) && (v.title !== undefined || v.members_enabled !== undefined)) ensureSiteHasUrl(v);
           if (v && typeof v === 'object') v = replaceProductionUrls(v);
           return v;
         }
@@ -145,14 +145,8 @@
           return pathname === '/members/api/member/' || pathname === '/members/api/member';
         }
 
-        function isNewsletterMutationUrl(url) {
-          var pathname = safeParsePathname(url);
-          return pathname === '/members/api/member/newsletters/' || pathname === '/members/api/member/newsletters';
-        }
-
         function emptyJsonFallback(url) {
           if (isMemberSessionUrl(url)) return { member: null };
-          if (isNewsletterMutationUrl(url)) return {};
           return null;
         }
 
