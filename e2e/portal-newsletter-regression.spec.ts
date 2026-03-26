@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Ghost portal empty-json fallbacks', () => {
-  test('empty newsletters response remains json-parse safe', async ({ page }) => {
+  test('empty newsletters response preserves native empty-body behavior', async ({ page }) => {
     await page.route('**/members/api/member/newsletters/**', async (route) => {
       await route.fulfill({
         status: 200,
@@ -19,14 +19,23 @@ test.describe('Ghost portal empty-json fallbacks', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ newsletters: ['catsky'] }),
         })
-        const data = await response.json()
-        return { ok: true, data }
+        const text = await response.clone().text()
+        let jsonError = ''
+        try {
+          await response.json()
+        } catch (error) {
+          jsonError = String(error)
+        }
+        return { ok: true, text, jsonError }
       } catch (error) {
         return { ok: false, error: String(error) }
       }
     })
 
-    expect(result).toEqual({ ok: true, data: {} })
+    expect(result.ok).toBe(true)
+    expect(result).toHaveProperty('text', '')
+    expect(result).toHaveProperty('jsonError')
+    expect(result.jsonError).toContain('SyntaxError')
   })
 
   test('empty member session response still resolves to member-null payload', async ({ page }) => {
