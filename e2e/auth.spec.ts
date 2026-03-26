@@ -96,7 +96,13 @@ test.describe('Connect Page - Basic Elements', () => {
     await expect(logOutLink).toBeVisible()
   })
 
-  test('free members see Ghost tier names and upgrade click opens plans hash', async ({ page }) => {
+  test('free members see Ghost tier names and upgrade click opens plans hash without portal runtime errors', async ({ page }) => {
+    const portalErrors: string[] = []
+    page.on('pageerror', (error) => {
+      const message = String(error?.message || error)
+      if (/includes/i.test(message)) portalErrors.push(message)
+    })
+
     await page.addInitScript(() => {
       const runtimeWindow = window as Window & { __PORTAL_SETTINGS_CACHE__?: unknown }
       runtimeWindow.__PORTAL_SETTINGS_CACHE__ = {
@@ -128,6 +134,7 @@ test.describe('Connect Page - Basic Elements', () => {
 
     await page.getByRole('link', { name: 'upgrade to Studio Pass' }).click()
     await expect(page).toHaveURL(/#\/portal\/account\/plans$/)
+    expect(portalErrors).toEqual([])
   })
 
   test('connect page has home navigation link', async ({ page }) => {
