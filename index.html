@@ -145,13 +145,25 @@
           return pathname === '/members/api/member/' || pathname === '/members/api/member';
         }
 
+        function isNewsletterMutationUrl(url) {
+          var pathname = safeParsePathname(url);
+          return pathname === '/members/api/member/newsletters/' || pathname === '/members/api/member/newsletters';
+        }
+
+        function emptyJsonFallback(url) {
+          if (isMemberSessionUrl(url)) return { member: null };
+          if (isNewsletterMutationUrl(url)) return {};
+          return null;
+        }
+
         var originalJson = Response.prototype.json;
         Response.prototype.json = function() {
           var self = this;
           return originalJson.call(self).then(fixIfNeeded).catch(function(e) {
             if (e && (e instanceof SyntaxError || (typeof e.message === 'string' && e.message.indexOf('JSON') !== -1))) {
               var emptyUrl = (self && self.url ? String(self.url) : '');
-              if (isMemberSessionUrl(emptyUrl)) return fixIfNeeded({ member: null });
+              var fallback = emptyJsonFallback(emptyUrl);
+              if (fallback) return fixIfNeeded(fallback);
             }
             throw e;
           });
@@ -173,11 +185,12 @@
           return response.clone().text().then(function(text) {
             try {
               if (!text || text.trim() === '') {
-                // Ghost can return 200 with empty body for /members/api/member/ when not logged in; avoid JSON parse errors downstream.
-                // For non-member endpoints, keep the original empty response so Portal can run its own endpoint-specific handling.
-                if (!isMemberSessionUrl(url)) return response;
-                var data = fixIfNeeded({ member: null });
-                _portalFixLog('patched empty member response: ' + url.split('?')[0]);
+                // Ghost can return empty JSON bodies for selected members endpoints.
+                // Keep narrow endpoint matching so non-member endpoints preserve native empty-body behavior.
+                var fallback = emptyJsonFallback(url);
+                if (!fallback) return response;
+                var data = fixIfNeeded(fallback);
+                _portalFixLog('patched empty json response: ' + url.split('?')[0]);
                 var r = new Response(JSON.stringify(data), {
                   status: response.status,
                   statusText: response.statusText,
@@ -242,7 +255,17 @@
               try {
                 var ct = xhr.getResponseHeader('Content-Type') || '';
                 if (ct.indexOf('json') !== -1) {
-                  var data = fixIfNeeded(JSON.parse(xhr.responseText));
+                  var raw = xhr.responseText || '';
+                  var trimmed = raw.trim();
+                  var data;
+                  if (!trimmed) {
+                    var fallback = emptyJsonFallback(xhr.responseURL || xhr._portalUrl || '');
+                    if (!fallback) return;
+                    data = fallback;
+                  } else {
+                    data = JSON.parse(raw);
+                  }
+                  data = fixIfNeeded(data);
                   Object.defineProperty(xhr, 'responseText', { value: JSON.stringify(data), configurable: true });
                 }
               } catch (e) {}
