@@ -295,7 +295,6 @@
           var safe = code.replace(/(\w+)\.url\.replace\(/g, function(_, v) {
             return '((typeof ' + v + '!=="undefined"&&' + v + '&&' + v + '.url)?' + v + '.url:(window.__GHOST_SITE__&&window.__GHOST_SITE__.url)||"").replace(';
           });
-          safe = safe.replace(/==="invite"/g, '==="\u200binvite"');
           var s = document.createElement('script');
           s.textContent = safe;
           s.setAttribute('data-ghost', ghostUrl);
