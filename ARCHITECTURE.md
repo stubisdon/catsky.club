@@ -73,7 +73,7 @@ Current behavior in `src/Connect.tsx`:
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)
-  - free-member upgrade links use direct `data-portal="account/plans"` anchors so Ghost Portal receives the trusted user click and opens the Ghost-managed plans screen directly
+  - account + free-member upgrade links keep Ghost `data-portal` attributes **and** call `openPortalAccount()` / `openPortalAccountPlans()` so static bootstrap trigger buttons (`#ghost-portal-trigger-account*`) receive the click even if Portal misses dynamically rendered React anchors.
   - logout action that **must** call `triggerPortalSignOut()`.
 
 ### 3.3 Ghost Portal wiring and hardening
