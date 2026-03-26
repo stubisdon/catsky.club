@@ -118,3 +118,22 @@ Execution requirements:
 - Include screenshots in the final task summary with clear labels in journey order.
 - If capture is blocked by environment/tooling, explicitly state what was attempted and why evidence could not be collected.
 - Do not mark the task done without screenshot evidence for user-visible changes unless a hard blocker is documented.
+
+## 10) Post-merge debugging instructions in every run (mandatory)
+
+Every task summary must include a **Debugging If Issue Persists** section so a follow-up executor can triage quickly when the merged PR does not fully fix the issue.
+
+Minimum required contents in that section:
+
+1. **Where to look first**
+   - Name the exact files/modules most likely related to the failure.
+2. **How to reproduce and verify**
+   - Include concrete commands and page paths used during validation.
+3. **Signals to capture**
+   - Specify logs, network requests, response payloads, and visible UI states to collect.
+4. **Likely failure branches**
+   - List 2–4 plausible root-cause branches tied to this task’s touched areas.
+5. **What to send back to Codex**
+   - Ask for exact command output, screenshots, console/server errors, and environment details.
+
+Use concise, copy/paste-friendly bullets so non-engineering collaborators can run the checks.
