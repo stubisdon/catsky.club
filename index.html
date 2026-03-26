@@ -145,6 +145,15 @@
           return pathname === '/members/api/member/' || pathname === '/members/api/member';
         }
 
+        function shouldTransformJsonPayload(url) {
+          var pathname = safeParsePathname(url);
+          if (!pathname) return false;
+          if (pathname.indexOf('/ghost/api/content/settings') === 0) return true;
+          if (pathname.indexOf('/ghost/api/content/tiers') === 0) return true;
+          if (pathname === '/members/api/member/' || pathname === '/members/api/member') return true;
+          return false;
+        }
+
         function emptyJsonFallback(url) {
           if (isMemberSessionUrl(url)) return { member: null };
           return null;
@@ -176,6 +185,7 @@
           var contentType = response.headers.get('Content-Type') || '';
           if (contentType.indexOf('application/json') === -1) return Promise.resolve(response);
           var url = (reqUrl || response.url || '').toString();
+          var shouldTransform = shouldTransformJsonPayload(url);
           return response.clone().text().then(function(text) {
             try {
               if (!text || text.trim() === '') {
@@ -193,6 +203,7 @@
                 if (response.url) Object.defineProperty(r, 'url', { value: response.url, configurable: true });
                 return r;
               }
+              if (!shouldTransform) return response;
               var data = fixIfNeeded(JSON.parse(text));
               _portalFixLog('patched response: ' + url.split('?')[0]);
               var r = new Response(JSON.stringify(data), {
@@ -249,14 +260,16 @@
               try {
                 var ct = xhr.getResponseHeader('Content-Type') || '';
                 if (ct.indexOf('json') !== -1) {
+                  var sourceUrl = xhr.responseURL || xhr._portalUrl || '';
                   var raw = xhr.responseText || '';
                   var trimmed = raw.trim();
                   var data;
                   if (!trimmed) {
-                    var fallback = emptyJsonFallback(xhr.responseURL || xhr._portalUrl || '');
-                    if (!fallback) return;
+                    var fallback = emptyJsonFallback(sourceUrl);
+                    if (!fallback) return origOnReady && origOnReady.apply(this, arguments);
                     data = fallback;
                   } else {
+                    if (!shouldTransformJsonPayload(sourceUrl)) return origOnReady && origOnReady.apply(this, arguments);
                     data = JSON.parse(raw);
                   }
                   data = fixIfNeeded(data);

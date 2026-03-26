@@ -1,6 +1,33 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Ghost portal empty-json fallbacks', () => {
+  test('newsletter mutation payloads are not transformed by Portal hardening', async ({ page }) => {
+    await page.route('**/members/api/member/newsletters/**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          newsletters: [{ id: 'catsky', title: 'Catsky Club', subscribed: true }],
+        }),
+      })
+    })
+
+    await page.goto('/connect')
+
+    const result = await page.evaluate(async () => {
+      const response = await fetch('/members/api/member/newsletters/?newsletter=catsky', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newsletters: ['catsky'] }),
+      })
+      return response.json()
+    })
+
+    expect(result).toEqual({
+      newsletters: [{ id: 'catsky', title: 'Catsky Club', subscribed: true }],
+    })
+  })
+
   test('empty newsletters response preserves native empty-body behavior', async ({ page }) => {
     await page.route('**/members/api/member/newsletters/**', async (route) => {
       await route.fulfill({
