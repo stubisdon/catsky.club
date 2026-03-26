@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { checkSubscriptionStatus, getMembershipTier, getPaidPlanOptions } from './subscription'
+import { checkSubscriptionStatus, getMembershipTier, getPaidPlanOptions, getPlanOptions } from './subscription'
 
 describe('subscription utilities', () => {
   afterEach(() => {
@@ -63,5 +63,19 @@ describe('subscription utilities', () => {
       { name: 'Supporter', monthlyAmount: 500, perks: ['unfinished demos'] },
       { name: 'Backstage', monthlyAmount: 2000, perks: ['unreleased videos'] },
     ])
+  })
+
+  it('returns free tier name together with paid plan options from Ghost tiers', async () => {
+    (window as Window & { __PORTAL_SETTINGS_CACHE__?: unknown }).__PORTAL_SETTINGS_CACHE__ = {
+      tiers: [
+        { name: 'Community', type: 'free', monthly_price: { amount: 0 } },
+        { name: 'Supporter', type: 'paid', monthly_price: { amount: 500 }, benefits: ['unfinished demos'] },
+      ],
+    }
+
+    await expect(getPlanOptions()).resolves.toEqual({
+      freePlanName: 'Community',
+      paidPlans: [{ name: 'Supporter', monthlyAmount: 500, perks: ['unfinished demos'] }],
+    })
   })
 })

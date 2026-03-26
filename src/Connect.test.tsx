@@ -4,21 +4,18 @@ import Connect from './Connect'
 
 const mocks = vi.hoisted(() => ({
   getMembershipTierMock: vi.fn<() => Promise<'none' | 'free' | 'paid_5' | 'paid_20'>>(),
-  getPaidPlanOptionsMock: vi.fn<() => Promise<Array<{ id?: string; name: string; monthlyAmount: number; perks: string[] }>>>(),
+  getPlanOptionsMock: vi.fn<() => Promise<{ freePlanName: string | null; paidPlans: Array<{ id?: string; name: string; monthlyAmount: number; perks: string[] }> }>>(),
   navigateToMock: vi.fn<(path: string) => void>(),
   getCurrentMemberMock: vi.fn<() => Promise<{ id?: string; uuid?: string; email?: string } | null>>(),
-  openPortalAccountPlansMock: vi.fn<() => void>(),
 }))
 
-const { getMembershipTierMock, getPaidPlanOptionsMock, navigateToMock, getCurrentMemberMock, openPortalAccountPlansMock } = mocks
+const { getMembershipTierMock, getPlanOptionsMock, navigateToMock, getCurrentMemberMock } = mocks
 
 vi.mock('./utils', () => ({
   clearLocalSessionFlags: vi.fn(),
   getCurrentMember: mocks.getCurrentMemberMock,
   getMembershipTier: mocks.getMembershipTierMock,
-  getPaidPlanOptions: mocks.getPaidPlanOptionsMock,
-  openPortalAccount: vi.fn(),
-  openPortalAccountPlans: mocks.openPortalAccountPlansMock,
+  getPlanOptions: mocks.getPlanOptionsMock,
   triggerPortalSignOut: vi.fn(),
   setDevMemberOverride: vi.fn(),
 }))
@@ -36,10 +33,13 @@ describe('Connect membership states and magic-link refresh', () => {
     vi.useFakeTimers()
     vi.clearAllMocks()
     getMembershipTierMock.mockResolvedValue('none')
-    getPaidPlanOptionsMock.mockResolvedValue([
-      { id: 'tier-supporter', name: 'Supporter', monthlyAmount: 500, perks: ['unfinished demos'] },
-      { id: 'tier-backstage', name: 'Backstage', monthlyAmount: 2000, perks: ['unfinished demos', 'unreleased videos'] },
-    ])
+    getPlanOptionsMock.mockResolvedValue({
+      freePlanName: 'Free',
+      paidPlans: [
+        { id: 'tier-supporter', name: 'Supporter', monthlyAmount: 500, perks: ['unfinished demos'] },
+        { id: 'tier-backstage', name: 'Backstage', monthlyAmount: 2000, perks: ['unfinished demos', 'unreleased videos'] },
+      ],
+    })
     getCurrentMemberMock.mockResolvedValue(null)
     window.sessionStorage.clear()
     window.history.replaceState({}, '', '/connect')
@@ -47,10 +47,13 @@ describe('Connect membership states and magic-link refresh', () => {
 
   it('shows upgrade options from Ghost tier names for free members', async () => {
     getMembershipTierMock.mockResolvedValue('free')
-    getPaidPlanOptionsMock.mockResolvedValue([
-      { id: 'tier-a', name: 'Studio Pass', monthlyAmount: 500, perks: ['unfinished demos'] },
-      { id: 'tier-b', name: 'Backstage Circle', monthlyAmount: 2000, perks: ['unreleased music videos'] },
-    ])
+    getPlanOptionsMock.mockResolvedValue({
+      freePlanName: 'Community',
+      paidPlans: [
+        { id: 'tier-a', name: 'Studio Pass', monthlyAmount: 500, perks: ['unfinished demos'] },
+        { id: 'tier-b', name: 'Backstage Circle', monthlyAmount: 2000, perks: ['unreleased music videos'] },
+      ],
+    })
 
     render(<Connect />)
 
@@ -58,7 +61,7 @@ describe('Connect membership states and magic-link refresh', () => {
       await vi.runAllTimersAsync()
     })
 
-    expect(screen.getByText('your current plan: free member')).toBeInTheDocument()
+    expect(screen.getByText('your current plan: Community')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'upgrade to Studio Pass' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'upgrade to Backstage Circle' })).toBeInTheDocument()
     expect(screen.getByText('Studio Pass: unfinished demos • Backstage Circle: unreleased music videos')).toBeInTheDocument()
@@ -84,7 +87,7 @@ describe('Connect membership states and magic-link refresh', () => {
     expect(navigateToMock).not.toHaveBeenCalled()
   })
 
-  it('opens account plans in Ghost Portal when free-member upgrade action is clicked', async () => {
+  it('keeps Ghost portal account/plans attributes on free-member upgrade actions', async () => {
     getMembershipTierMock.mockResolvedValue('free')
 
     render(<Connect />)
@@ -93,12 +96,9 @@ describe('Connect membership states and magic-link refresh', () => {
       await vi.runAllTimersAsync()
     })
 
-    await act(async () => {
-      screen.getByRole('link', { name: 'upgrade to Supporter' }).click()
-      await vi.advanceTimersByTimeAsync(10)
-    })
-
-    expect(openPortalAccountPlansMock).toHaveBeenCalledTimes(1)
+    const upgradeLink = screen.getByRole('link', { name: 'upgrade to Supporter' })
+    expect(upgradeLink).toHaveAttribute('data-portal', 'account/plans')
+    expect(upgradeLink).toHaveAttribute('href', '#/portal/account/plans')
   })
 
   it('routes signup callbacks to welcome after login state is ready', async () => {
