@@ -291,23 +291,12 @@
         var portalSrc = 'https://cdn.jsdelivr.net/npm/@tryghost/portal@latest/umd/portal.min.js';
         var settingsUrl = ghostUrl.replace(/\/$/, '') + '/ghost/api/content/settings/?key=' + encodeURIComponent(apiKey);
         function loadPortal() {
-        fetch(portalSrc, { cache: 'no-store' }).then(function(r) { return r.text(); }).then(function(code) {
-          var safe = code.replace(/(\w+)\.url\.replace\(/g, function(_, v) {
-            return '((typeof ' + v + '!=="undefined"&&' + v + '&&' + v + '.url)?' + v + '.url:(window.__GHOST_SITE__&&window.__GHOST_SITE__.url)||"").replace(';
-          });
-          var s = document.createElement('script');
-          s.textContent = safe;
-          s.setAttribute('data-ghost', ghostUrl);
-          s.setAttribute('data-key', apiKey);
-          document.head.appendChild(s);
-        }).catch(function() {
           var s = document.createElement('script');
           s.src = portalSrc;
           s.setAttribute('data-ghost', ghostUrl);
           s.setAttribute('data-key', apiKey);
           s.defer = true;
           document.head.appendChild(s);
-        });
         }
         if (apiKey) {
           fetch(settingsUrl, { cache: 'no-store' }).then(function(r) {

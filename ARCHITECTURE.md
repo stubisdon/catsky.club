@@ -227,5 +227,5 @@ Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redir
 - Unsubscribe reliability is intentionally duplicated: nginx should proxy both `= /unsubscribe` and `/unsubscribe/` directly, and Express now includes a defensive `/unsubscribe` proxy before SPA fallback.
 - Membership gating in Listen is client-side UX gating; authoritative member state still comes from Ghost session/cookies.
 - Ghost Portal behavior depends heavily on the `index.html` patch script; accidental refactors there can break auth/signup UX.
-- The Portal loader intentionally avoids rewriting Ghost's internal `"invite"` checks in the downloaded UMD bundle; that rewrite caused runtime `includes` errors in production and blocked upgrade modal open on `/connect`.
+- The Portal loader now mounts Ghost Portal via a plain `<script src="...portal.min.js">` include with `data-ghost`/`data-key` only. We intentionally do not rewrite downloaded Portal bundle code at runtime, because previous string rewrites caused production crashes and blocked upgrade modal open on `/connect`.
 - `POST /api/submit` remains available for server-side member creation flows even though Connect currently uses client-side magic links.
