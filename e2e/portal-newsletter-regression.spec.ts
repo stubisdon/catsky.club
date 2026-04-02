@@ -28,7 +28,7 @@ test.describe('Ghost portal empty-json fallbacks', () => {
     })
   })
 
-  test('empty newsletters response preserves native empty-body behavior', async ({ page }) => {
+  test('empty newsletters response remains json-parse safe', async ({ page }) => {
     await page.route('**/members/api/member/newsletters/**', async (route) => {
       await route.fulfill({
         status: 200,
@@ -46,23 +46,14 @@ test.describe('Ghost portal empty-json fallbacks', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ newsletters: ['catsky'] }),
         })
-        const text = await response.clone().text()
-        let jsonError = ''
-        try {
-          await response.json()
-        } catch (error) {
-          jsonError = String(error)
-        }
-        return { ok: true, text, jsonError }
+        const data = await response.json()
+        return { ok: true, data }
       } catch (error) {
         return { ok: false, error: String(error) }
       }
     })
 
-    expect(result.ok).toBe(true)
-    expect(result).toHaveProperty('text', '')
-    expect(result).toHaveProperty('jsonError')
-    expect(result.jsonError).toContain('SyntaxError')
+    expect(result).toEqual({ ok: true, data: {} })
   })
 
   test('member session payloads are passed through unchanged when non-empty', async ({ page }) => {
