@@ -48,7 +48,7 @@ This document defines the **authoritative V1.0 user experience scope**. If any o
 
 ## Current implementation notes (March 26, 2026)
 - `/connect` shows free + paid plan names/perks from Ghost backend tier definitions (no price text in CTA copy), including the displayed free-plan name in account status copy.
-- `/connect` account/upgrade links rely on direct Ghost Portal anchors (`href="#/portal/..."` + `data-portal="..."`) so real user clicks are handled directly by Portal.
+- `/connect` account/upgrade links keep `data-portal` attributes and also invoke static portal trigger helpers (`openPortalAccount*`) so account/plans modal opens even when the visible React links are rendered after Portal boot.
 - Portal bootstrap now loads Ghost Portal from jsDelivr without rewriting the downloaded script source at runtime; removing runtime bundle rewrites prevents the Portal crashes that previously made upgrade clicks appear to do nothing.
 - `/watch` keeps the trailer public and shows a plan/perk upgrade CTA for non-paid users without price text.
 - `/listen` lets registered free users play songs with announced release dates while keeping in-progress/no-date demos locked to paid tiers.
