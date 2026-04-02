@@ -107,7 +107,7 @@ test.describe('Connect Page - Basic Elements', () => {
       const runtimeWindow = window as Window & { __PORTAL_SETTINGS_CACHE__?: unknown }
       runtimeWindow.__PORTAL_SETTINGS_CACHE__ = {
         tiers: [
-          { name: 'Community', type: 'free', monthly_price: { amount: 0 } },
+          { name: 'Free', type: 'free', monthly_price: { amount: 0 } },
           { id: 'tier-1', name: 'Studio Pass', type: 'paid', monthly_price: { amount: 500 }, benefits: ['unfinished demos'] },
           { id: 'tier-2', name: 'Backstage Circle', type: 'paid', monthly_price: { amount: 2000 }, benefits: ['unreleased music videos'] },
         ],
@@ -129,7 +129,6 @@ test.describe('Connect Page - Basic Elements', () => {
 
     await expect(page.getByRole('link', { name: 'upgrade to Studio Pass' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'upgrade to Backstage Circle' })).toBeVisible()
-    await expect(page.getByText('your current plan: Community')).toBeVisible()
     await expect(page.getByText('Studio Pass: unfinished demos • Backstage Circle: unreleased music videos')).toBeVisible()
 
     await page.getByRole('link', { name: 'upgrade to Studio Pass' }).click()
