@@ -47,10 +47,10 @@ This document defines the **authoritative V1.0 user experience scope**. If any o
 
 
 ## Current implementation notes (April 2, 2026)
-- `/connect` shows explicit paid-plan upgrade actions for free members using plan names/perks hydrated from Ghost backend tiers (no price text in CTA copy). Free-member account status uses the fixed label **free member** (not the Ghost free-tier display name).
-- `/connect` plan upgrade clicks open Ghost Portal account plans via `openPortalAccountPlans()`, which activates the hidden `account/plans` portal trigger so Portal receives a trusted open.
+- `/connect` shows explicit paid-plan upgrade actions for free members labeled **supporter plan** and **backstage plan** (no price text in CTA copy; labels are not dynamically hydrated from Ghost tier display names). Free-member account status uses the fixed label **free member**.
+- `/connect` plan upgrade and account links use hash navigation (`#/portal/account/plans`, `#/portal/account`) via `handlePortalClick` in `Connect.tsx`, which sets the hash, dispatches `hashchange`, and may open a same-site fallback if Portal does not surface a modal.
 - Portal bootstrap loads Ghost Portal from jsDelivr without rewriting the downloaded script source at runtime; removing runtime bundle rewrites prevents the Portal crashes that previously made upgrade clicks appear to do nothing.
-- `/watch` keeps the trailer public and shows a plan/perk upgrade CTA for non-paid users without price text.
+- `/watch` keeps the trailer public and shows a plan/perk upgrade CTA for non-paid users without price text (static supporter + backstage summary copy).
 - `/listen` lets registered free users play songs with announced release dates while keeping in-progress/no-date demos locked to paid tiers.
 - `$5` and `$20` both unlock current V1 paid listen demos and the unreleased video entry point; higher-tier differentiation remains deferred.
 

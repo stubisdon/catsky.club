@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PageContainer, PageTitle, Link } from './components'
-import { getMembershipTier, getPaidPlanOptions, type MembershipTier, type PaidPlanOption } from './utils'
+import { getMembershipTier, type MembershipTier } from './utils'
 
 const UNRELEASED_VIDEO_POST = '/members/unreleased-video/'
 
 export default function Watch() {
   const [tier, setTier] = useState<MembershipTier>('none')
-  const [paidPlans, setPaidPlans] = useState<PaidPlanOption[]>([])
 
   useEffect(() => {
     let cancelled = false
@@ -18,28 +17,7 @@ export default function Watch() {
     }
   }, [])
 
-  useEffect(() => {
-    let cancelled = false
-    getPaidPlanOptions().then((plans) => {
-      if (!cancelled) setPaidPlans(plans)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
   const isPaid = useMemo(() => tier === 'paid_5' || tier === 'paid_20', [tier])
-  const planPerkSummary = useMemo(() => {
-    if (paidPlans.length === 0) {
-      return 'Supporter + Backstage plans include unfinished demos and unreleased music videos.'
-    }
-    return paidPlans
-      .map((plan) => {
-        if (plan.perks.length === 0) return plan.name
-        return `${plan.name}: ${plan.perks.join(', ')}`
-      })
-      .join(' • ')
-  }, [paidPlans])
 
   return (
     <PageContainer maxWidth="900px">
@@ -81,7 +59,7 @@ export default function Watch() {
               unlock the unreleased music video with a paid plan.
             </p>
             <p style={{ marginBottom: '1.5rem', fontSize: '0.9rem', opacity: 0.85 }}>
-              {planPerkSummary}
+              supporter + backstage plans include unfinished demos and unreleased music videos.
             </p>
           </div>
 

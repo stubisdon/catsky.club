@@ -10,12 +10,6 @@
 export type SubscriptionStatus = 'unknown' | 'not_subscriber' | 'free_subscriber' | 'paid_subscriber'
 export type MembershipTier = 'none' | 'free' | 'paid_5' | 'paid_20'
 type DevMembershipTier = 'free' | 'paid_5' | 'paid_20'
-export interface PaidPlanOption {
-  id?: string
-  name: string
-  monthlyAmount: number
-  perks: string[]
-}
 
 const MEMBER_ENDPOINT = '/members/api/member/'
 
@@ -27,15 +21,6 @@ interface GhostMember {
   subscriptions?: Array<{
     id?: string
     status?: string
-    tier?: {
-      id?: string
-      name?: string
-      description?: string
-      monthly_price?: {
-        amount?: number
-      }
-      benefits?: Array<{ name?: string } | string>
-    }
     price?: {
       amount?: number
       currency?: string
@@ -45,17 +30,6 @@ interface GhostMember {
 
 interface GhostMemberResponse {
   member?: GhostMember | null
-}
-
-interface GhostTier {
-  id?: string
-  name?: string
-  type?: string
-  description?: string
-  monthly_price?: {
-    amount?: number
-  }
-  benefits?: Array<{ name?: string } | string>
 }
 
 function looksLikeGhostMember(value: unknown): value is GhostMember {
@@ -109,76 +83,6 @@ function getHighestPaidTier(member: GhostMember): MembershipTier {
   if (highestAmount >= 500) return 'paid_5'
   if (highestAmount > 0) return 'paid_5'
   return 'free'
-}
-
-function normalizeBenefit(benefit: { name?: string } | string | undefined): string {
-  if (!benefit) return ''
-  if (typeof benefit === 'string') return benefit.trim()
-  return typeof benefit.name === 'string' ? benefit.name.trim() : ''
-}
-
-function normalizePaidPlanOptions(tiers: GhostTier[]): PaidPlanOption[] {
-  return tiers
-    .map((tier): PaidPlanOption | null => {
-      const monthlyAmount = tier.monthly_price?.amount
-      const isPaidType = tier.type === 'paid'
-      const isPaidAmount = typeof monthlyAmount === 'number' && monthlyAmount > 0
-      if (!isPaidType && !isPaidAmount) return null
-      const name = typeof tier.name === 'string' && tier.name.trim()
-      if (!name) return null
-      const perks = Array.isArray(tier.benefits)
-        ? tier.benefits.map(normalizeBenefit).filter(Boolean)
-        : []
-      return {
-        id: tier.id,
-        name,
-        monthlyAmount: typeof monthlyAmount === 'number' ? monthlyAmount : 0,
-        perks,
-      }
-    })
-    .filter((tier): tier is PaidPlanOption => tier !== null)
-    .sort((a, b) => a.monthlyAmount - b.monthlyAmount)
-}
-
-function readPortalCachedTiers(): GhostTier[] {
-  try {
-    const cache = (window as Window & { __PORTAL_SETTINGS_CACHE__?: { tiers?: GhostTier[] } }).__PORTAL_SETTINGS_CACHE__
-    if (cache && Array.isArray(cache.tiers)) return cache.tiers
-  } catch {
-    // ignore
-  }
-  return []
-}
-
-function getGhostContentApiKey(): string {
-  const el = document.getElementById('ghost-portal-config')
-  if (!el) return ''
-  const key = el.getAttribute('data-key')
-  return typeof key === 'string' ? key.trim() : ''
-}
-
-async function fetchGhostTiers(): Promise<GhostTier[]> {
-  const apiKey = getGhostContentApiKey()
-  if (!apiKey) return []
-  try {
-    const response = await fetch(`/ghost/api/content/tiers/?key=${encodeURIComponent(apiKey)}&limit=all`, {
-      credentials: 'include',
-      cache: 'no-store',
-    })
-    if (!response.ok) return []
-    const payload = (await response.json().catch(() => ({}))) as { tiers?: GhostTier[] }
-    if (!payload || !Array.isArray(payload.tiers)) return []
-    return payload.tiers
-  } catch {
-    return []
-  }
-}
-
-export async function getPaidPlanOptions(): Promise<PaidPlanOption[]> {
-  const fromCache = normalizePaidPlanOptions(readPortalCachedTiers())
-  if (fromCache.length > 0) return fromCache
-  const fromApi = normalizePaidPlanOptions(await fetchGhostTiers())
-  return fromApi
 }
 
 export function setDevMemberOverride(loggedIn: boolean, paid: boolean | DevMembershipTier = false): void {

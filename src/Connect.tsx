@@ -5,16 +5,62 @@ import {
   clearLocalSessionFlags,
   getCurrentMember,
   getMembershipTier,
-  getPaidPlanOptions,
-  openPortalAccount,
-  openPortalAccountPlans,
   type MembershipTier,
-  type PaidPlanOption,
   triggerPortalSignOut,
   setDevMemberOverride,
 } from './utils'
 
 const CONNECT_BODY_CLASS = 'route-connect'
+
+const PORTAL_FALLBACK_MS = 600
+
+function getPortalFallbackUrl(hash: string): string {
+  const url = document.querySelector('script[data-ghost]')?.getAttribute('data-ghost')
+  const ghost = (url && url.trim()) || 'https://catsky.club'
+  const ghostBase = ghost.replace(/\/+$/, '')
+  try {
+    const origin = new URL(ghostBase).origin
+    return origin + '/connect' + hash
+  } catch {
+    return ghostBase + hash
+  }
+}
+
+function handlePortalClick(e: React.MouseEvent<HTMLAnchorElement>) {
+  e.preventDefault()
+  const href = e.currentTarget.getAttribute('href') || '#/portal/signup'
+  const hash = href.startsWith('#') ? href : `#${href}`
+  window.location.hash = hash
+  try {
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
+  } catch {
+    window.dispatchEvent(new Event('hashchange'))
+  }
+  setTimeout(() => {
+    const fallbackUrl = getPortalFallbackUrl(hash)
+    try {
+      const fallback = new URL(fallbackUrl)
+      const current = new URL(window.location.href)
+      const isLocalhost = current.hostname === 'localhost' || current.hostname === '127.0.0.1'
+      const sameOrigin = current.origin === fallback.origin
+      const sameSite =
+        current.hostname === fallback.hostname ||
+        current.hostname === 'www.' + fallback.hostname ||
+        fallback.hostname === 'www.' + current.hostname
+      const alreadyOnConnect = current.pathname.replace(/\/+$/, '') === '/connect'
+      if (isLocalhost || sameOrigin || (sameSite && alreadyOnConnect)) return
+      const root = document.getElementById('ghost-portal-root')
+      const hasPortal = root?.querySelector('[class*="popup"], [class*="modal"], iframe') != null
+      if (hasPortal) return
+      window.open(fallbackUrl, '_blank', 'noopener')
+    } catch {
+      const current = new URL(window.location.href)
+      const fallback = new URL(getPortalFallbackUrl(hash))
+      const same = current.origin === fallback.origin || current.hostname === fallback.hostname
+      if (!same) window.open(getPortalFallbackUrl(hash), '_blank', 'noopener')
+    }
+  }, PORTAL_FALLBACK_MS)
+}
 
 const PORTAL_HASH_REGEX = /^#\/portal\/(signup|signin|account)/
 
@@ -43,7 +89,6 @@ export default function Connect() {
   const [authEmail, setAuthEmail] = useState('')
   const [authStatus, setAuthStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [authError, setAuthError] = useState<string | null>(null)
-  const [paidPlans, setPaidPlans] = useState<PaidPlanOption[]>([])
 
   const isLoggedIn = useMemo(() => membershipTier !== null && membershipTier !== 'none', [membershipTier])
 
@@ -66,16 +111,6 @@ export default function Connect() {
       if (!cancelled) setMembershipTier(tier)
     })
     return () => { cancelled = true }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    getPaidPlanOptions().then((tiers) => {
-      if (!cancelled) setPaidPlans(tiers)
-    })
-    return () => {
-      cancelled = true
-    }
   }, [])
 
   const wasPortalActive = React.useRef(false)
@@ -158,16 +193,6 @@ export default function Connect() {
     setTimeout(refreshMemberStatus, 500)
   }, [refreshMemberStatus])
 
-  const handlePlanUpgrade = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
-    openPortalAccountPlans()
-  }, [])
-
-  const handleAccountClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault()
-    openPortalAccount()
-  }, [])
-
   const openAuthForm = useCallback((entryPoint: 'signup' | 'signin') => {
     setAuthEntryPoint(entryPoint)
     setShowAuthForm(true)
@@ -223,20 +248,6 @@ export default function Connect() {
       if (triggers) triggers.setAttribute('aria-hidden', 'true')
     }
   }, [])
-
-  const defaultPlanOptions: PaidPlanOption[] = [
-    { name: 'Supporter', monthlyAmount: 500, perks: ['unfinished demos'] },
-    { name: 'Backstage', monthlyAmount: 2000, perks: ['unfinished demos', 'unreleased music videos'] },
-  ]
-  const planOptions = paidPlans.length > 0 ? paidPlans : defaultPlanOptions
-  const activeTierName = useMemo(() => {
-    if (membershipTier === 'paid_5' || membershipTier === 'paid_20') {
-      const expectedAmount = membershipTier === 'paid_20' ? 2000 : 500
-      const exact = planOptions.find((plan) => plan.monthlyAmount === expectedAmount)
-      if (exact) return exact.name
-    }
-    return null
-  }, [membershipTier, planOptions])
 
   return (
     <div className="app-container">
@@ -306,7 +317,7 @@ export default function Connect() {
                 href="#/portal/account"
                 data-portal="account"
                 className="connect-portal-btn"
-                onClick={handleAccountClick}
+                onClick={handlePortalClick}
               >
                 account
               </a>
@@ -325,26 +336,13 @@ export default function Connect() {
         {isLoggedIn && membershipTier === 'free' && (
           <div style={{ marginTop: '1.25rem', opacity: 0.9 }}>
             <p style={{ marginBottom: '0.75rem' }}>your current plan: free member</p>
-            <p style={{ marginBottom: '1rem' }}>unlock more with a paid plan:</p>
+            <p style={{ marginBottom: '1rem' }}>unlock demos + unreleased video with a paid plan:</p>
             <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-              {planOptions.map((plan) => (
-                <a
-                  key={plan.id ?? plan.name}
-                  href="#/portal/account/plans"
-                  onClick={handlePlanUpgrade}
-                  className="connect-portal-btn"
-                >
-                  upgrade to {plan.name}
-                </a>
-              ))}
+              <a href="#/portal/account/plans" onClick={handlePortalClick} className="connect-portal-btn">upgrade to supporter plan</a>
+              <a href="#/portal/account/plans" onClick={handlePortalClick} className="connect-portal-btn">upgrade to backstage plan</a>
             </div>
             <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', opacity: 0.85 }}>
-              {planOptions
-                .map((plan) => {
-                  if (plan.perks.length === 0) return plan.name
-                  return `${plan.name}: ${plan.perks.join(', ')}`
-                })
-                .join(' • ')}
+              paid plans include unfinished demos and unreleased music videos.
             </p>
           </div>
         )}
@@ -352,7 +350,7 @@ export default function Connect() {
         {isLoggedIn && (membershipTier === 'paid_5' || membershipTier === 'paid_20') && (
           <div style={{ marginTop: '1.25rem', opacity: 0.9 }}>
             <p>
-              paid access active{activeTierName ? ` (${activeTierName})` : ''}
+              paid access active ({membershipTier === 'paid_20' ? 'backstage plan' : 'supporter plan'})
             </p>
           </div>
         )}

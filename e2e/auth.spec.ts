@@ -96,22 +96,11 @@ test.describe('Connect Page - Basic Elements', () => {
     await expect(logOutLink).toBeVisible()
   })
 
-  test('free members see Ghost tier names and upgrade click opens plans hash without portal runtime errors', async ({ page }) => {
+  test('free members see plan upgrade actions and upgrade click opens plans hash without portal runtime errors', async ({ page }) => {
     const portalErrors: string[] = []
     page.on('pageerror', (error) => {
       const message = String(error?.message || error)
       if (/includes/i.test(message)) portalErrors.push(message)
-    })
-
-    await page.addInitScript(() => {
-      const runtimeWindow = window as Window & { __PORTAL_SETTINGS_CACHE__?: unknown }
-      runtimeWindow.__PORTAL_SETTINGS_CACHE__ = {
-        tiers: [
-          { name: 'Free', type: 'free', monthly_price: { amount: 0 } },
-          { id: 'tier-1', name: 'Studio Pass', type: 'paid', monthly_price: { amount: 500 }, benefits: ['unfinished demos'] },
-          { id: 'tier-2', name: 'Backstage Circle', type: 'paid', monthly_price: { amount: 2000 }, benefits: ['unreleased music videos'] },
-        ],
-      }
     })
 
     await page.route('**/members/api/member**', (route) => {
@@ -127,11 +116,11 @@ test.describe('Connect Page - Basic Elements', () => {
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByRole('link', { name: 'upgrade to Studio Pass' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'upgrade to Backstage Circle' })).toBeVisible()
-    await expect(page.getByText('Studio Pass: unfinished demos • Backstage Circle: unreleased music videos')).toBeVisible()
+    await expect(page.getByRole('link', { name: 'upgrade to supporter plan' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'upgrade to backstage plan' })).toBeVisible()
+    await expect(page.getByText('paid plans include unfinished demos and unreleased music videos.')).toBeVisible()
 
-    await page.getByRole('link', { name: 'upgrade to Studio Pass' }).click()
+    await page.getByRole('link', { name: 'upgrade to supporter plan' }).click()
     await expect(page).toHaveURL(/#\/portal\/account\/plans$/)
     expect(portalErrors).toEqual([])
   })
