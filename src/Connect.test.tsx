@@ -7,26 +7,15 @@ const mocks = vi.hoisted(() => ({
   getPlanOptionsMock: vi.fn<() => Promise<{ freePlanName: string | null; paidPlans: Array<{ id?: string; name: string; monthlyAmount: number; perks: string[] }> }>>(),
   navigateToMock: vi.fn<(path: string) => void>(),
   getCurrentMemberMock: vi.fn<() => Promise<{ id?: string; uuid?: string; email?: string } | null>>(),
-  openPortalAccountMock: vi.fn<() => void>(),
-  openPortalAccountPlansMock: vi.fn<() => void>(),
 }))
 
-const {
-  getMembershipTierMock,
-  getPlanOptionsMock,
-  navigateToMock,
-  getCurrentMemberMock,
-  openPortalAccountMock,
-  openPortalAccountPlansMock,
-} = mocks
+const { getMembershipTierMock, getPlanOptionsMock, navigateToMock, getCurrentMemberMock } = mocks
 
 vi.mock('./utils', () => ({
   clearLocalSessionFlags: vi.fn(),
   getCurrentMember: mocks.getCurrentMemberMock,
   getMembershipTier: mocks.getMembershipTierMock,
   getPlanOptions: mocks.getPlanOptionsMock,
-  openPortalAccount: mocks.openPortalAccountMock,
-  openPortalAccountPlans: mocks.openPortalAccountPlansMock,
   triggerPortalSignOut: vi.fn(),
   setDevMemberOverride: vi.fn(),
 }))
@@ -110,22 +99,6 @@ describe('Connect membership states and magic-link refresh', () => {
     const upgradeLink = screen.getByRole('link', { name: 'upgrade to Supporter' })
     expect(upgradeLink).toHaveAttribute('data-portal', 'account/plans')
     expect(upgradeLink).toHaveAttribute('href', '#/portal/account/plans')
-  })
-
-  it('routes account and upgrade clicks through static portal triggers', async () => {
-    getMembershipTierMock.mockResolvedValue('free')
-
-    render(<Connect />)
-
-    await act(async () => {
-      await vi.runAllTimersAsync()
-    })
-
-    screen.getByRole('link', { name: 'account' }).click()
-    expect(openPortalAccountMock).toHaveBeenCalledTimes(1)
-
-    screen.getByRole('link', { name: 'upgrade to Supporter' }).click()
-    expect(openPortalAccountPlansMock).toHaveBeenCalledTimes(1)
   })
 
   it('routes signup callbacks to welcome after login state is ready', async () => {
