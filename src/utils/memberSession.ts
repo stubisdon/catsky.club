@@ -15,19 +15,24 @@ function clickPortalTrigger(id: string): boolean {
 }
 
 export function openPortalSignIn(): void {
-  // Ghost Portal binds click handlers at load time; use hidden triggers if present.
-  if (clickPortalTrigger('ghost-portal-trigger-signin')) return
   window.location.hash = '#/portal/signin'
+  // Ghost Portal binds click handlers at load time; use hidden triggers if present.
+  clickPortalTrigger('ghost-portal-trigger-signin')
 }
 
 export function openPortalSignUp(): void {
-  if (clickPortalTrigger('ghost-portal-trigger-signup')) return
   window.location.hash = '#/portal/signup'
+  clickPortalTrigger('ghost-portal-trigger-signup')
 }
 
 export function openPortalAccount(): void {
-  if (clickPortalTrigger('ghost-portal-trigger-account')) return
   window.location.hash = '#/portal/account'
+  clickPortalTrigger('ghost-portal-trigger-account')
+}
+
+export function openPortalAccountPlans(): void {
+  window.location.hash = '#/portal/account/plans'
+  clickPortalTrigger('ghost-portal-trigger-account-plans')
 }
 
 /** Trigger Ghost Portal sign out (clears member session cookie). Call before clearing local state. */

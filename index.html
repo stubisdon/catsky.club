@@ -107,10 +107,28 @@
         function fixIfNeeded(v) {
           if (v && typeof v === 'object' && (v.settings || v.site)) v = fixPortalSettings(v);
           if (v && typeof v === 'object' && v.tiers) v = fixPortalTiers(v);
-          if (v && typeof v === 'object' && !Array.isArray(v) && (v.title !== undefined || v.newsletters !== undefined || v.members_enabled !== undefined)) ensureSiteHasUrl(v);
+          if (v && typeof v === 'object' && !Array.isArray(v) && (v.title !== undefined || v.members_enabled !== undefined)) ensureSiteHasUrl(v);
           if (v && typeof v === 'object') v = replaceProductionUrls(v);
           return v;
         }
+
+        function fixSiteInObject(v) {
+          if (!v || typeof v !== 'object') return v;
+          if (Array.isArray(v)) {
+            v.forEach(function(el, i) { v[i] = fixSiteInObject(fixIfNeeded(el)); });
+            return v;
+          }
+          ensureSiteHasUrl(v.site);
+          return fixIfNeeded(v);
+        }
+
+        var originalThen = Promise.prototype.then;
+        Promise.prototype.then = function(onFulfilled, onRejected) {
+          var wrapped = onFulfilled ? function(v) {
+            return onFulfilled(fixSiteInObject(v));
+          } : onFulfilled;
+          return originalThen.call(this, wrapped, onRejected);
+        };
 
         function safeParsePathname(url) {
           if (typeof url !== 'string' || !url) return '';
@@ -132,30 +150,22 @@
           if (!pathname) return false;
           if (pathname.indexOf('/ghost/api/content/settings') === 0) return true;
           if (pathname.indexOf('/ghost/api/content/tiers') === 0) return true;
+          if (pathname === '/members/api/member/' || pathname === '/members/api/member') return true;
           return false;
-        }
-
-        function isNewsletterMutationUrl(url) {
-          var pathname = safeParsePathname(url);
-          return pathname === '/members/api/member/newsletters/' || pathname === '/members/api/member/newsletters';
         }
 
         function emptyJsonFallback(url) {
           if (isMemberSessionUrl(url)) return { member: null };
-          if (isNewsletterMutationUrl(url)) return {};
           return null;
         }
 
         var originalJson = Response.prototype.json;
         Response.prototype.json = function() {
           var self = this;
-          var responseUrl = (self && self.url ? String(self.url) : '');
-          var shouldTransform = shouldTransformJsonPayload(responseUrl);
-          return originalJson.call(self).then(function(data) {
-            return shouldTransform ? fixIfNeeded(data) : data;
-          }).catch(function(e) {
+          return originalJson.call(self).then(fixIfNeeded).catch(function(e) {
             if (e && (e instanceof SyntaxError || (typeof e.message === 'string' && e.message.indexOf('JSON') !== -1))) {
-              var fallback = emptyJsonFallback(responseUrl);
+              var emptyUrl = (self && self.url ? String(self.url) : '');
+              var fallback = emptyJsonFallback(emptyUrl);
               if (fallback) return fixIfNeeded(fallback);
             }
             throw e;
@@ -315,6 +325,7 @@
       <button id="ghost-portal-trigger-signup" data-portal="signup" type="button">sign up →</button>
       <button id="ghost-portal-trigger-signin" data-portal="signin" type="button">log in →</button>
       <button id="ghost-portal-trigger-account" data-portal="account" type="button">account</button>
+      <button id="ghost-portal-trigger-account-plans" data-portal="account/plans" type="button">plans</button>
       <button id="ghost-portal-trigger-signout" data-members-signout type="button" style="display:none">sign out</button>
     </div>
     <div id="root"></div>
