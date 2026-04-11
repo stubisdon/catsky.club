@@ -112,24 +112,6 @@
           return v;
         }
 
-        function fixSiteInObject(v) {
-          if (!v || typeof v !== 'object') return v;
-          if (Array.isArray(v)) {
-            v.forEach(function(el, i) { v[i] = fixSiteInObject(fixIfNeeded(el)); });
-            return v;
-          }
-          ensureSiteHasUrl(v.site);
-          return fixIfNeeded(v);
-        }
-
-        var originalThen = Promise.prototype.then;
-        Promise.prototype.then = function(onFulfilled, onRejected) {
-          var wrapped = onFulfilled ? function(v) {
-            return onFulfilled(fixSiteInObject(v));
-          } : onFulfilled;
-          return originalThen.call(this, wrapped, onRejected);
-        };
-
         function safeParsePathname(url) {
           if (typeof url !== 'string' || !url) return '';
           try {
@@ -150,7 +132,6 @@
           if (!pathname) return false;
           if (pathname.indexOf('/ghost/api/content/settings') === 0) return true;
           if (pathname.indexOf('/ghost/api/content/tiers') === 0) return true;
-          if (pathname === '/members/api/member/' || pathname === '/members/api/member') return true;
           return false;
         }
 
@@ -162,10 +143,13 @@
         var originalJson = Response.prototype.json;
         Response.prototype.json = function() {
           var self = this;
-          return originalJson.call(self).then(fixIfNeeded).catch(function(e) {
+          var responseUrl = (self && self.url ? String(self.url) : '');
+          var shouldTransform = shouldTransformJsonPayload(responseUrl);
+          return originalJson.call(self).then(function(data) {
+            return shouldTransform ? fixIfNeeded(data) : data;
+          }).catch(function(e) {
             if (e && (e instanceof SyntaxError || (typeof e.message === 'string' && e.message.indexOf('JSON') !== -1))) {
-              var emptyUrl = (self && self.url ? String(self.url) : '');
-              var fallback = emptyJsonFallback(emptyUrl);
+              var fallback = emptyJsonFallback(responseUrl);
               if (fallback) return fixIfNeeded(fallback);
             }
             throw e;
