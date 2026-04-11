@@ -107,10 +107,28 @@
         function fixIfNeeded(v) {
           if (v && typeof v === 'object' && (v.settings || v.site)) v = fixPortalSettings(v);
           if (v && typeof v === 'object' && v.tiers) v = fixPortalTiers(v);
-          if (v && typeof v === 'object' && !Array.isArray(v) && (v.title !== undefined || v.members_enabled !== undefined)) ensureSiteHasUrl(v);
+          if (v && typeof v === 'object' && !Array.isArray(v) && (v.title !== undefined || v.newsletters !== undefined || v.members_enabled !== undefined)) ensureSiteHasUrl(v);
           if (v && typeof v === 'object') v = replaceProductionUrls(v);
           return v;
         }
+
+        function fixSiteInObject(v) {
+          if (!v || typeof v !== 'object') return v;
+          if (Array.isArray(v)) {
+            v.forEach(function(el, i) { v[i] = fixSiteInObject(fixIfNeeded(el)); });
+            return v;
+          }
+          ensureSiteHasUrl(v.site);
+          return fixIfNeeded(v);
+        }
+
+        var originalThen = Promise.prototype.then;
+        Promise.prototype.then = function(onFulfilled, onRejected) {
+          var wrapped = onFulfilled ? function(v) {
+            return onFulfilled(fixSiteInObject(v));
+          } : onFulfilled;
+          return originalThen.call(this, wrapped, onRejected);
+        };
 
         function safeParsePathname(url) {
           if (typeof url !== 'string' || !url) return '';
@@ -127,30 +145,13 @@
           return pathname === '/members/api/member/' || pathname === '/members/api/member';
         }
 
-        function shouldTransformJsonPayload(url) {
-          var pathname = safeParsePathname(url);
-          if (!pathname) return false;
-          if (pathname.indexOf('/ghost/api/content/settings') === 0) return true;
-          if (pathname.indexOf('/ghost/api/content/tiers') === 0) return true;
-          return false;
-        }
-
-        function emptyJsonFallback(url) {
-          if (isMemberSessionUrl(url)) return { member: null };
-          return null;
-        }
-
         var originalJson = Response.prototype.json;
         Response.prototype.json = function() {
           var self = this;
-          var responseUrl = (self && self.url ? String(self.url) : '');
-          var shouldTransform = shouldTransformJsonPayload(responseUrl);
-          return originalJson.call(self).then(function(data) {
-            return shouldTransform ? fixIfNeeded(data) : data;
-          }).catch(function(e) {
+          return originalJson.call(self).then(fixIfNeeded).catch(function(e) {
             if (e && (e instanceof SyntaxError || (typeof e.message === 'string' && e.message.indexOf('JSON') !== -1))) {
-              var fallback = emptyJsonFallback(responseUrl);
-              if (fallback) return fixIfNeeded(fallback);
+              var emptyUrl = (self && self.url ? String(self.url) : '');
+              if (isMemberSessionUrl(emptyUrl)) return fixIfNeeded({ member: null });
             }
             throw e;
           });
@@ -169,16 +170,14 @@
           var contentType = response.headers.get('Content-Type') || '';
           if (contentType.indexOf('application/json') === -1) return Promise.resolve(response);
           var url = (reqUrl || response.url || '').toString();
-          var shouldTransform = shouldTransformJsonPayload(url);
           return response.clone().text().then(function(text) {
             try {
               if (!text || text.trim() === '') {
-                // Ghost can return empty JSON bodies for selected members endpoints.
-                // Keep narrow endpoint matching so non-member endpoints preserve native empty-body behavior.
-                var fallback = emptyJsonFallback(url);
-                if (!fallback) return response;
-                var data = fixIfNeeded(fallback);
-                _portalFixLog('patched empty json response: ' + url.split('?')[0]);
+                // Ghost can return 200 with empty body for /members/api/member/ when not logged in; avoid JSON parse errors downstream.
+                // For non-member endpoints, keep the original empty response so Portal can run its own endpoint-specific handling.
+                if (!isMemberSessionUrl(url)) return response;
+                var data = fixIfNeeded({ member: null });
+                _portalFixLog('patched empty member response: ' + url.split('?')[0]);
                 var r = new Response(JSON.stringify(data), {
                   status: response.status,
                   statusText: response.statusText,
@@ -187,7 +186,6 @@
                 if (response.url) Object.defineProperty(r, 'url', { value: response.url, configurable: true });
                 return r;
               }
-              if (!shouldTransform) return response;
               var data = fixIfNeeded(JSON.parse(text));
               _portalFixLog('patched response: ' + url.split('?')[0]);
               var r = new Response(JSON.stringify(data), {
@@ -244,19 +242,7 @@
               try {
                 var ct = xhr.getResponseHeader('Content-Type') || '';
                 if (ct.indexOf('json') !== -1) {
-                  var sourceUrl = xhr.responseURL || xhr._portalUrl || '';
-                  var raw = xhr.responseText || '';
-                  var trimmed = raw.trim();
-                  var data;
-                  if (!trimmed) {
-                    var fallback = emptyJsonFallback(sourceUrl);
-                    if (!fallback) return origOnReady && origOnReady.apply(this, arguments);
-                    data = fallback;
-                  } else {
-                    if (!shouldTransformJsonPayload(sourceUrl)) return origOnReady && origOnReady.apply(this, arguments);
-                    data = JSON.parse(raw);
-                  }
-                  data = fixIfNeeded(data);
+                  var data = fixIfNeeded(JSON.parse(xhr.responseText));
                   Object.defineProperty(xhr, 'responseText', { value: JSON.stringify(data), configurable: true });
                 }
               } catch (e) {}
@@ -282,12 +268,24 @@
         var portalSrc = 'https://cdn.jsdelivr.net/npm/@tryghost/portal@latest/umd/portal.min.js';
         var settingsUrl = ghostUrl.replace(/\/$/, '') + '/ghost/api/content/settings/?key=' + encodeURIComponent(apiKey);
         function loadPortal() {
+        fetch(portalSrc, { cache: 'no-store' }).then(function(r) { return r.text(); }).then(function(code) {
+          var safe = code.replace(/(\w+)\.url\.replace\(/g, function(_, v) {
+            return '((typeof ' + v + '!=="undefined"&&' + v + '&&' + v + '.url)?' + v + '.url:(window.__GHOST_SITE__&&window.__GHOST_SITE__.url)||"").replace(';
+          });
+          safe = safe.replace(/==="invite"/g, '==="\u200binvite"');
+          var s = document.createElement('script');
+          s.textContent = safe;
+          s.setAttribute('data-ghost', ghostUrl);
+          s.setAttribute('data-key', apiKey);
+          document.head.appendChild(s);
+        }).catch(function() {
           var s = document.createElement('script');
           s.src = portalSrc;
           s.setAttribute('data-ghost', ghostUrl);
           s.setAttribute('data-key', apiKey);
           s.defer = true;
           document.head.appendChild(s);
+        });
         }
         if (apiKey) {
           fetch(settingsUrl, { cache: 'no-store' }).then(function(r) {

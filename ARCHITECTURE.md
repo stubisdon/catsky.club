@@ -25,7 +25,7 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 - `/` → `src/App.tsx` (landing page)
 - `/listen` → `src/Listen.tsx` (tier-gated tracks; V1 paid-demo catalog currently unlocks at `$5` with `$20` parity)
 - `/watch` → `src/Watch.tsx` (public teaser + plan/perk upgrade prompt for free/guest users + unreleased-video entrypoint for paid tiers)
-- `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + plan-name/perk upgrade messaging + account/logout actions)
+- `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + Ghost-tier-name/perk upgrade messaging + account/logout actions)
 - `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name)
 - `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
 - unknown paths → normalized to `/` in router
@@ -54,6 +54,7 @@ Primary member check flow:
 Dev override support (local only):
 
 - `catsky_dev_member` + `catsky_dev_paid` in localStorage via `setDevMemberOverride()`.
+- Paid plan labels/perks shown in `/connect` are hydrated from Ghost tier definitions (`__PORTAL_SETTINGS_CACHE__.tiers` first, then `/ghost/api/content/tiers/?key=...` fallback) so frontend copy tracks backend tier names.
 
 ### 3.2 Connect authentication UX
 
@@ -71,6 +72,7 @@ Current behavior in `src/Connect.tsx`:
   - refreshes on `focus`, `pageshow`, `visibilitychange`.
 - Logged-in view shows:
   - account link (`#/portal/account`)
+  - upgrade entry uses the hidden `data-portal="account/plans"` trigger so plan CTA clicks open the Ghost-managed plans screen directly
   - logout action that **must** call `triggerPortalSignOut()`.
 
 ### 3.3 Ghost Portal wiring and hardening
@@ -79,8 +81,7 @@ Current behavior in `src/Connect.tsx`:
 
 - patches JSON from Ghost endpoints to normalize signup access and tier visibility,
 - hardens `fetch` / `Response.json` / XHR behavior against empty JSON responses,
-- synthesizes endpoint-specific fallbacks for empty JSON member endpoints (`{ member: null }` for `/members/api/member/` and `{}` for `/members/api/member/newsletters/`) so account-session reads and newsletter toggle mutations stay parse-safe; non-empty responses pass through unchanged,
-- limits JSON payload rewriting to Ghost content settings/tiers reads only; member and newsletter payloads are not structurally rewritten when non-empty,
+- only synthesizes `{ member: null }` for empty `/members/api/member/` responses (so account/newsletter mutation endpoints keep their native empty-body semantics),
 - rewrites production URLs where needed,
 - prefetches and caches Ghost settings,
 - dynamically loads patched Portal script from jsDelivr,
@@ -201,7 +202,7 @@ Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redir
 - unit/integration: Vitest (`npm run test`).
 - E2E: Playwright suite in `e2e/` with smoke-vs-matrix commands:
 - E2E startup contract now runs through `scripts/playwright-webserver.mjs`, which binds Vite to `127.0.0.1:3000` with `--strictPort` and blocks until the app shell is actually reachable before Playwright begins navigation.
-  - `npm run screenshots:journey` captures a reproducible 3-step desktop UI evidence set (`/`, `/listen`, `/connect`) to `artifacts/ui-journey/` by starting Vite on `127.0.0.1:3000` and waiting for app-shell readiness before navigation. If Chromium is missing, the script bootstraps Playwright's Chromium dependency (`npx playwright install --with-deps chromium`) and retries automatically to reduce screenshot flake in fresh environments.
+  - `npm run screenshots:journey` captures a reproducible 3-step desktop UI evidence set (`/`, `/listen`, `/connect`) to `artifacts/ui-journey/` by starting Vite on `127.0.0.1:3000` and waiting for app-shell readiness before navigation.
   - `npm run test:e2e:setup` installs Playwright browser binaries plus required Linux host libraries (`--with-deps`) for local and CI-like runs.
   - `npm run test:e2e:landing` is the default smoke command (Chromium-only landing suite excluding `Performance`-tagged checks).
   - `npm run test:e2e` aliases the landing smoke flow for reliable baseline execution.
@@ -225,5 +226,4 @@ Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redir
 - Unsubscribe reliability is intentionally duplicated: nginx should proxy both `= /unsubscribe` and `/unsubscribe/` directly, and Express now includes a defensive `/unsubscribe` proxy before SPA fallback.
 - Membership gating in Listen is client-side UX gating; authoritative member state still comes from Ghost session/cookies.
 - Ghost Portal behavior depends heavily on the `index.html` patch script; accidental refactors there can break auth/signup UX.
-- The Portal loader now mounts Ghost Portal via a plain `<script src="...portal.min.js">` include with `data-ghost`/`data-key` only. We intentionally do not rewrite downloaded Portal bundle code at runtime, because previous string rewrites caused production crashes and blocked upgrade modal open on `/connect`.
 - `POST /api/submit` remains available for server-side member creation flows even though Connect currently uses client-side magic links.

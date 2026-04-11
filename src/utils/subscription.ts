@@ -17,11 +17,6 @@ export interface PaidPlanOption {
   perks: string[]
 }
 
-export interface PlanOptions {
-  freePlanName: string | null
-  paidPlans: PaidPlanOption[]
-}
-
 const MEMBER_ENDPOINT = '/members/api/member/'
 
 interface GhostMember {
@@ -145,18 +140,6 @@ function normalizePaidPlanOptions(tiers: GhostTier[]): PaidPlanOption[] {
     .sort((a, b) => a.monthlyAmount - b.monthlyAmount)
 }
 
-function normalizeFreePlanName(tiers: GhostTier[]): string | null {
-  for (const tier of tiers) {
-    const monthlyAmount = tier.monthly_price?.amount
-    const isFreeType = tier.type === 'free'
-    const isFreeAmount = typeof monthlyAmount === 'number' && monthlyAmount === 0
-    if (!isFreeType && !isFreeAmount) continue
-    const name = typeof tier.name === 'string' ? tier.name.trim() : ''
-    if (name) return name
-  }
-  return null
-}
-
 function readPortalCachedTiers(): GhostTier[] {
   try {
     const cache = (window as Window & { __PORTAL_SETTINGS_CACHE__?: { tiers?: GhostTier[] } }).__PORTAL_SETTINGS_CACHE__
@@ -196,22 +179,6 @@ export async function getPaidPlanOptions(): Promise<PaidPlanOption[]> {
   if (fromCache.length > 0) return fromCache
   const fromApi = normalizePaidPlanOptions(await fetchGhostTiers())
   return fromApi
-}
-
-export async function getPlanOptions(): Promise<PlanOptions> {
-  const cachedTiers = readPortalCachedTiers()
-  if (cachedTiers.length > 0) {
-    return {
-      freePlanName: normalizeFreePlanName(cachedTiers),
-      paidPlans: normalizePaidPlanOptions(cachedTiers),
-    }
-  }
-
-  const apiTiers = await fetchGhostTiers()
-  return {
-    freePlanName: normalizeFreePlanName(apiTiers),
-    paidPlans: normalizePaidPlanOptions(apiTiers),
-  }
 }
 
 export function setDevMemberOverride(loggedIn: boolean, paid: boolean | DevMembershipTier = false): void {

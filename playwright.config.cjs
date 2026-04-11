@@ -56,9 +56,7 @@ module.exports = defineConfig({
   webServer: {
     command: 'node scripts/playwright-webserver.mjs',
     url: 'http://127.0.0.1:3000',
-    // Default to a fresh server per run to avoid reusing stale local processes
-    // that can disappear mid-test and cause ERR_CONNECTION_REFUSED flakes.
-    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === 'true',
+    reuseExistingServer: !process.env.CI,
     timeout: 180 * 1000,
   },
 })

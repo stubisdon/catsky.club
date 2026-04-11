@@ -44,7 +44,7 @@ notes / blockers:
 ### week 3 – catsky.club v1
 
 - [x] landing page (clear, minimal)
-- [x] email capture
+- [ ] email capture
 - [ ] recurring payments
 - [ ] gated private content page
 - [ ] paid subscriber page for listening to latest versions of tracks
@@ -59,13 +59,15 @@ notes / blockers:
 
 ---
 
-### week 4 – content bet (music-led)
+### week 4 – first immersive experience
 
-thesis: the offer is music itself—unreleased work, demos still in motion, and an unreleased music video—not a separate “immersive experience” layer.
+- [ ] music or fragment prepared
+- [ ] story layer attached
+- [ ] behind-the-scenes artifact
 
-- [ ] unreleased music is explicit in the offer (what paying members hear that others do not)
-- [ ] in-progress demos are part of the draw (honest work-in-progress, not only polished releases)
-- [ ] unreleased music video: plan asset, timing, and member vs public placement
+quality check:
+- [ ] reveals tradeoff between money and aliveness
+- [ ] adds context spotify cannot
 
 notes / blockers:
 
