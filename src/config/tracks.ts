@@ -49,8 +49,6 @@ export const TRACKS: Track[] = [
     id: '4',
     title: 'Motherless Child',
     accessTier: 'free_member',
-    availableFrom: '2026-04-10',
-    lockedLabel: 'coming Apr 10, 2026',
     announcedReleaseDate: '2026-04-10',
     audioSource: {
       type: 'soundcloud',
