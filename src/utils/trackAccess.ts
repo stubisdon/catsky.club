@@ -25,7 +25,7 @@ export function hasTrackAccess(track: Track, membershipTier: MembershipTier, now
   if (track.accessTier === 'public') return true
 
   if (membershipTier === 'free' && hasAnnouncedReleaseDate(track)) {
-    return true
+    if (isTrackAvailableByDate(track, now)) return true
   }
 
   if (!isTrackAvailableByDate(track, now)) return false
