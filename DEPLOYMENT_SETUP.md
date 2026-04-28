@@ -17,7 +17,7 @@ Last updated: 2026-01-18
 
 3. **GitHub Actions workflow created and configured** - `.github/workflows/deploy.yml`
    - Auto-deploys on push to `main` branch
-   - Uses SSH to connect to production server (164.92.89.22)
+   - Uses SSH to connect to production server (YOUR_SERVER_IP)
    - **Status: Working and tested successfully**
 
 4. **SSH keys configured**
@@ -58,7 +58,7 @@ The workflow (`.github/workflows/deploy.yml`):
 If you ever need to deploy manually:
 
 ```bash
-ssh root@164.92.89.22
+ssh root@YOUR_SERVER_IP
 cd /opt/catsky-club
 git pull
 ./deploy.sh

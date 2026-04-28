@@ -49,7 +49,7 @@ loadEnvFile('.env')
 const app = express()
 const PORT = process.env.PORT || 3001
 
-const GHOST_URL = (process.env.GHOST_URL || process.env.VITE_GHOST_URL || 'https://catsky.club').replace(/\/+$/, '')
+const GHOST_URL = (process.env.GHOST_URL || process.env.VITE_GHOST_URL || '').replace(/\/+$/, '')
 const GHOST_INTERNAL_URL = (process.env.GHOST_INTERNAL_URL || 'http://127.0.0.1:2368').replace(/\/+$/, '')
 const GHOST_ADMIN_API_KEY = process.env.GHOST_ADMIN_API_KEY || ''
 const GHOST_ADMIN_API_VERSION = process.env.GHOST_ADMIN_API_VERSION || 'v5.0'
@@ -90,7 +90,7 @@ function createGhostProxyHeaders(req) {
   return {
     Accept: req.headers.accept || '*/*',
     'Accept-Language': req.headers['accept-language'] || 'en',
-    'User-Agent': req.headers['user-agent'] || 'catsky-server',
+    'User-Agent': req.headers['user-agent'] || 'ghost-proxy-server',
     Host: host,
     'X-Forwarded-Host': host,
     'X-Forwarded-Proto': protocol,
@@ -307,7 +307,7 @@ function renderUnsubscribeConfirmationPage(res, { success }) {
     <main>
       <h1>${title}</h1>
       <p>${message}</p>
-      <a href="/">Back to catsky.club</a>
+      <a href="/">${process.env.SITE_NAME ? `Back to ${process.env.SITE_NAME}` : 'Back'}</a>
     </main>
   </body>
 </html>`

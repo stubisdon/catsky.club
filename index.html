@@ -16,8 +16,8 @@
         'use strict';
         var defaultUrl = (typeof window !== 'undefined' && window.location && window.location.origin)
           ? window.location.origin
-          : 'https://catsky.club';
-        var defaultSupportEmail = 'support@catsky.club';
+          : '';
+        var defaultSupportEmail = '';
         function ensureSupportAddress(obj) {
           if (obj && typeof obj === 'object' && (!obj.members_support_address || typeof obj.members_support_address !== 'string' || !obj.members_support_address.trim()))
             obj.members_support_address = defaultSupportEmail;

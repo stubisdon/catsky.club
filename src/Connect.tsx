@@ -357,9 +357,26 @@ export default function Connect() {
           </div>
         )}
 
-        {portalHashActive && typeof window !== 'undefined' && window.location?.hostname !== 'catsky.club' && (
+        {portalHashActive &&
+          typeof window !== 'undefined' &&
+          (() => {
+            const ghostAttr =
+              typeof document !== 'undefined'
+                ? document.querySelector('script[data-ghost]')?.getAttribute('data-ghost')
+                : null
+            const ghostHostname = ghostAttr
+              ? (() => {
+                  try {
+                    return new URL(ghostAttr).hostname
+                  } catch {
+                    return null
+                  }
+                })()
+              : null
+            return !!(ghostHostname && window.location?.hostname !== ghostHostname)
+          })() && (
           <p className="connect-portal-hint" style={{ fontSize: '0.8rem', opacity: 0.7, marginTop: '0.75rem' }}>
-            Session is stored on the Ghost domain; use production (catsky.club) to see logged-in state.
+            Session is stored on the Ghost domain; switch to your production URL to see logged-in state.
           </p>
         )}
 

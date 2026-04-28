@@ -15,7 +15,7 @@ This guide will help you deploy your React + Vite frontend to your DigitalOcean 
 
 1. **Test locally first:**
    ```bash
-   cd /Users/stub/coding/catsky.club
+   cd /path/to/your/project
    npm install
    npm run dev
    ```

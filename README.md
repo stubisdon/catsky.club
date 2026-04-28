@@ -110,6 +110,41 @@ All documentation is available in the `public/docs/` folder, organized into `biz
 - [Setup Media](./public/docs/tech/SETUP_MEDIA.md) - Media setup instructions
 - [UX/UI Documentation](./public/docs/tech/UX_UI_DOCUMENTATION.md) - UX/UI guidelines
 
+## Self-hosting
+
+This frontend is designed to be forked and run against your own Ghost CMS instance. The steps below get you from zero to a working dev environment; for full production hardening see the deployment docs.
+
+### Prerequisites
+
+- Node.js 18+
+- A running [Ghost CMS](https://ghost.org/) instance (any version, any host)
+- A Linux server with nginx for production (DigitalOcean, Linode, Hetzner, etc.)
+
+### Quick start
+
+1. Clone the repo
+2. Copy `.env.example` → `.env.development` and set `VITE_GHOST_URL` to your Ghost URL
+3. Copy `ENV_SERVER.example` → `.env.server` and fill in your Ghost Admin API key
+4. `npm install && npm run dev`
+
+The dev server proxies Ghost API requests through Vite, so you don't need to configure CORS separately during local development.
+
+### Production deploy
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for a step-by-step deploy guide and [DEPLOYMENT_SETUP.md](./DEPLOYMENT_SETUP.md) for first-time server provisioning (nginx, PM2, SSL).
+
+### Required environment variables
+
+| Variable | File | Description |
+|----------|------|-------------|
+| `VITE_GHOST_URL` | `.env.development` / `.env.server` | Your Ghost instance URL (e.g. `https://ghost.yourdomain.com`) |
+| `VITE_GHOST_CONTENT_API_KEY` | `.env.development.local` | Ghost Content API key (Ghost Admin → Integrations) |
+| `GHOST_ADMIN_API_KEY` | `.env.server` | Ghost Admin API key (for server-side signed requests) |
+| `POSTHOG_KEY` *(optional)* | `.env` | PostHog analytics project key |
+| `SITE_NAME` *(optional)* | `.env.server` | Site name shown in server error pages |
+
+Use `.env.example` and `ENV_SERVER.example` in the repo root as starting templates — they list all recognized variables with placeholder values.
+
 ## Deployment
 
 **Quick Start:** See [DEPLOYMENT.md](./DEPLOYMENT.md) for a quick deployment guide.
@@ -121,7 +156,7 @@ The project includes:
 - `ecosystem.config.js` - PM2 configuration
 - `nginx.conf.example` - Nginx reverse proxy configuration template
 
-**Deploy to catsky.club:**
+**Deploy to your server:**
 1. Clone/push code to your server
 2. Run `./deploy.sh` on the server
 3. Configure nginx using `nginx.conf.example` as a template

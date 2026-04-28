@@ -53,3 +53,9 @@ next-env.d.ts
 /public/video/*.webm
 !public/audio/.gitkeep
 !public/video/.gitkeep
+
+# Internal planning / setup docs (not useful for public forks)
+claude-plans/
+.claude/
+posthog-setup-report.md
+.github-setup.md
