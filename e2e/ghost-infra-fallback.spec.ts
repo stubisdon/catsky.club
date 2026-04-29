@@ -6,7 +6,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 let mockGhostServer: ReturnType<typeof createServer>
 let appProcess: ChildProcessWithoutNullStreams
 let appBaseUrl = ''
-const publicHost = 'catsky.club'
+const publicHost = process.env.TEST_PUBLIC_HOST || 'catsky.club'
 
 function hasPublicProxyHeaders(req: IncomingMessage) {
   return (

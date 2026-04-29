@@ -10,7 +10,7 @@ Everything is saved locally on your machine and backed up on GitHub. Here's how 
 
 1. **Open the project folder:**
    ```
-   File → Open Folder → /Users/stub/coding/catsky.club
+   File → Open Folder → /path/to/your/project
    ```
 
 2. **Install dependencies** (if needed):
@@ -31,7 +31,7 @@ Everything is saved locally on your machine and backed up on GitHub. Here's how 
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/stubisdon/catsky.club.git
+   git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
    cd catsky.club
    ```
 
@@ -83,7 +83,7 @@ git status
 
 ### Starting Work:
 ```bash
-cd /Users/stub/coding/catsky.club
+cd /path/to/your/project
 npm run dev
 ```
 
@@ -106,8 +106,8 @@ npm run dev
 
 ## Quick Reference
 
-- **Project Location:** `/Users/stub/coding/catsky.club`
-- **GitHub Repo:** https://github.com/stubisdon/catsky.club
+- **Project Location:** `/path/to/your/project`
+- **GitHub Repo:** https://github.com/YOUR_USERNAME/YOUR_REPO
 - **Dev Server:** http://localhost:3000
 - **Main File:** `src/App.tsx` (the immersive experience)
 

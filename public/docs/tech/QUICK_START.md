@@ -5,7 +5,7 @@
 ### Step 1: Install & Configure (2 min)
 
 ```bash
-cd /Users/stub/coding/catsky.club
+cd /path/to/your/project
 npm install
 
 # Add your audio file (optional)

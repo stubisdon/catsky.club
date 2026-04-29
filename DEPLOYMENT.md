@@ -90,7 +90,7 @@ The workflow prefers `GIT_PAT_2` and falls back to `GIT_PAT` to configure HTTPS 
    ```
    If it shows `https://github.com/...`, switch it:
    ```bash
-   git remote set-url origin git@github.com:stubisdon/catsky.club.git
+   git remote set-url origin git@github.com:YOUR_USERNAME/YOUR_REPO.git
    ```
 2. Add the server’s SSH public key as a **Deploy key** in the repo (**Settings → Deploy keys**). Grant write access only if you need to push from the server.
 

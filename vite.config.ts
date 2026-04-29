@@ -4,9 +4,9 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const ghostUrl = env.VITE_GHOST_URL || 'https://catsky.club'
+  const ghostUrl = env.VITE_GHOST_URL || ''
   const contentApiKey = env.VITE_GHOST_CONTENT_API_KEY || ''
-  const ghostProxyTarget = env.VITE_GHOST_API_PROXY || 'https://catsky.club'
+  const ghostProxyTarget = env.VITE_GHOST_API_PROXY || ghostUrl
 
   // So cookies work on http://localhost (Ghost sets Secure; browser won't set that on HTTP)
   function stripCookieForDev(cookie: string) {

@@ -70,13 +70,13 @@ This guide shows you how to set up audio hosting for the Listen page without hos
    wrangler login
    
    # Create bucket
-   wrangler r2 bucket create catsky-audio
+   wrangler r2 bucket create your-bucket-name
    ```
 
 2. **Upload MP3 files**
    ```bash
    # Upload a file
-   wrangler r2 object put catsky-audio/track1.mp3 --file=./track1.mp3
+   wrangler r2 object put your-bucket-name/track1.mp3 --file=./track1.mp3
    ```
 
 3. **Make files public (or use signed URLs)**
@@ -201,7 +201,7 @@ const TRACKS = [
     title: 'Track 2 - Work in Progress',
     audioSource: {
       type: 'direct',
-      url: 'https://catsky-audio.r2.cloudflarestorage.com/track2.mp3'
+      url: 'https://your-bucket.r2.cloudflarestorage.com/track2.mp3'
     },
     version: 'v1.8',
     date: '2024-01-10'
@@ -213,7 +213,7 @@ const TRACKS = [
     title: 'Track 3 - Early Draft',
     audioSource: {
       type: 'direct',
-      url: 'https://fXXX.backblazeb2.com/file/catsky-audio/track3.mp3'
+      url: 'https://fXXX.backblazeb2.com/file/your-bucket-name/track3.mp3'
     },
     version: 'v0.5',
     date: '2024-01-05'

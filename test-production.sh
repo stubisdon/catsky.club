@@ -8,7 +8,7 @@ echo "🧪 Running post-deployment tests..."
 
 # Configuration
 TEST_URL="${TEST_URL:-http://localhost:3001}"
-PROD_URL="${PROD_URL:-https://catsky.club}"
+PROD_URL="${PROD_URL:?'ERROR: Set PROD_URL to your production URL before running (e.g. export PROD_URL=https://yourdomain.com)'}"
 
 # Colors for output
 RED='\033[0;31m'

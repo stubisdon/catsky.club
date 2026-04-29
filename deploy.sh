@@ -24,7 +24,7 @@ fi
 
 # Load server-only environment variables (not committed to git)
 # Create .env.server in the same directory as this script with lines like:
-# GHOST_URL="https://catsky.club"
+# GHOST_URL="https://your-ghost-domain.com"
 # GHOST_ADMIN_API_KEY="id:secret"
 # VITE_GHOST_CONTENT_API_KEY="your_content_api_key"
 # SIGNUPS_API_TOKEN="..."
@@ -42,7 +42,7 @@ fi
 # (Dev uses .env.development when you run `npm run dev`.)
 # These are required for the Ghost Portal embed in index.html.
 # Content API key: set in .env.server (from Ghost Admin → Settings → Integrations). If missing, Portal will get 401 on settings and show "invite-only".
-export VITE_GHOST_URL="${VITE_GHOST_URL:-https://catsky.club}"
+export VITE_GHOST_URL="${VITE_GHOST_URL:?'ERROR: Set VITE_GHOST_URL in .env.server (your Ghost domain)'}"
 export VITE_GHOST_CONTENT_API_KEY="${VITE_GHOST_CONTENT_API_KEY:-}"
 
 echo "🔑 Using Ghost URL: $VITE_GHOST_URL"
