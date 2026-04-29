@@ -41,8 +41,14 @@ fi
 # Set Ghost Portal environment variables for production build
 # (Dev uses .env.development when you run `npm run dev`.)
 # These are required for the Ghost Portal embed in index.html.
+# Prefer VITE_GHOST_URL; fall back to GHOST_URL — same as server.js (many servers only set GHOST_URL).
 # Content API key: set in .env.server (from Ghost Admin → Settings → Integrations). If missing, Portal will get 401 on settings and show "invite-only".
-export VITE_GHOST_URL="${VITE_GHOST_URL:?'ERROR: Set VITE_GHOST_URL in .env.server (your Ghost domain)'}"
+effective_ghost="${VITE_GHOST_URL:-${GHOST_URL:-}}"
+if [ -z "$effective_ghost" ]; then
+    echo "❌ ERROR: Set VITE_GHOST_URL or GHOST_URL in .env.server (your Ghost CMS URL)."
+    exit 1
+fi
+export VITE_GHOST_URL="$effective_ghost"
 export VITE_GHOST_CONTENT_API_KEY="${VITE_GHOST_CONTENT_API_KEY:-}"
 
 echo "🔑 Using Ghost URL: $VITE_GHOST_URL"
