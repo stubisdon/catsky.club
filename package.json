@@ -26,6 +26,7 @@
     "test:e2e:matrix": "npm run test:e2e:setup && NODE_OPTIONS=\"--import tsx\" playwright test --config=playwright.config.cjs",
     "test:e2e:listen": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/listen.spec.ts --config=playwright.config.cjs",
     "test:e2e:watch": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/watch.spec.ts --config=playwright.config.cjs",
+    "test:e2e:video": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/video.spec.ts --project=chromium --config=playwright.config.cjs",
     "test:e2e:navigation": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/navigation.spec.ts --config=playwright.config.cjs",
     "test:e2e:pages": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/pages.spec.ts --config=playwright.config.cjs",
     "test:e2e:regression": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/regression.spec.ts --config=playwright.config.cjs",

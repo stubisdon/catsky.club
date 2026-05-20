@@ -229,6 +229,8 @@ export default function Connect() {
     { name: 'Backstage', monthlyAmount: 2000, perks: ['unfinished demos', 'unreleased music videos'] },
   ]
   const planOptions = paidPlans.length > 0 ? paidPlans : defaultPlanOptions
+  const videoUnlockPlan =
+    planOptions.find((plan) => plan.monthlyAmount === 500) ?? defaultPlanOptions[0]
   const activeTierName = useMemo(() => {
     if (membershipTier === 'paid_5' || membershipTier === 'paid_20') {
       const expectedAmount = membershipTier === 'paid_20' ? 2000 : 500
@@ -326,6 +328,16 @@ export default function Connect() {
           <div style={{ marginTop: '1.25rem', opacity: 0.9 }}>
             <p style={{ marginBottom: '0.75rem' }}>your current plan: free member</p>
             <p style={{ marginBottom: '1rem' }}>unlock more with a paid plan:</p>
+            <div style={{ marginBottom: '0.75rem' }}>
+              <a
+                href="#/portal/account/plans"
+                onClick={handlePlanUpgrade}
+                className="connect-portal-btn"
+                data-plan-name={videoUnlockPlan.name}
+              >
+                upgrade to $5/month to unlock the music video
+              </a>
+            </div>
             <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
               {planOptions.map((plan) => (
                 <a

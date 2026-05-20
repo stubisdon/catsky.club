@@ -76,7 +76,8 @@ npm start
 ├── src/
 │   ├── App.tsx          # Main home page component
 │   ├── Listen.tsx        # Music / tracks page (/listen)
-│   ├── Watch.tsx         # Video page (/watch)
+│   ├── Watch.tsx         # Public trailer + paid entrypoint (/watch)
+│   ├── Video.tsx         # Paid-gated embedded unreleased video (/video)
 │   ├── Connect.tsx        # Sign up / log in / account (/connect)
 │   ├── Welcome.tsx        # Post-signup profile collection (/welcome)
 │   ├── Mission.tsx       # Mission page (/mission)
@@ -98,7 +99,8 @@ npm start
 
 - `/` - Home page (App.tsx)
 - `/listen` - Music player / tracks (Listen.tsx). `/player` redirects to `/listen`
-- `/watch` - Video content: trailer public, unreleased video gated for paid tiers (Watch.tsx)
+- `/watch` - Video teaser surface: trailer public, paid-upgrade entrypoint (Watch.tsx)
+- `/video` - Embedded unreleased music video route gated to paid tiers (`paid_5`/`paid_20`) (Video.tsx)
 - `/connect` - Sign up, log in, account (Connect.tsx)
 - `/welcome` - New-user onboarding for first/last name after signup callback; signup callbacks normalize directly here, the onboarding flow hydrates the Ghost Members identity (`uuid`/`email`) for the background save handoff, the server translates that identity to the Ghost Admin member record, continue starts a background profile save, and the app immediately routes to `/listen` (Welcome.tsx)
 - `/mission` - Mission statement (Mission.tsx)

@@ -20,7 +20,8 @@ This document is updated to reflect the current V1.0 product vision.
 
 ## Core Navigation
 - `/listen` — music access by role/tier
-- `/watch` — trailer public, unreleased video gated for paid tiers
+- `/watch` — trailer public, with paid-upgrade path for unreleased video
+- `/video` — paid-only (`$5`/`$20`) embedded unreleased music video route (home `secrets` link appears only for paid members)
 - `/blog` — public posts
 - `/connect` — sign up, sign in, upgrade, unsubscribe/account controls
 - `/welcome` — post-signup first/last name collection for new users

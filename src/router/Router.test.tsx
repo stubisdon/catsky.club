@@ -4,6 +4,7 @@ import Router from './Router'
 
 vi.mock('../App', () => ({ default: () => <div>home view</div> }))
 vi.mock('../Watch', () => ({ default: () => <div>watch view</div> }))
+vi.mock('../Video', () => ({ default: () => <div>video view</div> }))
 vi.mock('../Connect', () => ({ default: () => <div>connect view</div> }))
 vi.mock('../Mission', () => ({ default: () => <div>mission view</div> }))
 vi.mock('../Listen', () => ({ default: () => <div>listen view</div> }))
@@ -24,5 +25,13 @@ describe('Router signup callback normalization', () => {
       expect(window.location.pathname).toBe('/welcome')
       expect(window.location.search).toBe('')
     })
+  })
+
+  it('renders video view for /video route', () => {
+    window.history.replaceState({}, '', '/video')
+
+    render(<Router />)
+
+    expect(screen.getByText('video view')).toBeInTheDocument()
   })
 })
