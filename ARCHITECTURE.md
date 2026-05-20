@@ -85,6 +85,7 @@ Current behavior in `src/Connect.tsx`:
 - only synthesizes `{ member: null }` for empty `/members/api/member/` responses (so account/newsletter mutation endpoints keep their native empty-body semantics),
 - rewrites production URLs where needed,
 - prefetches and caches Ghost settings,
+- writes `data-ghost` and `data-api` on the first Portal config script from the same runtime Ghost origin, so Portal can fetch Content API settings/tiers/newsletters before rendering account plans,
 - dynamically loads patched Portal script from jsDelivr,
 - inserts hidden trigger anchors used by `memberSession.ts`.
 
