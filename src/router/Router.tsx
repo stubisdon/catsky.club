@@ -5,8 +5,9 @@ import Connect from '../Connect'
 import Mission from '../Mission'
 import Listen from '../Listen'
 import Welcome from '../Welcome'
+import Video from '../Video'
 
-export type View = 'home' | 'listen' | 'watch' | 'connect' | 'welcome' | 'mission'
+export type View = 'home' | 'listen' | 'watch' | 'video' | 'connect' | 'welcome' | 'mission'
 
 interface ResolvedView {
   view: View
@@ -28,6 +29,7 @@ function resolveView(pathnameRaw: string, search = ''): ResolvedView {
 
   if (pathname === '/') return { view: 'home' }
   if (pathname === '/watch') return { view: 'watch' }
+  if (pathname === '/video') return { view: 'video' }
   if (pathname === '/connect') return { view: 'connect' }
   if (pathname === '/listen') return { view: 'listen' }
   if (pathname === '/mission') return { view: 'mission' }
@@ -64,6 +66,8 @@ export default function Router() {
       return <App />
     case 'watch':
       return <Watch />
+    case 'video':
+      return <Video />
     case 'connect':
       return <Connect />
     case 'listen':

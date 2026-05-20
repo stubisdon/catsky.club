@@ -123,9 +123,10 @@ test.describe('Connect Page - Basic Elements', () => {
 
     await expect(page.getByRole('link', { name: 'upgrade to Studio Pass' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'upgrade to Backstage Circle' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'upgrade to $5/month to unlock the music video' })).toBeVisible()
     await expect(page.getByText('Studio Pass: unfinished demos • Backstage Circle: unreleased music videos')).toBeVisible()
 
-    await page.getByRole('link', { name: 'upgrade to Studio Pass' }).click()
+    await page.getByRole('link', { name: 'upgrade to $5/month to unlock the music video' }).click()
     await expect(page).toHaveURL(/#\/portal\/account\/plans$/)
   })
 

@@ -3,11 +3,18 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from './App'
 
+const getMembershipTierMock = vi.hoisted(() => vi.fn())
+
+vi.mock('./utils', () => ({
+  getMembershipTier: getMembershipTierMock,
+}))
+
 // Mock window.history.pushState and window.dispatchEvent
 const mockPushState = vi.fn()
 const mockDispatchEvent = vi.fn()
 
 beforeEach(() => {
+  getMembershipTierMock.mockReturnValue(new Promise(() => {}))
   window.history.pushState = mockPushState
   window.dispatchEvent = mockDispatchEvent
   vi.clearAllMocks()
@@ -81,5 +88,50 @@ describe('App', () => {
     
     // Verify navigation was called (which means preventDefault worked)
     expect(mockPushState).toHaveBeenCalled()
+  })
+
+  it('does not show secrets link when logged out', async () => {
+    getMembershipTierMock.mockResolvedValue('none')
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('link', { name: 'secrets' })).not.toBeInTheDocument()
+    })
+  })
+
+  it('does not show secrets link for free members', async () => {
+    getMembershipTierMock.mockResolvedValue('free')
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.queryByRole('link', { name: 'secrets' })).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows secrets link for paid $5 members', async () => {
+    getMembershipTierMock.mockResolvedValue('paid_5')
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: 'secrets' })).toBeInTheDocument()
+    })
+  })
+
+  it('navigates to /video when secrets is clicked', async () => {
+    getMembershipTierMock.mockResolvedValue('paid_5')
+    const user = userEvent.setup()
+
+    render(<App />)
+
+    const secretsLink = await screen.findByRole('link', { name: 'secrets' })
+    await user.click(secretsLink)
+
+    await waitFor(() => {
+      expect(mockPushState).toHaveBeenCalledWith({}, '', '/video')
+      expect(mockDispatchEvent).toHaveBeenCalled()
+    })
   })
 })
