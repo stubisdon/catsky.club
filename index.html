@@ -264,6 +264,11 @@
           ? window.location.origin
           : configuredGhost;
         var apiKey = (config && config.getAttribute('data-key')) || '';
+        var apiUrl = ghostUrl.replace(/\/$/, '') + '/ghost/api/content';
+        if (config) {
+          config.setAttribute('data-ghost', ghostUrl);
+          config.setAttribute('data-api', apiUrl);
+        }
         window.__GHOST_SITE__ = { url: ghostUrl.replace(/\/$/, ''), firstpromoter_account: '' };
         var portalSrc = 'https://cdn.jsdelivr.net/npm/@tryghost/portal@latest/umd/portal.min.js';
         var settingsUrl = ghostUrl.replace(/\/$/, '') + '/ghost/api/content/settings/?key=' + encodeURIComponent(apiKey);
@@ -277,12 +282,14 @@
           s.textContent = safe;
           s.setAttribute('data-ghost', ghostUrl);
           s.setAttribute('data-key', apiKey);
+          s.setAttribute('data-api', apiUrl);
           document.head.appendChild(s);
         }).catch(function() {
           var s = document.createElement('script');
           s.src = portalSrc;
           s.setAttribute('data-ghost', ghostUrl);
           s.setAttribute('data-key', apiKey);
+          s.setAttribute('data-api', apiUrl);
           s.defer = true;
           document.head.appendChild(s);
         });
