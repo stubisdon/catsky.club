@@ -25,6 +25,7 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 - `/` → `src/App.tsx` (landing page)
 - `/listen` → `src/Listen.tsx` (tier-gated tracks; V1 paid-demo catalog currently unlocks at `$5` with `$20` parity)
 - `/watch` → `src/Watch.tsx` (public teaser + plan/perk upgrade prompt for free/guest users + unreleased-video entrypoint for paid tiers)
+- `/video` → `src/Video.tsx` (embedded unreleased music video gated to `paid_5` / `paid_20`; locked guests/free users route to `/connect`)
 - `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + Ghost-tier-name/perk upgrade messaging + account/logout actions)
 - `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name)
 - `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
@@ -110,6 +111,8 @@ In `src/Listen.tsx`:
   - direct audio element path (`audioRef`) for `direct` sources,
   - SoundCloud embed iframe for `soundcloud` sources.
 - paid users get local vote/feedback UI (localStorage + in-memory submit acknowledgement).
+
+`/video` in `src/Video.tsx` follows the same client-side tier-check pattern as `/listen`/`/watch`: it resolves membership through `getMembershipTier`, renders a locked placeholder for `none`/`free`, and only mounts the embedded unreleased YouTube iframe for `paid_5`/`paid_20`.
 
 Helpers:
 

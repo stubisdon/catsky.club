@@ -59,6 +59,7 @@ describe('Connect membership states and magic-link refresh', () => {
     })
 
     expect(screen.getByText('your current plan: free member')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'upgrade to $5/month to unlock the music video' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'upgrade to Studio Pass' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'upgrade to Backstage Circle' })).toBeInTheDocument()
     expect(screen.getByText('Studio Pass: unfinished demos • Backstage Circle: unreleased music videos')).toBeInTheDocument()
@@ -84,7 +85,7 @@ describe('Connect membership states and magic-link refresh', () => {
     expect(navigateToMock).not.toHaveBeenCalled()
   })
 
-  it('opens account plans in Ghost Portal when free-member upgrade action is clicked', async () => {
+  it('opens account plans in Ghost Portal when free-member video upgrade CTA is clicked', async () => {
     getMembershipTierMock.mockResolvedValue('free')
 
     render(<Connect />)
@@ -94,7 +95,7 @@ describe('Connect membership states and magic-link refresh', () => {
     })
 
     await act(async () => {
-      screen.getByRole('link', { name: 'upgrade to Supporter' }).click()
+      screen.getByRole('link', { name: 'upgrade to $5/month to unlock the music video' }).click()
       await vi.advanceTimersByTimeAsync(10)
     })
 
