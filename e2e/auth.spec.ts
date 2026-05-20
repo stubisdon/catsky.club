@@ -1,5 +1,42 @@
 import { test, expect } from '@playwright/test'
 
+const portalPlanStub = `
+(() => {
+  document.addEventListener('click', async (event) => {
+    const target = event.target && event.target.closest ? event.target.closest('[data-portal]') : null;
+    if (!target || target.getAttribute('data-portal') !== 'account/plans') return;
+
+    const config = document.querySelector('script[data-ghost]');
+    const apiUrl = config && config.getAttribute('data-api');
+    if (!apiUrl) {
+      const portalPlans = undefined;
+      portalPlans.includes('monthly');
+      return;
+    }
+
+    const key = config.getAttribute('data-key') || '';
+    const keyParam = key ? 'key=' + encodeURIComponent(key) : '';
+    const query = keyParam ? '?' + keyParam : '';
+    const limitQuery = keyParam ? '?' + keyParam + '&limit=all' : '?limit=all';
+
+    await Promise.all([
+      fetch(apiUrl + '/settings/' + query),
+      fetch(apiUrl + '/tiers/' + limitQuery),
+      fetch(apiUrl + '/newsletters/' + query),
+    ]);
+
+    let frame = document.querySelector('iframe[data-testid="portal-plan-stub"]');
+    if (!frame) {
+      frame = document.createElement('iframe');
+      frame.setAttribute('data-testid', 'portal-plan-stub');
+      frame.title = 'Ghost Portal';
+      document.body.appendChild(frame);
+    }
+    frame.srcdoc = '<!doctype html><html><body><h1>Choose a plan</h1><button>curious cats</button><button>powerful cats</button></body></html>';
+  }, true);
+})();
+`
+
 /**
  * Authentication Tests (Sign Up / Sign In)
  *
@@ -96,14 +133,72 @@ test.describe('Connect Page - Basic Elements', () => {
     await expect(logOutLink).toBeVisible()
   })
 
-  test('free members see Ghost tier names and upgrade click opens plans hash', async ({ page }) => {
+  test('free members can open Ghost Portal plans without the Portal plans crash', async ({ page }) => {
+    const portalFailures: string[] = []
+    const contentApiRequests: string[] = []
+
+    page.on('pageerror', (error) => {
+      portalFailures.push(error.message)
+    })
+    page.on('console', (message) => {
+      if (message.type() === 'error') portalFailures.push(message.text())
+    })
+
+    await page.route('https://cdn.jsdelivr.net/npm/@tryghost/portal@latest/umd/portal.min.js', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: portalPlanStub,
+      })
+    })
+    await page.route('**/ghost/api/content/settings/**', (route) => {
+      contentApiRequests.push(route.request().url())
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          title: 'Catsky Club',
+          portal_plans: ['monthly', 'yearly'],
+          members_enabled: true,
+          tiers: [
+            { name: 'Free', type: 'free', monthly_price: { amount: 0 } },
+            { id: 'tier-1', name: 'curious cats', type: 'paid', monthly_price: { amount: 500 }, benefits: ['unfinished demos'] },
+            { id: 'tier-2', name: 'powerful cats', type: 'paid', monthly_price: { amount: 2000 }, benefits: ['unreleased music videos'] },
+          ],
+        }),
+      })
+    })
+    await page.route('**/ghost/api/content/tiers/**', (route) => {
+      contentApiRequests.push(route.request().url())
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          tiers: [
+            { name: 'Free', type: 'free', monthly_price: { amount: 0 } },
+            { id: 'tier-1', name: 'curious cats', type: 'paid', monthly_price: { amount: 500 }, benefits: ['unfinished demos'] },
+            { id: 'tier-2', name: 'powerful cats', type: 'paid', monthly_price: { amount: 2000 }, benefits: ['unreleased music videos'] },
+          ],
+        }),
+      })
+    })
+    await page.route('**/ghost/api/content/newsletters/**', (route) => {
+      contentApiRequests.push(route.request().url())
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ newsletters: [] }),
+      })
+    })
+
     await page.addInitScript(() => {
       const runtimeWindow = window as Window & { __PORTAL_SETTINGS_CACHE__?: unknown }
       runtimeWindow.__PORTAL_SETTINGS_CACHE__ = {
+        portal_plans: ['monthly', 'yearly'],
         tiers: [
           { name: 'Free', type: 'free', monthly_price: { amount: 0 } },
-          { id: 'tier-1', name: 'Studio Pass', type: 'paid', monthly_price: { amount: 500 }, benefits: ['unfinished demos'] },
-          { id: 'tier-2', name: 'Backstage Circle', type: 'paid', monthly_price: { amount: 2000 }, benefits: ['unreleased music videos'] },
+          { id: 'tier-1', name: 'curious cats', type: 'paid', monthly_price: { amount: 500 }, benefits: ['unfinished demos'] },
+          { id: 'tier-2', name: 'powerful cats', type: 'paid', monthly_price: { amount: 2000 }, benefits: ['unreleased music videos'] },
         ],
       }
     })
@@ -113,7 +208,9 @@ test.describe('Connect Page - Basic Elements', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          member: { id: 'free-member', email: 'free@example.com', subscriptions: [] },
+          id: 'free-member',
+          email: 'free@example.com',
+          subscriptions: [],
         }),
       })
     })
@@ -121,13 +218,23 @@ test.describe('Connect Page - Basic Elements', () => {
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByRole('link', { name: 'upgrade to Studio Pass' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'upgrade to Backstage Circle' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'upgrade to curious cats' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'upgrade to powerful cats' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'upgrade to $5/month to unlock the music video' })).toBeVisible()
-    await expect(page.getByText('Studio Pass: unfinished demos • Backstage Circle: unreleased music videos')).toBeVisible()
+    await expect(page.getByText('curious cats: unfinished demos • powerful cats: unreleased music videos')).toBeVisible()
 
     await page.getByRole('link', { name: 'upgrade to $5/month to unlock the music video' }).click()
     await expect(page).toHaveURL(/#\/portal\/account\/plans$/)
+    await expect(page.frameLocator('[data-testid="portal-plan-stub"]').getByRole('heading', { name: 'Choose a plan' })).toBeVisible()
+    await expect(page.frameLocator('[data-testid="portal-plan-stub"]').getByText('curious cats')).toBeVisible()
+    await expect(page.frameLocator('[data-testid="portal-plan-stub"]').getByText('powerful cats')).toBeVisible()
+    expect(contentApiRequests.some((url) => url.includes('/ghost/api/content/tiers/'))).toBe(true)
+    expect(contentApiRequests.some((url) => url.includes('/ghost/api/content/newsletters/'))).toBe(true)
+    expect(
+      portalFailures.some(
+        (message) => message.includes('Cannot read properties of undefined') || message.includes("reading 'includes'"),
+      ),
+    ).toBe(false)
   })
 
   test('connect page has home navigation link', async ({ page }) => {
