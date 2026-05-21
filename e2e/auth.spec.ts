@@ -218,9 +218,9 @@ test.describe('Connect Page - Basic Elements', () => {
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByRole('link', { name: 'upgrade to curious cats' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'upgrade to powerful cats' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'upgrade to $5/month to unlock the music video' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'upgrade to curious cats' })).toHaveCount(0)
+    await expect(page.getByRole('link', { name: 'upgrade to powerful cats' })).toHaveCount(0)
     await expect(page.getByText('curious cats: unfinished demos • powerful cats: unreleased music videos')).toBeVisible()
 
     await page.getByRole('link', { name: 'upgrade to $5/month to unlock the music video' }).click()
