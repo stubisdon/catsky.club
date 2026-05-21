@@ -45,7 +45,7 @@ describe('Connect membership states and magic-link refresh', () => {
     window.history.replaceState({}, '', '/connect')
   })
 
-  it('shows upgrade options from Ghost tier names for free members', async () => {
+  it('shows one contextual upgrade CTA and non-clickable tier context for free members', async () => {
     getMembershipTierMock.mockResolvedValue('free')
     getPaidPlanOptionsMock.mockResolvedValue([
       { id: 'tier-a', name: 'Studio Pass', monthlyAmount: 500, perks: ['unfinished demos'] },
@@ -60,8 +60,8 @@ describe('Connect membership states and magic-link refresh', () => {
 
     expect(screen.getByText('your current plan: free member')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'upgrade to $5/month to unlock the music video' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'upgrade to Studio Pass' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'upgrade to Backstage Circle' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'upgrade to Studio Pass' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'upgrade to Backstage Circle' })).not.toBeInTheDocument()
     expect(screen.getByText('Studio Pass: unfinished demos • Backstage Circle: unreleased music videos')).toBeInTheDocument()
   })
 
