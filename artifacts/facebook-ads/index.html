@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>catsky.club facebook ads</title>
+    <style>
+      :root {
+        --bg: #000;
+        --text: #fff;
+        --muted: rgba(255, 255, 255, 0.58);
+        --line: rgba(255, 255, 255, 0.42);
+        --warm: #a6563e;
+        --bond: #d7ccc8;
+        --path: #8a55a5;
+        --mono: Consolas, Menlo, Monaco, "Courier New", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 48px;
+        display: grid;
+        gap: 48px;
+        justify-content: center;
+        background: #1a1a1a;
+        font-family: var(--mono);
+      }
+
+      body:has(.ad:target) {
+        padding: 0;
+        gap: 0;
+      }
+
+      body:has(.ad:target) .ad:not(:target) {
+        display: none;
+      }
+
+      .ad {
+        position: relative;
+        width: 1080px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        letter-spacing: 0.08em;
+        isolation: isolate;
+      }
+
+      .ad::before,
+      .ad::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .ad::before {
+        background:
+          linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+          linear-gradient(0deg, rgba(255, 255, 255, 0.026) 1px, transparent 1px);
+        background-size: 54px 54px;
+        opacity: 0.5;
+      }
+
+      .ad::after {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        inset: 40px;
+      }
+
+      .brand {
+        position: absolute;
+        left: 90px;
+        top: 78px;
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: lowercase;
+      }
+
+      .label {
+        position: absolute;
+        right: 90px;
+        top: 86px;
+        color: var(--muted);
+        font-size: 20px;
+        letter-spacing: 0.16em;
+        text-transform: lowercase;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 260px;
+        min-height: 74px;
+        padding: 0 34px;
+        border: 2px solid var(--text);
+        color: var(--text);
+        font-size: 24px;
+        letter-spacing: 0.14em;
+        text-transform: lowercase;
+      }
+
+      .home-copy {
+        position: absolute;
+        left: 132px;
+        top: 304px;
+        display: grid;
+        gap: 26px;
+      }
+
+      .home-title {
+        margin: 0;
+        max-width: 740px;
+        font-size: 82px;
+        line-height: 1.15;
+        letter-spacing: 0.12em;
+        text-transform: lowercase;
+      }
+
+      .home-lines {
+        display: grid;
+        gap: 14px;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 28px;
+        line-height: 1.45;
+      }
+
+      .home-actions {
+        display: flex;
+        gap: 24px;
+        margin-top: 34px;
+      }
+
+      .listen-list {
+        position: absolute;
+        left: 112px;
+        right: 112px;
+        top: 250px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .listen-title {
+        margin: 0 0 24px;
+        font-size: 76px;
+        line-height: 1;
+        letter-spacing: 0.18em;
+        text-transform: lowercase;
+      }
+
+      .track {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 84px;
+        padding: 0 28px;
+        border: 1px solid var(--line);
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 28px;
+        text-transform: none;
+      }
+
+      .track.locked {
+        border-color: rgba(255, 255, 255, 0.12);
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      .track span:last-child {
+        color: rgba(255, 255, 255, 0.36);
+        font-size: 16px;
+        letter-spacing: 0.24em;
+        text-transform: lowercase;
+      }
+
+      .listen-footer {
+        position: absolute;
+        left: 112px;
+        right: 112px;
+        bottom: 98px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .listen-note {
+        max-width: 520px;
+        color: rgba(255, 255, 255, 0.76);
+        font-size: 24px;
+        line-height: 1.55;
+        letter-spacing: 0.08em;
+        text-transform: lowercase;
+      }
+
+      .close-copy {
+        position: absolute;
+        left: 108px;
+        right: 108px;
+        top: 218px;
+        display: grid;
+        gap: 38px;
+      }
+
+      .close-kicker {
+        width: fit-content;
+        padding: 18px 24px;
+        border: 1px solid var(--path);
+        color: var(--bond);
+        font-size: 22px;
+        letter-spacing: 0.18em;
+        text-transform: lowercase;
+      }
+
+      .close-title {
+        margin: 0;
+        max-width: 820px;
+        font-size: 78px;
+        line-height: 1.12;
+        letter-spacing: 0.09em;
+        text-transform: lowercase;
+      }
+
+      .close-panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-top: 8px;
+      }
+
+      .close-item {
+        min-height: 94px;
+        padding: 20px 24px;
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 21px;
+        line-height: 1.5;
+        letter-spacing: 0.08em;
+        text-transform: lowercase;
+      }
+
+      .close-action {
+        position: absolute;
+        left: 108px;
+        bottom: 96px;
+      }
+
+      .warm-line {
+        position: absolute;
+        left: 90px;
+        right: 90px;
+        bottom: 48px;
+        height: 2px;
+        background: linear-gradient(90deg, var(--warm), var(--path), rgba(255, 255, 255, 0.2));
+      }
+    </style>
+  </head>
+  <body>
+    <section id="ad-01" class="ad" aria-label="Facebook ad version 1">
+      <div class="brand">catsky.club</div>
+      <div class="label">version 01</div>
+      <div class="home-copy">
+        <h1 class="home-title">a quiet place for the music</h1>
+        <div class="home-lines">
+          <div>early songs</div>
+          <div>drafts before release</div>
+          <div>notes from inside the process</div>
+        </div>
+        <div class="home-actions">
+          <div class="button">listen</div>
+          <div class="button">connect</div>
+        </div>
+      </div>
+      <div class="warm-line"></div>
+    </section>
+
+    <section id="ad-02" class="ad" aria-label="Facebook ad version 2">
+      <div class="brand">catsky.club</div>
+      <div class="label">version 02</div>
+      <div class="listen-list">
+        <h1 class="listen-title">listen</h1>
+        <div class="track"><span>Intro</span><span>public</span></div>
+        <div class="track"><span>Baby Mama</span><span>public</span></div>
+        <div class="track"><span>Plank Song</span><span>free</span></div>
+        <div class="track locked"><span>Motherless Child</span><span>member</span></div>
+        <div class="track locked"><span>Nova</span><span>in progress</span></div>
+      </div>
+      <div class="listen-footer">
+        <div class="listen-note">hear finished songs first. unlock demos when you want to go closer.</div>
+        <div class="button">sign up</div>
+      </div>
+      <div class="warm-line"></div>
+    </section>
+
+    <section id="ad-03" class="ad" aria-label="Facebook ad version 3">
+      <div class="brand">catsky.club</div>
+      <div class="label">version 03</div>
+      <div class="close-copy">
+        <div class="close-kicker">close membership</div>
+        <h1 class="close-title">support the songs while they become</h1>
+        <div class="close-panel">
+          <div class="close-item">unreleased music video</div>
+          <div class="close-item">unfinished demos</div>
+          <div class="close-item">voice notes + lyrics</div>
+          <div class="close-item">one monthly backstage artifact</div>
+        </div>
+      </div>
+      <div class="close-action">
+        <div class="button">join close</div>
+      </div>
+      <div class="warm-line"></div>
+    </section>
+  </body>
+</html>
