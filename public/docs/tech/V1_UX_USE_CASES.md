@@ -54,6 +54,7 @@ This document defines the **authoritative V1.0 user experience scope**. If any o
 - `/video` is the paid-gated embedded unreleased video route (`paid_5` + `paid_20` unlock; guests/free see lock messaging + `/connect` path).
 - `/listen` lets registered free users play songs with announced release dates while keeping in-progress/no-date demos locked to paid tiers.
 - `$5` and `$20` both unlock current V1 paid listen demos and the unreleased video entry point; higher-tier differentiation remains deferred.
+- V1 analytics tracks page visits, first-party CTA/button clicks, locked-content attempts, track selection/votes/feedback submission metadata, and Ghost Portal entry/open/close transitions without sending emails, names, raw form inputs, or feedback text.
 
 ## Priority Rules
 - **P0 (must ship):** all use cases 1–8, 10–12.

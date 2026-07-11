@@ -13,10 +13,9 @@ import {
   triggerPortalSignOut,
   setDevMemberOverride,
 } from './utils'
+import { identifyMember, resetAnalyticsIdentity, trackEvent } from './utils/analytics'
 
 const CONNECT_BODY_CLASS = 'route-connect'
-
-const PORTAL_HASH_REGEX = /^#\/portal\/(signup|signin|account)/
 
 const MAGIC_LINK_API = '/members/api/send-magic-link/'
 const WELCOME_MEMBER_STORAGE_KEY = 'catsky_welcome_member'
@@ -48,7 +47,7 @@ export default function Connect() {
   const isLoggedIn = useMemo(() => membershipTier !== null && membershipTier !== 'none', [membershipTier])
 
   useEffect(() => {
-    const check = () => setPortalHashActive(PORTAL_HASH_REGEX.test(window.location.hash))
+    const check = () => setPortalHashActive(window.location.hash.startsWith('#/portal/'))
     check()
     window.addEventListener('hashchange', check)
     return () => window.removeEventListener('hashchange', check)
@@ -57,16 +56,23 @@ export default function Connect() {
   const refreshMemberStatus = useCallback(async () => {
     const tier = await getMembershipTier()
     setMembershipTier(tier)
+    if (tier === 'none') {
+      identifyMember(null, tier)
+      return tier
+    }
+
+    const member = await getCurrentMember().catch(() => null)
+    identifyMember(member, tier)
     return tier
   }, [])
 
   useEffect(() => {
     let cancelled = false
-    getMembershipTier().then((tier) => {
+    refreshMemberStatus().then((tier) => {
       if (!cancelled) setMembershipTier(tier)
     })
     return () => { cancelled = true }
-  }, [])
+  }, [refreshMemberStatus])
 
   useEffect(() => {
     let cancelled = false
@@ -114,6 +120,7 @@ export default function Connect() {
           if (params.get('action') === 'signup') {
             const member = await getCurrentMember().catch(() => null)
             storeWelcomeMemberIdentity(member)
+            trackEvent('signup_callback_resolved', { membership_tier: tier })
             const next = new URL(window.location.href)
             next.searchParams.delete('action')
             next.searchParams.delete('success')
@@ -152,6 +159,7 @@ export default function Connect() {
   const handleLogout = useCallback((e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     triggerPortalSignOut()
+    resetAnalyticsIdentity()
     clearLocalSessionFlags()
     setDevMemberOverride(false)
     setMembershipTier('none')
@@ -173,6 +181,7 @@ export default function Connect() {
     setShowAuthForm(true)
     setAuthStatus('idle')
     setAuthError(null)
+    trackEvent('auth_form_opened', { entry_point: entryPoint })
   }, [])
 
   const closeAuthForm = useCallback(() => {
@@ -188,10 +197,12 @@ export default function Connect() {
       if (!email || !email.includes('@')) {
         setAuthError('Please enter a valid email.')
         setAuthStatus('error')
+        trackEvent('magic_link_request_failed', { entry_point: authEntryPoint, status: 'validation' })
         return
       }
       setAuthError(null)
       setAuthStatus('loading')
+      trackEvent('magic_link_requested', { entry_point: authEntryPoint })
       try {
         const res = await fetch(MAGIC_LINK_API, {
           method: 'POST',
@@ -203,15 +214,18 @@ export default function Connect() {
         if (!res.ok) {
           setAuthError(data?.error || res.statusText || 'Something went wrong.')
           setAuthStatus('error')
+          trackEvent('magic_link_request_failed', { entry_point: authEntryPoint, status: res.status })
           return
         }
         setAuthStatus('success')
+        trackEvent('magic_link_request_succeeded', { entry_point: authEntryPoint, status: res.status })
       } catch (err) {
         setAuthError(err instanceof Error ? err.message : 'Network error.')
         setAuthStatus('error')
+        trackEvent('magic_link_request_failed', { entry_point: authEntryPoint, status: 'network_error' })
       }
     },
-    [authEmail]
+    [authEmail, authEntryPoint]
   )
 
   useEffect(() => {
