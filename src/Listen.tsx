@@ -10,6 +10,7 @@ import {
 } from './utils'
 import { TRACKS, type Track } from './config/tracks'
 import { getLockedTrackLabel, hasTrackAccess } from './utils/trackAccess'
+import { trackEvent } from './utils/analytics'
 
 export default function Listen() {
   const [membershipTier, setMembershipTier] = useState<MembershipTier>('none')
@@ -88,9 +89,19 @@ export default function Listen() {
       return
     }
     if (!canAccessTrack(track)) {
+      trackEvent('locked_track_clicked', {
+        track_id: track.id,
+        access_state: 'locked',
+        membership_tier: effectiveTier,
+      })
       navigateTo('/connect')
       return
     }
+    trackEvent('track_selected', {
+      track_id: track.id,
+      access_state: 'accessible',
+      membership_tier: effectiveTier,
+    })
     setTrackLoadError(null)
     setCurrentTrackId(trackId)
     setIsPlaying(false)
@@ -115,7 +126,7 @@ export default function Listen() {
         audioRef.current.src = ''
       }
     }
-  }, [canAccessTrack])
+  }, [canAccessTrack, effectiveTier])
 
   const handlePlayPause = useCallback(() => {
     if (!audioRef.current) return
@@ -133,13 +144,19 @@ export default function Listen() {
 
   const handleVote = useCallback((trackId: string, vote: 'up' | 'down') => {
     if (!isPaid) return
+    trackEvent('track_vote_clicked', { track_id: trackId, vote, membership_tier: effectiveTier })
     setTrackVotes(prev => ({ ...prev, [trackId]: prev[trackId] === vote ? null : vote }))
-  }, [isPaid])
+  }, [effectiveTier, isPaid])
 
   const handleSubmitFeedback = useCallback(async (trackId: string) => {
     if (!isPaid || !feedbackText.trim()) return
     try {
       console.log('Feedback for track', trackId, ':', feedbackText)
+      trackEvent('track_feedback_submitted', {
+        track_id: trackId,
+        feedback_length: feedbackText.trim().length,
+        membership_tier: effectiveTier,
+      })
       setFeedbackSubmitted(trackId)
       setFeedbackText('')
       setShowFeedback(null)
@@ -148,7 +165,7 @@ export default function Listen() {
       console.error('Error submitting feedback:', error)
       setTrackLoadError('Failed to submit feedback. Please try again.')
     }
-  }, [isPaid, feedbackText])
+  }, [effectiveTier, isPaid, feedbackText])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -401,6 +418,11 @@ export default function Listen() {
                       onClick={(e) => {
                         e.preventDefault()
                         e.stopPropagation()
+                        trackEvent('locked_track_clicked', {
+                          track_id: track.id,
+                          access_state: 'locked',
+                          membership_tier: effectiveTier,
+                        })
                         navigateTo('/connect')
                       }}
                     >

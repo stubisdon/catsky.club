@@ -2,6 +2,7 @@ import { CSSProperties, FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, PageTitle } from './components'
 import { navigateTo } from './router/navigation'
 import { getCurrentMember } from './utils'
+import { identifyMember, trackEvent } from './utils/analytics'
 
 interface MemberProfilePayload {
   memberId?: string
@@ -109,6 +110,7 @@ export default function Welcome() {
     void getCurrentMember()
       .then((member) => {
         storeWelcomeMemberIdentity(member)
+        identifyMember(member)
       })
       .catch(() => {
         // ignore background identity hydration failures
@@ -125,6 +127,7 @@ export default function Welcome() {
 
     if (!safeFirstName) {
       setError('First name is required.')
+      trackEvent('welcome_profile_failed', { status: 'validation' })
       return
     }
 
@@ -134,6 +137,7 @@ export default function Welcome() {
       firstName: safeFirstName,
       lastName: safeLastName,
     }
+    trackEvent('welcome_profile_submitted', { has_last_name: safeLastName.length > 0 })
 
     const storedIdentity = readWelcomeMemberIdentity()
     if (storedIdentity) {

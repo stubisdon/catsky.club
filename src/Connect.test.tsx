@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import Connect from './Connect'
 
 const mocks = vi.hoisted(() => ({
@@ -8,9 +8,23 @@ const mocks = vi.hoisted(() => ({
   navigateToMock: vi.fn<(path: string) => void>(),
   getCurrentMemberMock: vi.fn<() => Promise<{ id?: string; uuid?: string; email?: string } | null>>(),
   openPortalAccountPlansMock: vi.fn<() => void>(),
+  triggerPortalSignOutMock: vi.fn<() => boolean>(),
+  identifyMemberMock: vi.fn(),
+  resetAnalyticsIdentityMock: vi.fn(),
+  trackEventMock: vi.fn(),
+  trackPortalEventMock: vi.fn(),
 }))
 
-const { getMembershipTierMock, getPaidPlanOptionsMock, navigateToMock, getCurrentMemberMock, openPortalAccountPlansMock } = mocks
+const {
+  getMembershipTierMock,
+  getPaidPlanOptionsMock,
+  navigateToMock,
+  getCurrentMemberMock,
+  openPortalAccountPlansMock,
+  triggerPortalSignOutMock,
+  resetAnalyticsIdentityMock,
+  trackEventMock,
+} = mocks
 
 vi.mock('./utils', () => ({
   clearLocalSessionFlags: vi.fn(),
@@ -19,8 +33,15 @@ vi.mock('./utils', () => ({
   getPaidPlanOptions: mocks.getPaidPlanOptionsMock,
   openPortalAccount: vi.fn(),
   openPortalAccountPlans: mocks.openPortalAccountPlansMock,
-  triggerPortalSignOut: vi.fn(),
+  triggerPortalSignOut: mocks.triggerPortalSignOutMock,
   setDevMemberOverride: vi.fn(),
+}))
+
+vi.mock('./utils/analytics', () => ({
+  identifyMember: mocks.identifyMemberMock,
+  resetAnalyticsIdentity: mocks.resetAnalyticsIdentityMock,
+  trackEvent: mocks.trackEventMock,
+  trackPortalEvent: mocks.trackPortalEventMock,
 }))
 
 vi.mock('./router/navigation', () => ({
@@ -30,12 +51,14 @@ vi.mock('./router/navigation', () => ({
 describe('Connect membership states and magic-link refresh', () => {
   afterEach(() => {
     vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
   beforeEach(() => {
     vi.useFakeTimers()
     vi.clearAllMocks()
     getMembershipTierMock.mockResolvedValue('none')
+    triggerPortalSignOutMock.mockReturnValue(true)
     getPaidPlanOptionsMock.mockResolvedValue([
       { id: 'tier-supporter', name: 'Supporter', monthlyAmount: 500, perks: ['unfinished demos'] },
       { id: 'tier-backstage', name: 'Backstage', monthlyAmount: 2000, perks: ['unfinished demos', 'unreleased videos'] },
@@ -129,5 +152,57 @@ describe('Connect membership states and magic-link refresh', () => {
         email: 'ada@example.com',
       }),
     )
+    expect(trackEventMock).toHaveBeenCalledWith('signup_callback_resolved', { membership_tier: 'paid_5' })
+  })
+
+  it('resets analytics identity on logout', async () => {
+    getMembershipTierMock.mockResolvedValue('free')
+
+    render(<Connect />)
+
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+
+    await act(async () => {
+      screen.getByRole('link', { name: 'log out' }).click()
+      await vi.advanceTimersByTimeAsync(10)
+    })
+
+    expect(triggerPortalSignOutMock).toHaveBeenCalledTimes(1)
+    expect(resetAnalyticsIdentityMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('tracks magic-link outcomes without sending the email address', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      json: vi.fn().mockResolvedValue({ error: 'Invalid email address' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<Connect />)
+
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'sign up →' }))
+    fireEvent.change(screen.getByPlaceholderText('your@email.com'), {
+      target: { value: 'ada@example.com' },
+    })
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: 'send magic link' }).closest('form')!)
+      await vi.runAllTimersAsync()
+    })
+
+    expect(trackEventMock).toHaveBeenCalledWith('magic_link_requested', { entry_point: 'signup' })
+    expect(trackEventMock).toHaveBeenCalledWith('magic_link_request_failed', {
+      entry_point: 'signup',
+      status: 400,
+    })
+    expect(JSON.stringify(trackEventMock.mock.calls)).not.toContain('ada@example.com')
   })
 })

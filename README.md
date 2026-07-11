@@ -140,7 +140,9 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for a step-by-step deploy guide and [DEPLOY
 | `VITE_GHOST_URL` | `.env.development` / `.env.server` | Your Ghost instance URL (e.g. `https://ghost.yourdomain.com`) |
 | `VITE_GHOST_CONTENT_API_KEY` | `.env.development.local` | Ghost Content API key (Ghost Admin → Integrations) |
 | `GHOST_ADMIN_API_KEY` | `.env.server` | Ghost Admin API key (for server-side signed requests) |
-| `POSTHOG_KEY` *(optional)* | `.env` | PostHog analytics project key |
+| `VITE_PUBLIC_POSTHOG_TOKEN` *(optional)* | `.env.development.local` / `.env.server` | PostHog browser analytics token; empty disables analytics |
+| `VITE_PUBLIC_POSTHOG_HOST` *(optional)* | `.env.development.local` / `.env.server` | PostHog host, defaults to `https://us.i.posthog.com` |
+| `VITE_PUBLIC_POSTHOG_ENABLED` *(optional)* | `.env.development.local` / `.env.server` | Set `true` to allow analytics on localhost; production only needs the token |
 | `SITE_NAME` *(optional)* | `.env.server` | Site name shown in server error pages |
 
 Use `.env.example` and `ENV_SERVER.example` in the repo root as starting templates — they list all recognized variables with placeholder values.
@@ -169,7 +171,7 @@ The project includes:
 ## Environment (dev vs prod)
 
 - **Dev:** `npm run dev` uses `.env.development` (committed). Override with `.env.development.local` (gitignored) for Ghost Content API key so Portal works locally.
-- **Prod:** `./deploy.sh` on the server sources `.env.server` and exports `VITE_GHOST_URL` and `VITE_GHOST_CONTENT_API_KEY` before building. See `.env.example` for variable names.
+- **Prod:** `./deploy.sh` on the server sources `.env.server` and exports Vite-facing `VITE_*` values before building. See `.env.example` for variable names.
 
 ## Local dev: enabling `/connect` signup + `/welcome` onboarding
 

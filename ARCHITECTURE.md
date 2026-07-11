@@ -120,6 +120,18 @@ Helpers:
 - `src/utils/audioHelpers.ts` generates SoundCloud embed URLs and supports direct URLs.
 - `src/utils/soundcloudTracks.ts` offers parsing utilities for SoundCloud share links.
 
+## 4.5) Analytics
+
+Browser analytics are isolated in `src/utils/analytics.ts` and use `posthog-js`.
+
+- Env vars: `VITE_PUBLIC_POSTHOG_TOKEN`, `VITE_PUBLIC_POSTHOG_HOST` (defaults to `https://us.i.posthog.com`), and `VITE_PUBLIC_POSTHOG_ENABLED`.
+- Empty token disables analytics. Localhost and `127.0.0.1` are disabled unless `VITE_PUBLIC_POSTHOG_ENABLED=true`.
+- `src/main.tsx` initializes analytics before React renders.
+- `src/router/Router.tsx` manually captures deduplicated `$pageview` events after route normalization so SPA navigation is visible without duplicate initial StrictMode pageviews.
+- A document-level capture listener records normalized `button_clicked` events for first-party buttons/links without input values.
+- Ghost Portal trigger clicks and parent-page hash open/close transitions are tracked from the global analytics init path, including Portal entry points outside `/connect`. Clicks inside a cross-origin Portal iframe are not observable from the Catsky parent page.
+- Member identify calls use only stable Ghost `uuid`/`id` values plus `membership_tier`; email, names, feedback text, and raw form values must not be sent.
+
 ## 5) Express server architecture (`server.js`)
 
 The Node server is intentionally small:
