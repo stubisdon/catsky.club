@@ -62,7 +62,7 @@ This document is updated to reflect the current V1.0 product vision.
 
 ### Upgrade flow
 - Upgrade options: $5 and $20 monthly.
-- Upgrade CTA appears on locked-content surfaces and account area.
+- Upgrade CTA appears on locked-content surfaces and account area; `/connect` uses a single contextual upgrade CTA for free members and may show backend tier/perk context as non-clickable copy.
 - Upgrade CTA clicks and Ghost Portal entry/open/close transitions are analytics events; Portal iframe internals remain Ghost-owned and are not inspected from the parent page.
 
 ### Journey analytics

@@ -47,8 +47,8 @@ This document defines the **authoritative V1.0 user experience scope**. If any o
 
 
 ## Current implementation notes (March 24, 2026)
-- `/connect` shows explicit paid-plan upgrade actions for free members using plan names/perks hydrated from Ghost backend tiers (no price text in CTA copy).
-- `/connect` also surfaces a primary free-member CTA, `upgrade to $5/month to unlock the music video`, which still opens Ghost-managed account plans.
+- `/connect` shows a single contextual paid-upgrade CTA for free members, `upgrade to $5/month to unlock the music video`, which opens Ghost-managed account plans.
+- `/connect` may also show non-clickable paid-tier names/perks hydrated from Ghost backend tiers so free members can understand plan context without seeing duplicate upgrade buttons.
 - `/connect` plan upgrade clicks open Ghost Portal account plans via the dedicated `account/plans` portal trigger.
 - `/watch` remains the public trailer surface and paid-entry prompt.
 - `/video` is the paid-gated embedded unreleased video route (`paid_5` + `paid_20` unlock; guests/free see lock messaging + `/connect` path).

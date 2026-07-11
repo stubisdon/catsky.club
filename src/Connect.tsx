@@ -352,18 +352,6 @@ export default function Connect() {
                 upgrade to $5/month to unlock the music video
               </a>
             </div>
-            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-              {planOptions.map((plan) => (
-                <a
-                  key={plan.id ?? plan.name}
-                  href="#/portal/account/plans"
-                  onClick={handlePlanUpgrade}
-                  className="connect-portal-btn"
-                >
-                  upgrade to {plan.name}
-                </a>
-              ))}
-            </div>
             <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', opacity: 0.85 }}>
               {planOptions
                 .map((plan) => {
