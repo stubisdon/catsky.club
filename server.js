@@ -54,6 +54,14 @@ const GHOST_INTERNAL_URL = (process.env.GHOST_INTERNAL_URL || 'http://127.0.0.1:
 const GHOST_ADMIN_API_KEY = process.env.GHOST_ADMIN_API_KEY || ''
 const GHOST_ADMIN_API_VERSION = process.env.GHOST_ADMIN_API_VERSION || 'v5.0'
 const SIGNUPS_API_TOKEN = process.env.SIGNUPS_API_TOKEN || ''
+const GATED_TRACKS = [
+  { id: '4', accessTier: 'free_member', availableFrom: '2026-04-10', announcedReleaseDate: '2026-04-10', envKey: 'TRACK_URL_4' },
+  { id: '5', accessTier: 'paid_5', announcedReleaseDate: '2026-05-08', envKey: 'TRACK_URL_5' },
+  { id: '6', accessTier: 'paid_5', envKey: 'TRACK_URL_6' },
+  { id: '7', accessTier: 'paid_5', envKey: 'TRACK_URL_7' },
+  { id: '8', accessTier: 'paid_5', envKey: 'TRACK_URL_8' },
+]
+const VIDEO_EMBED_URL = (process.env.VIDEO_EMBED_URL || '').trim()
 
 app.use(cors())
 app.use(express.json())
@@ -410,17 +418,6 @@ async function findMemberByEmail(email) {
   return null
 }
 
-async function findMemberByUuid(uuid) {
-  const filter = `uuid:'${uuid.replace(/'/g, "\\'")}'`
-  const qs = new URLSearchParams({ filter, limit: '1' })
-  const res = await ghostAdminFetch(`members/?${qs.toString()}`, { method: 'GET' })
-  if (!res.ok) return null
-  const data = await res.json()
-  const members = data && data.members
-  if (Array.isArray(members) && members.length > 0) return members[0]
-  return null
-}
-
 function composeMemberName(firstName, lastName) {
   return lastName ? `${firstName} ${lastName}` : firstName
 }
@@ -445,9 +442,10 @@ function normalizeMemberIdentity(value) {
   const id = typeof member.id === 'string' ? member.id.trim() : ''
   const uuid = typeof member.uuid === 'string' ? member.uuid.trim() : ''
   const email = typeof member.email === 'string' ? member.email.trim().toLowerCase() : ''
+  const subscriptions = Array.isArray(member.subscriptions) ? member.subscriptions : []
 
   if ((!id && !uuid) || !email) return null
-  return { id, uuid, email }
+  return { id, uuid, email, subscriptions }
 }
 
 async function fetchGhostMemberFromSession({ cookieHeader, proxyHeaders }) {
@@ -482,32 +480,7 @@ async function fetchGhostMemberFromSession({ cookieHeader, proxyHeaders }) {
   }
 }
 
-async function resolveMemberIdentityFromLookup({ memberId, memberUuid, email }) {
-  if (memberId && email) {
-    return { id: memberId, email }
-  }
-
-  const memberByUuid = memberUuid ? await findMemberByUuid(memberUuid) : null
-  const normalizedByUuid = normalizeMemberIdentity(memberByUuid)
-  if (normalizedByUuid?.id && normalizedByUuid.email === email) {
-    return { id: normalizedByUuid.id, email: normalizedByUuid.email }
-  }
-
-  const memberByEmail = email ? await findMemberByEmail(email) : null
-  const normalizedByEmail = normalizeMemberIdentity(memberByEmail)
-  if (normalizedByEmail?.id) {
-    return { id: normalizedByEmail.id, email: normalizedByEmail.email }
-  }
-
-  return null
-}
-
 async function resolveMemberIdentityForProfileUpdate({ memberId, memberUuid, email, cookieHeader, proxyHeaders }) {
-  const resolvedByLookup = await resolveMemberIdentityFromLookup({ memberId, memberUuid, email })
-  if (resolvedByLookup) {
-    return resolvedByLookup
-  }
-
   const retryDelaysMs = [0, 400, 1200, 2500, 5000, 8000, 12000]
 
   for (const delay of retryDelaysMs) {
@@ -517,11 +490,75 @@ async function resolveMemberIdentityForProfileUpdate({ memberId, memberUuid, ema
 
     const resolvedMember = await fetchGhostMemberFromSession({ cookieHeader, proxyHeaders })
     if (resolvedMember) {
+      if (
+        (memberId && resolvedMember.id && memberId !== resolvedMember.id)
+        || (memberUuid && resolvedMember.uuid && memberUuid !== resolvedMember.uuid)
+        || (email && resolvedMember.email && email !== resolvedMember.email)
+      ) {
+        console.warn('[Member profile identity mismatch]', {
+          suppliedMemberId: memberId || undefined,
+          suppliedMemberUuid: memberUuid || undefined,
+          suppliedEmail: email || undefined,
+          sessionMemberId: resolvedMember.id || undefined,
+          sessionMemberUuid: resolvedMember.uuid || undefined,
+          sessionEmail: resolvedMember.email || undefined,
+        })
+      }
       return resolvedMember
     }
   }
 
   return null
+}
+
+function getMemberTierFromSessionMember(member) {
+  if (!member) return 'none'
+
+  let highestAmount = 0
+  const subscriptions = Array.isArray(member.subscriptions) ? member.subscriptions : []
+  for (const subscription of subscriptions) {
+    if (subscription?.status !== 'active') continue
+    const amount = subscription?.price?.amount
+    if (typeof amount === 'number' && amount > highestAmount) highestAmount = amount
+  }
+
+  if (highestAmount >= 2000) return 'paid_20'
+  if (highestAmount >= 500) return 'paid_5'
+  if (highestAmount > 0) return 'paid_5'
+  return 'free'
+}
+
+function isTrackAvailableByDate(track, now = new Date()) {
+  if (!track.availableFrom) return true
+  const releaseInstant = Date.parse(`${track.availableFrom}T00:00:00.000Z`)
+  if (Number.isNaN(releaseInstant)) return true
+  return now.getTime() >= releaseInstant
+}
+
+function hasAnnouncedReleaseDate(track) {
+  return typeof track.announcedReleaseDate === 'string' && track.announcedReleaseDate.trim().length > 0
+}
+
+function hasTrackAccessForTier(track, membershipTier, now = new Date()) {
+  if (track.accessTier === 'public') return true
+
+  if (membershipTier === 'free' && hasAnnouncedReleaseDate(track)) {
+    if (isTrackAvailableByDate(track, now)) return true
+  }
+
+  if (!isTrackAvailableByDate(track, now)) return false
+  if (track.accessTier === 'free_member') return membershipTier !== 'none'
+  if (track.accessTier === 'paid_5') return membershipTier === 'paid_5' || membershipTier === 'paid_20'
+  return membershipTier === 'paid_20'
+}
+
+async function resolveMembershipTierFromRequest(req) {
+  const cookieHeader = typeof req.headers.cookie === 'string' ? req.headers.cookie : ''
+  const member = await fetchGhostMemberFromSession({
+    cookieHeader,
+    proxyHeaders: createGhostProxyHeaders(req),
+  })
+  return getMemberTierFromSessionMember(member)
 }
 
 
@@ -713,10 +750,8 @@ app.post('/api/submit', async (req, res) => {
     const errPayload = await createRes.json().catch(() => null)
     const errMessage = errPayload?.errors?.[0]?.message || createRes.statusText
     if (typeof errMessage === 'string' && errMessage.toLowerCase().includes('already exists')) {
-      const existing = await findMemberByEmail(email)
       return res.status(200).json({
         success: true,
-        member: existing ? { id: existing.id, email: existing.email, name: existing.name, created_at: existing.created_at } : null,
         alreadyExisted: true,
       })
     }
@@ -731,6 +766,51 @@ app.post('/api/submit', async (req, res) => {
   } catch (e) {
     console.error('[Ghost signup error]', e?.message || e, { ghostUrl: GHOST_URL })
     return res.status(500).json({ error: 'Ghost signup error', details: String(e?.message || e) })
+  }
+})
+
+app.get('/api/track-url/:trackId', async (req, res) => {
+  const track = GATED_TRACKS.find((item) => item.id === req.params.trackId)
+  if (!track) return res.status(404).json({ error: 'Track not found' })
+
+  try {
+    const membershipTier = await resolveMembershipTierFromRequest(req)
+    if (!hasTrackAccessForTier(track, membershipTier)) {
+      return res.status(403).json({ error: 'Track access denied' })
+    }
+
+    const trackUrl = (process.env[track.envKey] || '').trim()
+    if (!trackUrl) {
+      return res.status(503).json({
+        error: 'Track URL is not configured',
+        envKey: track.envKey,
+      })
+    }
+
+    return res.status(200).set('Cache-Control', 'no-store').json({ trackUrl })
+  } catch (error) {
+    console.error('[Gated track URL error]', error)
+    return res.status(500).json({ error: 'Unable to resolve track access' })
+  }
+})
+
+app.get('/api/video-embed', async (req, res) => {
+  try {
+    const membershipTier = await resolveMembershipTierFromRequest(req)
+    const isPaid = membershipTier === 'paid_5' || membershipTier === 'paid_20'
+    if (!isPaid) return res.status(403).json({ error: 'Video access denied' })
+
+    if (!VIDEO_EMBED_URL) {
+      return res.status(503).json({
+        error: 'Video embed URL is not configured',
+        envKey: 'VIDEO_EMBED_URL',
+      })
+    }
+
+    return res.status(200).set('Cache-Control', 'no-store').json({ embedUrl: VIDEO_EMBED_URL })
+  } catch (error) {
+    console.error('[Gated video embed error]', error)
+    return res.status(500).json({ error: 'Unable to resolve video access' })
   }
 })
 

@@ -4,6 +4,8 @@ import { getMembershipTier, type MembershipTier } from './utils'
 
 export default function Video() {
   const [tier, setTier] = useState<MembershipTier | null>(null)
+  const [embedUrl, setEmbedUrl] = useState<string | null>(null)
+  const [embedError, setEmbedError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -22,6 +24,42 @@ export default function Video() {
   }, [])
 
   const isPaid = useMemo(() => tier === 'paid_5' || tier === 'paid_20', [tier])
+
+  useEffect(() => {
+    if (!isPaid) {
+      setEmbedUrl(null)
+      setEmbedError(null)
+      return
+    }
+
+    let cancelled = false
+
+    fetch('/api/video-embed', {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Video embed request failed with ${response.status}`)
+        return response.json() as Promise<{ embedUrl?: string }>
+      })
+      .then((payload) => {
+        if (cancelled) return
+        const nextEmbedUrl = typeof payload.embedUrl === 'string' ? payload.embedUrl.trim() : ''
+        if (!nextEmbedUrl) throw new Error('Video embed response was empty')
+        setEmbedUrl(nextEmbedUrl)
+        setEmbedError(null)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        console.error('Error loading video embed:', error)
+        setEmbedUrl(null)
+        setEmbedError('video is unavailable right now')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isPaid])
 
   return (
     <PageContainer maxWidth="900px">
@@ -42,9 +80,9 @@ export default function Video() {
           marginBottom: '1.5rem',
         }}
       >
-        {isPaid ? (
+        {isPaid && embedUrl ? (
           <iframe
-            src="https://www.youtube.com/embed/xRxUcF_wFSQ"
+            src={embedUrl}
             title="Catsky unreleased music video"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
@@ -57,6 +95,10 @@ export default function Video() {
               border: 'none',
             }}
           />
+        ) : isPaid ? (
+          <div style={{ textAlign: 'center', padding: '1.25rem', opacity: 0.9 }}>
+            <p>{embedError || 'loading video...'}</p>
+          </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '1.25rem', opacity: 0.9 }}>
             {tier === null && <p>checking access...</p>}

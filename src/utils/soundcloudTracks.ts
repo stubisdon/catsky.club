@@ -69,7 +69,7 @@ export function generateTrackId(index: number, title?: string): string {
  * Example usage:
  * ```typescript
  * const shareLinks = [
- *   'https://soundcloud.com/catsky_club/vision-v1/s-L5q3Tw7Jyvp?in=...',
+ *   'https://soundcloud.com/catsky_club/private-track/SECRET_TOKEN_PLACEHOLDER?in=...',
  *   'https://soundcloud.com/catsky_club/track-2/s-XXXXX?in=...',
  * ]
  * 
