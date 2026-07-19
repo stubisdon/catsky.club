@@ -30,6 +30,7 @@ export default function Listen() {
   const [feedbackText, setFeedbackText] = useState('')
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<string | null>(null)
   const [trackLoadError, setTrackLoadError] = useState<string | null>(null)
+  const [resolvedTrackUrls, setResolvedTrackUrls] = useState<Record<string, string>>({})
   const [hoveredLockedTrackId, setHoveredLockedTrackId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const soundcloudIframeRef = useRef<HTMLIFrameElement | null>(null)
@@ -81,7 +82,27 @@ export default function Listen() {
     }
   }, [trackVotes])
 
-  const handleTrackSelect = useCallback((trackId: string) => {
+  const resolveTrackUrl = useCallback(async (track: Track): Promise<string | null> => {
+    if (track.audioSource.type === 'direct') return getDirectAudioUrl(track.audioSource)
+    if (track.audioSource.trackUrl) return track.audioSource.trackUrl
+    if (resolvedTrackUrls[track.id]) return resolvedTrackUrls[track.id]
+
+    const response = await fetch(`/api/track-url/${encodeURIComponent(track.id)}`, {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+    if (response.status === 403) return null
+    if (!response.ok) throw new Error(`Track URL request failed with ${response.status}`)
+
+    const payload = await response.json().catch(() => null) as { trackUrl?: string } | null
+    const trackUrl = typeof payload?.trackUrl === 'string' ? payload.trackUrl.trim() : ''
+    if (!trackUrl) throw new Error('Track URL response was empty')
+
+    setResolvedTrackUrls(prev => ({ ...prev, [track.id]: trackUrl }))
+    return trackUrl
+  }, [resolvedTrackUrls])
+
+  const handleTrackSelect = useCallback(async (trackId: string) => {
     const track = TRACKS.find(t => t.id === trackId)
     if (!track) {
       setTrackLoadError('Track not found')
@@ -91,31 +112,42 @@ export default function Listen() {
       navigateTo('/connect')
       return
     }
-    setTrackLoadError(null)
-    setCurrentTrackId(trackId)
+    setTrackLoadError('loading track...')
     setIsPlaying(false)
     setCurrentTime(0)
     setDuration(0)
-    if (track.audioSource.type === 'direct') {
-      const audioUrl = getDirectAudioUrl(track.audioSource)
-      if (audioUrl && audioRef.current) {
-        try {
-          audioRef.current.src = audioUrl
-          audioRef.current.load()
-          audioRef.current.onerror = () => setTrackLoadError('Failed to load audio track')
-          audioRef.current.onloadeddata = () => setTrackLoadError(null)
-        } catch (error) {
-          console.error('Error loading audio:', error)
-          setTrackLoadError('Failed to load audio track')
+    try {
+      const audioUrl = await resolveTrackUrl(track)
+      if (!audioUrl) {
+        navigateTo('/connect')
+        return
+      }
+
+      setTrackLoadError(null)
+      setCurrentTrackId(trackId)
+      if (track.audioSource.type === 'direct') {
+        if (audioUrl && audioRef.current) {
+          try {
+            audioRef.current.src = audioUrl
+            audioRef.current.load()
+            audioRef.current.onerror = () => setTrackLoadError('Failed to load audio track')
+            audioRef.current.onloadeddata = () => setTrackLoadError(null)
+          } catch (error) {
+            console.error('Error loading audio:', error)
+            setTrackLoadError('Failed to load audio track')
+          }
+        }
+      } else if (track.audioSource.type === 'soundcloud') {
+        if (audioRef.current) {
+          audioRef.current.pause()
+          audioRef.current.src = ''
         }
       }
-    } else if (track.audioSource.type === 'soundcloud') {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current.src = ''
-      }
+    } catch (error) {
+      console.error('Error resolving track URL:', error)
+      setTrackLoadError('Failed to load audio track')
     }
-  }, [canAccessTrack])
+  }, [canAccessTrack, resolveTrackUrl])
 
   const handlePlayPause = useCallback(() => {
     if (!audioRef.current) return
@@ -167,6 +199,9 @@ export default function Listen() {
   }
 
   const currentTrack = currentTrackId ? TRACKS.find(t => t.id === currentTrackId) : null
+  const currentTrackUrl = currentTrack?.audioSource.type === 'soundcloud'
+    ? currentTrack.audioSource.trackUrl || resolvedTrackUrls[currentTrack.id]
+    : undefined
 
   return (
     <div className="app-container listen-page-shell">
@@ -259,7 +294,7 @@ export default function Listen() {
               </>
             )}
 
-            {currentTrack.audioSource.type === 'soundcloud' && (
+            {currentTrack.audioSource.type === 'soundcloud' && currentTrackUrl && (
               <div style={{ marginTop: '1rem' }}>
                 <div style={{ fontSize: '0.85rem', opacity: 0.7, marginBottom: '0.5rem', textAlign: 'center', fontStyle: 'italic' }}>
                   click the circle to play
@@ -273,7 +308,7 @@ export default function Listen() {
                   allow="autoplay"
                   src={getSoundCloudEmbedUrl(
                     currentTrack.audioSource.trackId,
-                    currentTrack.audioSource.trackUrl,
+                    currentTrackUrl,
                     currentTrack.audioSource.setId,
                     currentTrack.audioSource.secretToken
                   )}

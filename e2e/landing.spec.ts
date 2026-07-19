@@ -11,6 +11,15 @@ import { test, expect } from '@playwright/test'
  * - Accessibility
  */
 
+test.beforeEach(async ({ page }) => {
+  await page.route('https://cdn.jsdelivr.net/npm/@tryghost/portal@*/umd/portal.min.js', (route) => {
+    route.fulfill({ status: 200, contentType: 'application/javascript', body: '' })
+  })
+  await page.route('**/ghost/api/content/settings/**', (route) => {
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ settings: {} }) })
+  })
+})
+
 test.describe('Landing Page - Content', () => {
   test('displays main heading with site name', async ({ page }) => {
     await page.goto('/')

@@ -72,7 +72,7 @@ const MOCK_TRACKS: Track[] = [
     audioSource: {
       type: 'soundcloud',
       trackId: '123456789',
-      secretToken: 's-abc123xyz'
+      secretToken: 'SECRET_TOKEN_PLACEHOLDER'
     },
     version: 'v2.3',
     date: '2024-01-15'
@@ -83,7 +83,7 @@ const MOCK_TRACKS: Track[] = [
     audioSource: {
       type: 'soundcloud',
       trackId: '987654321',
-      secretToken: 's-def456uvw'
+      secretToken: 'SECRET_TOKEN_PLACEHOLDER'
     },
     version: 'v1.8',
     date: '2024-01-10'

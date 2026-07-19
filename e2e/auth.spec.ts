@@ -144,7 +144,7 @@ test.describe('Connect Page - Basic Elements', () => {
       if (message.type() === 'error') portalFailures.push(message.text())
     })
 
-    await page.route('https://cdn.jsdelivr.net/npm/@tryghost/portal@latest/umd/portal.min.js', (route) => {
+    await page.route('https://cdn.jsdelivr.net/npm/@tryghost/portal@*/umd/portal.min.js', (route) => {
       route.fulfill({
         status: 200,
         contentType: 'application/javascript',

@@ -116,9 +116,19 @@ async function run() {
     const page = await context.newPage()
 
     await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.route('https://cdn.jsdelivr.net/npm/@tryghost/portal@*/umd/portal.min.js', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/javascript', body: '' })
+    })
+    await page.route('**/ghost/api/content/settings/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ settings: {} }) })
+    })
+    await page.route('**/members/api/member/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ member: null }) })
+    })
 
     for (const step of JOURNEY_STEPS) {
-      await page.goto(`${BASE_URL}${step.path}`, { waitUntil: 'networkidle' })
+      await page.goto(`${BASE_URL}${step.path}`, { waitUntil: 'domcontentloaded' })
+      await page.locator('.app-container').first().waitFor({ state: 'visible', timeout: 15000 })
       const targetFile = path.join(OUTPUT_DIR, step.file)
       await page.screenshot({
         path: targetFile,
