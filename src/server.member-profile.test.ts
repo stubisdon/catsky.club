@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import { createServer, request, type IncomingMessage, type ServerResponse } from 'node:http'
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 
 let mockGhostServer: ReturnType<typeof createServer>
@@ -15,22 +15,22 @@ beforeAll(async () => {
       return res.end('Missing URL')
     }
 
-    if (req.url.startsWith('/ghost/api/admin/members/?')) {
-      const requestUrl = new URL(req.url, 'http://127.0.0.1:4556')
-      const filter = requestUrl.searchParams.get('filter') || ''
-
-      if (filter === "uuid:'member-uuid-123'") {
+    if (req.url.startsWith('/members/api/member/')) {
+      if (typeof req.headers.cookie === 'string' && req.headers.cookie.includes('ghost-members-ssr=')) {
         res.statusCode = 200
         res.setHeader('Content-Type', 'application/json')
         return res.end(JSON.stringify({
-          members: [{
+          member: {
             id: 'member-123',
             uuid: 'member-uuid-123',
             email: 'ada@example.com',
-            note: 'existing-note',
-          }],
+          },
         }))
       }
+
+      res.statusCode = 200
+      res.setHeader('Content-Type', 'application/json')
+      return res.end(JSON.stringify({ member: null }))
     }
 
     if (req.url.startsWith('/ghost/api/admin/members/member-123/')) {
@@ -105,24 +105,35 @@ afterAll(async () => {
 })
 
 describe('member profile background updates', () => {
-  test('accepts text payloads with a member uuid and forwards the captured names to Ghost', async () => {
+  test('accepts text payloads with a session member and forwards the captured names to Ghost', async () => {
     updateRequestBody = ''
     updateRequestHeaders = {}
 
-    const res = await fetch(`${appBaseUrl}/api/member-profile`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=UTF-8',
-      },
-      body: JSON.stringify({
-        memberUuid: 'member-uuid-123',
-        email: 'ada@example.com',
-        firstName: 'Ada',
-        lastName: 'Lovelace',
-      }),
+    const body = JSON.stringify({
+      memberUuid: 'member-uuid-123',
+      email: 'ada@example.com',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
     })
 
-    expect(res.status).toBe(202)
+    const statusCode = await new Promise<number>((resolve, reject) => {
+      const target = new URL('/api/member-profile', appBaseUrl)
+      const req = request(target, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=UTF-8',
+          'Content-Length': Buffer.byteLength(body),
+          Cookie: 'ghost-members-ssr=session-token',
+        },
+      }, (res) => {
+        res.resume()
+        res.on('end', () => resolve(res.statusCode || 0))
+      })
+      req.on('error', reject)
+      req.end(body)
+    })
+
+    expect(statusCode).toBe(202)
 
     await expect.poll(() => updateRequestBody, { timeout: 15_000 }).not.toBe('')
 

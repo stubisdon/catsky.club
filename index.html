@@ -270,7 +270,7 @@
           config.setAttribute('data-api', apiUrl);
         }
         window.__GHOST_SITE__ = { url: ghostUrl.replace(/\/$/, ''), firstpromoter_account: '' };
-        var portalSrc = 'https://cdn.jsdelivr.net/npm/@tryghost/portal@latest/umd/portal.min.js';
+        var portalSrc = 'https://cdn.jsdelivr.net/npm/@tryghost/portal@2.69.115/umd/portal.min.js';
         var settingsUrl = ghostUrl.replace(/\/$/, '') + '/ghost/api/content/settings/?key=' + encodeURIComponent(apiKey);
         function loadPortal() {
         fetch(portalSrc, { cache: 'no-store' }).then(function(r) { return r.text(); }).then(function(code) {

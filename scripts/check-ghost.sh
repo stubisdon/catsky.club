@@ -35,7 +35,6 @@ fi
 
 report "## Ghost diagnostics report"
 report ""
-report "**Server:** $(hostname -f 2>/dev/null || hostname)"
 report "**Date:** $(date -Iseconds 2>/dev/null || date)"
 report ""
 
@@ -51,7 +50,7 @@ fi
 
 report "### Ghost install"
 report ""
-report "- **Path:** \`$GHOST_ROOT\`"
+report "- **Install:** found"
 report ""
 
 # --- Config and mail ---
@@ -59,7 +58,7 @@ CONFIG="$GHOST_ROOT/config.production.json"
 if [ ! -f "$CONFIG" ]; then
   report "### Config"
   report ""
-  report "❌ \`config.production.json\` not found at \`$CONFIG\`."
+  report "❌ \`config.production.json\` not found."
   report ""
 else
   report "### Config (\`config.production.json\`)"
@@ -107,20 +106,18 @@ fi
 report ""
 
 # --- Recent log errors ---
-report "### Recent log errors (last 30 lines with error/fail/500)"
+report "### Recent log errors"
 report ""
 LOG_DIR="$GHOST_ROOT/content/logs"
 if [ -d "$LOG_DIR" ]; then
-  ERR=$(tail -n 500 "$LOG_DIR"/*.log 2>/dev/null | grep -iE "error|fail|500|exception" | tail -n 30 || true)
-  if [ -n "$ERR" ]; then
-    report '```'
-    report "$ERR"
-    report '```'
+  ERR_COUNT=$(tail -n 500 "$LOG_DIR"/*.log 2>/dev/null | grep -iE "error|fail|500|exception" | wc -l | tr -d ' ' || true)
+  if [ "${ERR_COUNT:-0}" -gt 0 ]; then
+    report "⚠️ ${ERR_COUNT} error-ish lines in the last 500 log lines."
   else
-    report "No recent error lines found in \`$LOG_DIR\`."
+    report "No recent error lines found."
   fi
 else
-  report "Log directory not found: \`$LOG_DIR\`."
+  report "Log directory not found."
 fi
 report ""
 report "---"

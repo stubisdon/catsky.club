@@ -12,7 +12,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Deploy to production server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           GIT_PAT: ${{ secrets.GIT_PAT }}
           GIT_PAT_2: ${{ secrets.GIT_PAT_2 }}

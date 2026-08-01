@@ -52,7 +52,7 @@ This document defines the **authoritative V1.0 user experience scope**. If any o
 - `/connect` plan upgrade clicks open Ghost Portal account plans via the dedicated `account/plans` portal trigger.
 - `/watch` remains the public trailer surface and paid-entry prompt.
 - `/video` is the paid-gated embedded unreleased video route (`paid_5` + `paid_20` unlock; guests/free see lock messaging + `/connect` path).
-- `/listen` lets registered free users play songs with announced release dates while keeping in-progress/no-date demos locked to paid tiers.
+- `/listen` lets registered free users play songs with announced release dates while keeping in-progress/no-date demos locked to paid tiers; gated SoundCloud URLs are fetched from the server only after tier access is verified.
 - `$5` and `$20` both unlock current V1 paid listen demos and the unreleased video entry point; higher-tier differentiation remains deferred.
 
 ## Priority Rules

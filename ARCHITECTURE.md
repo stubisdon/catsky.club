@@ -136,7 +136,15 @@ The Node server is intentionally small:
     - validates `{ firstName, lastName }` (with optional `memberId`, `memberUuid`, and `email`)
     - returns `202` immediately
     - accepts JSON and `text/plain` onboarding payloads so browser background-delivery APIs are both supported
-    - translates Ghost Members identities (`memberUuid`/`email`) into the canonical Ghost Admin member id, falls back to request-cookie session resolution when needed, retries while the session hydrates, and then updates profile `name` + onboarding metadata in `note` asynchronously.
+    - resolves the Ghost member exclusively from the current Ghost session cookie, retries while the session hydrates, and then updates profile `name` + onboarding metadata in `note` asynchronously.
+    - ignores client-supplied member identity for target selection; supplied `memberId`/`memberUuid`/`email` are only a mismatch signal in server logs.
+  - `GET /api/track-url/:trackId`:
+    - resolves the current Ghost member from the session cookie,
+    - checks the requested track against server-side tier/release-date rules,
+    - returns the gated SoundCloud URL from server-only env (`TRACK_URL_4` through `TRACK_URL_8`) only when access is allowed.
+  - `GET /api/video-embed`:
+    - resolves the current Ghost member from the session cookie,
+    - returns `VIDEO_EMBED_URL` only for paid tiers.
   - `GET /api/signups`:
     - token-protected with `x-signups-token`
     - returns recent Ghost members.

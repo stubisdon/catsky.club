@@ -53,7 +53,7 @@ export const TRACKS: Track[] = [
     announcedReleaseDate: '2026-04-10',
     audioSource: {
       type: 'soundcloud',
-      trackUrl: 'https://soundcloud.com/catsky_club/catsky-motherless-child/s-VKabkUnt9Jf',
+      trackUrl: '',
     },
   },
   {
@@ -64,7 +64,7 @@ export const TRACKS: Track[] = [
     announcedReleaseDate: '2026-05-08',
     audioSource: {
       type: 'soundcloud',
-      trackUrl: 'https://soundcloud.com/catsky_club/catsky-sugar-daddy/s-aX8EIUCGf9C',
+      trackUrl: '',
     },
   },
   {
@@ -73,7 +73,7 @@ export const TRACKS: Track[] = [
     accessTier: 'paid_5',
     audioSource: {
       type: 'soundcloud',
-      trackUrl: 'https://soundcloud.com/catsky_club/overpriced-airbnb/s-u9k6bZFCZSI',
+      trackUrl: '',
     },
   },
   {
@@ -82,7 +82,7 @@ export const TRACKS: Track[] = [
     accessTier: 'paid_5',
     audioSource: {
       type: 'soundcloud',
-      trackUrl: 'https://soundcloud.com/catsky_club/nova-v1/s-yckE6Pvc2jO',
+      trackUrl: '',
     },
   },
   {
@@ -91,7 +91,7 @@ export const TRACKS: Track[] = [
     accessTier: 'paid_5',
     audioSource: {
       type: 'soundcloud',
-      trackUrl: 'https://soundcloud.com/catsky_club/vision-v1/s-L5q3Tw7Jyvp',
+      trackUrl: '',
     },
   },
 ]
