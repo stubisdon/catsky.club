@@ -44,10 +44,10 @@ Be extra careful in:
 
 ### Ghost asset/routing protection (to prevent favicon/email regressions)
 
-- Treat these URL prefixes as **Ghost-owned infrastructure routes**: `/ghost/`, `/ghost/api/`, `/members/`, `/webhooks/`, `/unsubscribe/`, `/content/images/`, `/r/`.
+- Treat these URL prefixes as **Ghost-owned infrastructure routes**: `/ghost/`, `/ghost/api/`, `/.ghost/`, `/members/`, `/webhooks/`, `/unsubscribe/`, `/content/images/`, `/r/`.
 - Never route those prefixes to the frontend app (`:3001`) and never remove them from nginx templates during frontend work.
 - The current production-safe architecture is:
-  - nginx is the **primary owner** for `/ghost/`, `/ghost/api/`, `/content/images/`, `/r/`, `/members/`, `/webhooks/`, and `/unsubscribe/`;
+  - nginx is the **primary owner** for `/ghost/`, `/ghost/api/`, `/.ghost/`, `/content/images/`, `/r/`, `/members/`, `/webhooks/`, and `/unsubscribe/`;
   - `server.js` only provides a **defensive fallback** for `/unsubscribe`, `/content/images/*`, and `/r/*` before SPA fallback;
   - Ghost Admin branding depends on `/ghost/` and `/ghost/api/` preserving `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port`, plus `proxy_redirect` rewrites for localhost/internal Ghost URLs.
 - Do not create “documentation” files under runtime asset paths (for example under `public/content/images/**`) as a way to preserve operational behavior.

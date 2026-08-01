@@ -4,8 +4,8 @@ Last updated: 2026-01-18
 
 ## ✅ Completed
 
-1. **Ghost upgraded to 6.13.1** - Successfully upgraded from 5.8.3
-   - Upgraded Node.js from v20 to v22 (required for Ghost 6.0)
+1. **Ghost upgraded to 6.42.0** - Successfully upgraded from 5.8.3, then patched for the May 2026 critical security advisory
+   - Upgraded Node.js from v20 to v22.22.2 (required for the current Ghost 6.x dependency set)
    - Fixed systemd configuration
    - All migrations completed successfully
 
@@ -97,15 +97,15 @@ After deployment, test at: https://catsky.club/connect
 - `.github/workflows/deploy.yml` - Auto-deployment workflow
 
 ### Infrastructure
-- Ghost upgraded: 5.8.3 → 6.13.1
-- Node.js upgraded: v20.19.6 → v22.22.0
+- Ghost upgraded: 5.8.3 → 6.42.0
+- Node.js upgraded: v20.19.6 → v22.22.2
 - MySQL: 8.0.42 (already compatible)
 - Auto-deployment: GitHub Actions → DigitalOcean server
 
 ## 🎯 Current Status
 
 ✅ **All systems operational**
-- Ghost 6.13.1 running
+- Ghost 6.42.0 running
 - Portal workaround deployed
 - Auto-deployment configured and working
 - Production site: https://catsky.club

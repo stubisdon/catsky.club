@@ -144,20 +144,21 @@ The Node server is intentionally small:
   - unknown extensionless routes return `dist/index.html`
   - unknown file paths with extension return 404.
 
-Ghost routes like `/members/api/*`, `/ghost/*`, `/content/images/*`, and `/r/*` are not normal SPA routes. In production, nginx is the canonical owner for those Ghost prefixes; in local dev, Vite proxies Ghost traffic.
+Ghost routes like `/members/api/*`, `/ghost/*`, `/.ghost/*`, `/content/images/*`, and `/r/*` are not normal SPA routes. In production, nginx is the canonical owner for those Ghost prefixes; in local dev, Vite proxies Ghost traffic.
 
 #### Ghost-owned infrastructure route contract
 
 The CAT-34 favicon/email work established this routing contract and it should now be treated as architecture, not as a one-off fix:
 
 - `/ghost/` and `/ghost/api/` must preserve `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port`, and must rewrite localhost/internal absolute redirects with `proxy_redirect`. Ghost Admin uses that public request context when it builds branding/image URLs (including the logo/icon shown inside `/ghost`).
+- `/.ghost/` must also stay Ghost-owned for Ghost 6 internal service routes such as ActivityPub; if this prefix falls through to the frontend SPA, Ghost self-checks receive the React shell instead of a Ghost-managed response.
 - `/content/images/` serves Ghost-hosted assets used by Ghost Admin branding and Ghost emails. Those nginx blocks also need the same forwarded-host context + redirect rewriting so Ghost does not emit broken localhost/self-loop redirects.
 - `/r/` serves Ghost email tracking redirects and must stay Ghost-owned for newsletter links to resolve correctly on the public domain.
 - `/unsubscribe` remains a Ghost-owned flow, but Catsky intentionally intercepts tokenized newsletter unsubscribe links in Express so users land on a first-party confirmation page instead of falling through to the SPA shell.
 
 Express now intercepts tokenized `GET /unsubscribe?uuid=...&key=...&newsletter=...` and `GET /unsubscribe/?uuid=...&key=...&newsletter=...` links before SPA fallback, then sends Ghost a `POST` to `/unsubscribe/?...` on `GHOST_INTERNAL_URL` (default `http://127.0.0.1:2368`) before returning a Catsky-hosted confirmation page. That POST matters: in Ghost, `GET /unsubscribe` is only the entry/redirect step, while the actual newsletter opt-out happens on `POST`. Those Express-to-Ghost requests intentionally send the canonical public `Host`, `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port` values derived from `GHOST_URL`, because Ghost newsletter unsubscribe handling can fail when the upstream request arrives as bare localhost/internal origin traffic. Non-tokenized `/unsubscribe` routes still proxy through to Ghost as `GET`, and upstream redirects from internal/localhost hosts are rewritten to the public request origin (or `GHOST_URL` fallback). Express also includes defensive pass-through handlers for `/content/images/*` and `/r/*` so Ghost favicon/email paths still resolve if nginx route blocks are accidentally stale; those fallback fetches forward the same canonical public host/proto/port contract so Ghost does not bounce them back to the same public URL in a canonical-host redirect loop. nginx remains the primary owner for these prefixes in production.
 
-The practical result is that Ghost Admin branding, Ghost email logos/assets, email click-tracking redirects, and newsletter unsubscribe flows all depend on the same public-host-aware proxy contract. If one of those surfaces breaks, inspect nginx/Express forwarding behavior before adding compatibility assets or changing frontend routing.
+The practical result is that Ghost Admin branding, Ghost internal service routes, Ghost email logos/assets, email click-tracking redirects, and newsletter unsubscribe flows all depend on the same public-host-aware proxy contract. If one of those surfaces breaks, inspect nginx/Express forwarding behavior before adding compatibility assets or changing frontend routing.
 
 ## 6) Local development topology
 

@@ -79,6 +79,7 @@ These are not new product features, but they are required for the V1 experience 
 - Ghost Admin at `/ghost/` must render Catsky branding assets using the public `catsky.club` host, not localhost/internal Ghost URLs.
 - Ghost email assets under `/content/images/...` must resolve on the public site because Ghost newsletters and admin previews depend on them.
 - Ghost email tracking links under `/r/...` must resolve on the public site and must never bounce users through localhost/127.0.0.1 URLs.
+- Ghost internal service links under `/.ghost/...` must resolve through Ghost, not the frontend app, so Ghost 6 services do not receive the SPA shell.
 - Newsletter unsubscribe links must stay public-hosted and end in a clear Catsky confirmation state.
 
 If any of those paths regress, treat the bug as a release-blocking Ghost infrastructure regression rather than as a cosmetic frontend issue.
