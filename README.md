@@ -62,8 +62,8 @@ catsky.club/
 │   └── types/
 │       └── experience.ts # Experience format type definitions
 ├── public/
-│   ├── audio/           # Audio files directory
-│   └── docs/            # Documentation files
+│   └── audio/           # Audio files directory
+├── docs/                # Documentation files (not publicly served)
 ├── experience-example.json # Example experience configuration
 ├── experience-schema.json  # JSON schema for experience format
 ├── server.js            # Express server for API endpoints
@@ -91,24 +91,18 @@ Edit `src/index.css`:
 
 ## Documentation
 
-All documentation is available in the `public/docs/` folder, organized into `biz/` (business) and `tech/` (technical) subdirectories.
+Technical documentation lives in `docs/`. Business, brand, and strategy documentation lives in a separate repository.
 
 ### Documentation Files
 
-**Business Documentation:**
-- [Business Strategy](./public/docs/biz/strategy.md) - Business strategy and phase model
-- [Brand Guidelines](./public/docs/biz/branding.md) - Brand colors and design system
-- [Mission](./public/docs/biz/mission.md) - Mission statement
-- [Todo](./public/docs/biz/todo.md) - Todo list
-
 **Technical Documentation:**
-- [Continue Development](./public/docs/tech/CONTINUE_DEVELOPMENT.md) - How to resume development
-- [Deployment](./public/docs/tech/DEPLOYMENT.md) - Deployment instructions
-- [Experience Format](./public/docs/tech/EXPERIENCE_FORMAT.md) - Experience configuration format
-- [Quick Start](./public/docs/tech/QUICK_START.md) - Quick start guide
-- [React Documentation](./public/docs/tech/README_REACT.md) - React-specific details
-- [Setup Media](./public/docs/tech/SETUP_MEDIA.md) - Media setup instructions
-- [UX/UI Documentation](./public/docs/tech/UX_UI_DOCUMENTATION.md) - UX/UI guidelines
+- [Continue Development](./docs/CONTINUE_DEVELOPMENT.md) - How to resume development
+- [Deployment](./docs/DEPLOYMENT.md) - Deployment instructions
+- [Experience Format](./docs/EXPERIENCE_FORMAT.md) - Experience configuration format
+- [Quick Start](./docs/QUICK_START.md) - Quick start guide
+- [React Documentation](./docs/README_REACT.md) - React-specific details
+- [Setup Media](./docs/SETUP_MEDIA.md) - Media setup instructions
+- [UX/UI Documentation](./docs/UX_UI_DOCUMENTATION.md) - UX/UI guidelines
 
 ## Self-hosting
 
@@ -151,7 +145,7 @@ Use `.env.example` and `ENV_SERVER.example` in the repo root as starting templat
 
 **Quick Start:** See [DEPLOYMENT.md](./DEPLOYMENT.md) for a quick deployment guide.
 
-**Detailed Guide:** See [public/docs/tech/DEPLOYMENT.md](./public/docs/tech/DEPLOYMENT.md) for complete deployment instructions to DigitalOcean.
+**Detailed Guide:** See [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) for complete deployment instructions to DigitalOcean.
 
 The project includes:
 - `deploy.sh` - Automated deployment script
@@ -208,6 +202,6 @@ MIT
 ## Support
 
 For issues or questions:
-1. Check the [Deployment guide](./public/docs/tech/DEPLOYMENT.md)
-2. Review the [Experience Format](./public/docs/tech/EXPERIENCE_FORMAT.md) for experience configuration
-3. Check [React Documentation](./public/docs/tech/README_REACT.md) for React-specific details
+1. Check the [Deployment guide](./docs/DEPLOYMENT.md)
+2. Review the [Experience Format](./docs/EXPERIENCE_FORMAT.md) for experience configuration
+3. Check [React Documentation](./docs/README_REACT.md) for React-specific details

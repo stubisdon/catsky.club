@@ -380,4 +380,4 @@ Or create a `.env` file (requires dotenv package).
 - Configure CDN for static assets (optional)
 - Set up monitoring and alerts
 
-For detailed documentation, see `public/docs/tech/DEPLOYMENT.md`
+For detailed documentation, see `docs/DEPLOYMENT.md`

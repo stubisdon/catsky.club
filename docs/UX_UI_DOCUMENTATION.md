@@ -3,7 +3,7 @@
 This document is updated to reflect the current V1.0 product vision.
 
 ## Source of Truth
-- Primary UX contract: `public/docs/tech/V1_UX_USE_CASES.md`
+- Primary UX contract: `docs/V1_UX_USE_CASES.md`
 - If this file conflicts with older flow-based docs, use the V1 use-case contract.
 
 ## V1.0 Experience Goals

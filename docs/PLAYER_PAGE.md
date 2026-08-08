@@ -88,5 +88,5 @@ Current supported sources:
 - Preserve regression coverage for both guest and free-member states so the account row cannot silently reintroduce either body-level or panel-level phantom scrolling on the default desktop `/listen` layout.
 
 ## Related
-- `public/docs/tech/V1_UX_USE_CASES.md`
-- `public/docs/tech/V1_UX_USE_CASES_VS_BIZ_2026_REVIEW.md`
+- `docs/V1_UX_USE_CASES.md`
+- `docs/V1_UX_USE_CASES_VS_BIZ_2026_REVIEW.md`
