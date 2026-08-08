@@ -1,7 +1,7 @@
 # Review: V1.0 UX Use Cases vs 2026 Business Plan
 
 ## Scope
-This review compares the V1.0 UX use cases to business documents in `public/docs/biz/`.
+This review compares the V1.0 UX use cases to the business documents, which now live in a separate repository.
 
 Business sources reviewed:
 - `mission.md`

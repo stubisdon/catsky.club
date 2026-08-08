@@ -11,8 +11,8 @@ This file gives new LLM task executors immediate project context so they can mak
 ## 2) Read these first (before any edits)
 
 1. `ARCHITECTURE.md` (runtime map, high-risk areas, deployment/testing flow)
-2. `public/docs/tech/V1_UX_USE_CASES.md` (current UX intent and expected user flows)
-3. Any docs directly related to the touched area under `public/docs/tech/` and `public/docs/biz/`
+2. `docs/V1_UX_USE_CASES.md` (current UX intent and expected user flows)
+3. Any docs directly related to the touched area under `docs/`
 
 ## 3) What counts as a useful edit
 
@@ -51,7 +51,7 @@ Be extra careful in:
   - `server.js` only provides a **defensive fallback** for `/unsubscribe`, `/content/images/*`, and `/r/*` before SPA fallback;
   - Ghost Admin branding depends on `/ghost/` and `/ghost/api/` preserving `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-Port`, plus `proxy_redirect` rewrites for localhost/internal Ghost URLs.
 - Do not create “documentation” files under runtime asset paths (for example under `public/content/images/**`) as a way to preserve operational behavior.
-- Document protection/routing rationale only in canonical docs: `AGENTS.md`, `ARCHITECTURE.md`, `DEPLOYMENT.md`, and relevant `public/docs/tech/*` docs.
+- Document protection/routing rationale only in canonical docs: `AGENTS.md`, `ARCHITECTURE.md`, `DEPLOYMENT.md`, and relevant `docs/*` docs.
 - If a Ghost Admin branding image URL is broken, fix by restoring/proxying the actual asset path and validating the URL directly, not by changing unrelated frontend routing.
 - When touching Ghost-owned route handling, update the regression contract in `e2e/ghost-infra-fallback.spec.ts` and run it so the nginx + Express safety-net behavior stays documented in code.
 
@@ -74,7 +74,7 @@ When a task changes behavior, flows, or architecture, the task executor must upd
 
 - `AGENTS.md` (this file) when guidance or file map assumptions changed,
 - `ARCHITECTURE.md` when runtime behavior, integrations, or structure changed,
-- all relevant docs under `public/docs/` that describe affected behavior.
+- all relevant docs under `docs/` that describe affected behavior.
 
 If no documentation update is needed, explicitly state why in the task summary.
 
