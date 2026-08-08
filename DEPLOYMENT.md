@@ -236,6 +236,18 @@ If the Network tab shows the settings request returning **401 Unauthorized**, Gh
 
 Do not commit the key to the repo; keep it only in `.env.server` on the server.
 
+### Optional PostHog browser analytics
+
+Set these in `.env.server` before running `./deploy.sh`:
+
+```bash
+VITE_PUBLIC_POSTHOG_TOKEN=your_project_token
+VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+VITE_PUBLIC_POSTHOG_ENABLED=true
+```
+
+The token is a browser token and is baked into the Vite build. Leave it empty to disable analytics. Localhost capture remains disabled unless `VITE_PUBLIC_POSTHOG_ENABLED=true`.
+
 ### Debugging Ghost (members, magic link, email)
 
 The **Portal** (sign up / log in) and **magic link** emails are handled by **Ghost**, not by this app. A 500 on `POST /members/api/send-magic-link/` means Ghost is failing when sending the login email.

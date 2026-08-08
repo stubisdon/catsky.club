@@ -40,6 +40,7 @@ Be extra careful in:
 - `src/Welcome.tsx` post-signup onboarding handoff, background profile save, and lightweight field-label note styling,
 - `vite.config.ts` proxy + cookie/redirect rewriting,
 - `server.js` env loading, static serving order, and SPA fallback.
+- `src/utils/analytics.ts` privacy boundary (never send emails, names, raw form values, feedback text, or Ghost API keys).
 - nginx templates: `catsky.club-ssl.conf`, `nginx.conf.example`, `nginx-ssl-update.txt` (Ghost route ownership must stay intact).
 
 ### Ghost asset/routing protection (to prevent favicon/email regressions)

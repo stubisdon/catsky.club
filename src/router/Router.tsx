@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import App from '../App'
 import Watch from '../Watch'
 import Connect from '../Connect'
@@ -6,6 +6,7 @@ import Mission from '../Mission'
 import Listen from '../Listen'
 import Welcome from '../Welcome'
 import Video from '../Video'
+import { trackPageView } from '../utils/analytics'
 
 export type View = 'home' | 'listen' | 'watch' | 'video' | 'connect' | 'welcome' | 'mission'
 
@@ -40,17 +41,34 @@ function resolveView(pathnameRaw: string, search = ''): ResolvedView {
 
 export default function Router() {
   const [view, setView] = useState<View>(() => resolveView(window.location.pathname, window.location.search).view)
+  const lastTrackedUrl = useRef<string | null>(null)
 
   useEffect(() => {
     const handleLocationChange = () => {
       const { view: nextView, normalizedPath } = resolveView(window.location.pathname, window.location.search)
+      let normalized = false
       if (normalizedPath) {
         const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
         if (normalizedPath !== currentPath) {
           window.history.replaceState({}, '', normalizedPath)
+          normalized = true
         }
       }
       setView(nextView)
+
+      const path = window.location.pathname
+      const search = window.location.search
+      const urlKey = `${path}${search}`
+      if (lastTrackedUrl.current !== urlKey) {
+        lastTrackedUrl.current = urlKey
+        trackPageView({
+          path,
+          search_present: search.length > 0,
+          hash_present: window.location.hash.length > 0,
+          view: nextView,
+          normalized,
+        })
+      }
     }
     
     window.addEventListener('popstate', handleLocationChange)

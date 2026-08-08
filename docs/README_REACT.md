@@ -84,6 +84,7 @@ npm start
 │   ├── main.tsx         # React entry point with routing
 │   ├── index.css        # Global styles
 │   ├── utils/
+│   │   ├── analytics.ts       # PostHog boundary, pageviews, safe clicks, Portal/listen/auth events
 │   │   ├── subscription.ts    # Subscription checking utilities
 │   │   └── audioHelpers.ts    # Audio hosting helpers (SoundCloud, etc.)
 │   └── types/

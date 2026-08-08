@@ -21,6 +21,7 @@
     "test:all": "npm run test && npm run test:e2e",
     "test:ci": "npm run test && npm run test:e2e",
     "test:e2e:auth": "npm run test:e2e:setup && NODE_OPTIONS=\"--import tsx\" playwright test e2e/auth.spec.ts --project=chromium --config=playwright.config.cjs",
+    "test:e2e:analytics": "VITE_PUBLIC_POSTHOG_TOKEN=e2e-test-token VITE_PUBLIC_POSTHOG_ENABLED=true VITE_PUBLIC_POSTHOG_HOST=http://127.0.0.1:3000/posthog NODE_OPTIONS=\"--import tsx\" playwright test e2e/analytics.spec.ts --project=chromium --config=playwright.config.cjs",
     "test:e2e:landing": "npm run test:e2e:setup && NODE_OPTIONS=\"--import tsx\" playwright test e2e/landing.spec.ts --project=chromium --grep-invert=Performance --config=playwright.config.cjs",
     "test:e2e:landing:matrix": "npm run test:e2e:setup && NODE_OPTIONS=\"--import tsx\" playwright test e2e/landing.spec.ts --config=playwright.config.cjs",
     "test:e2e:matrix": "npm run test:e2e:setup && NODE_OPTIONS=\"--import tsx\" playwright test --config=playwright.config.cjs",
@@ -39,6 +40,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "posthog-js": "^1.374.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0"
