@@ -54,6 +54,8 @@ const GHOST_INTERNAL_URL = (process.env.GHOST_INTERNAL_URL || 'http://127.0.0.1:
 const GHOST_ADMIN_API_KEY = process.env.GHOST_ADMIN_API_KEY || ''
 const GHOST_ADMIN_API_VERSION = process.env.GHOST_ADMIN_API_VERSION || 'v5.0'
 const SIGNUPS_API_TOKEN = process.env.SIGNUPS_API_TOKEN || ''
+const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || ''
+const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
 app.use(cors())
 app.use(express.json())
@@ -664,6 +666,74 @@ app.post('/api/member-profile', memberProfileTextBodyParser, async (req, res) =>
   return res.status(202).json({ queued: true })
 })
 
+
+async function verifyTurnstileToken(token, remoteIp) {
+  if (!token) return { ok: false, reason: 'missing-token' }
+  const form = new URLSearchParams()
+  form.set('secret', TURNSTILE_SECRET_KEY)
+  form.set('response', token)
+  if (remoteIp) form.set('remoteip', remoteIp)
+
+  const res = await fetch(TURNSTILE_VERIFY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form.toString(),
+  })
+  const data = await res.json().catch(() => null)
+  return {
+    ok: !!data?.success,
+    reason: Array.isArray(data?.['error-codes']) ? data['error-codes'].join(',') : '',
+  }
+}
+
+// Bot-protected magic-link signup/login.
+// nginx routes POST /members/api/send-magic-link/ here (instead of straight to Ghost) so we can
+// verify a Cloudflare Turnstile token before Ghost creates the member and sends the email — this
+// is the endpoint the bot signups hit directly, bypassing the React form.
+// Fails OPEN when TURNSTILE_SECRET_KEY is unset (plain passthrough) so deploying this code before
+// configuring keys does not break signups; fails CLOSED once the secret is set.
+app.post('/members/api/send-magic-link/', async (req, res) => {
+  const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? { ...req.body } : {}
+
+  if (TURNSTILE_SECRET_KEY) {
+    const token = typeof body.turnstileToken === 'string' ? body.turnstileToken : ''
+    const remoteIp = getForwardedHeaderValue(req.headers['x-forwarded-for']) || req.socket.remoteAddress || ''
+    let verdict = { ok: false, reason: 'unverified' }
+    try {
+      verdict = await verifyTurnstileToken(token, remoteIp)
+    } catch (error) {
+      console.error('[Turnstile verify error]', String(error?.message || error))
+      return res.status(502).json({ errors: [{ message: 'Verification is temporarily unavailable. Please try again.' }] })
+    }
+    if (!verdict.ok) {
+      console.warn('[Turnstile rejected signup]', { reason: verdict.reason, ip: remoteIp })
+      return res.status(403).json({ errors: [{ message: 'Verification failed. Please try again.' }] })
+    }
+  } else {
+    console.warn('[Turnstile not configured] Forwarding magic-link request without bot verification. Set TURNSTILE_SECRET_KEY to enforce.')
+  }
+
+  delete body.turnstileToken
+
+  try {
+    const ghostRes = await fetch(new URL('/members/api/send-magic-link/', GHOST_INTERNAL_URL), {
+      method: 'POST',
+      headers: {
+        ...createGhostProxyHeaders(req),
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+    const text = await ghostRes.text().catch(() => '')
+    res.status(ghostRes.status)
+    res.setHeader('Content-Type', ghostRes.headers.get('content-type') || 'application/json')
+    return res.send(text || '')
+  } catch (error) {
+    console.error('[Magic-link proxy error]', String(error?.message || error))
+    return res.status(502).json({ errors: [{ message: 'Sign-in service is temporarily unavailable. Please try again.' }] })
+  }
+})
 
 // API endpoint for form submissions
 app.post('/api/submit', async (req, res) => {

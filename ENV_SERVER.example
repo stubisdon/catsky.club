@@ -13,6 +13,10 @@ GHOST_ADMIN_API_KEY=YOUR_ID:YOUR_HEX_SECRET
 # GHOST_ADMIN_API_VERSION=v5.0   (use v6.0 if your Ghost is 6.x)
 # SIGNUPS_API_TOKEN=dev-only-token
 #
+# Cloudflare Turnstile secret key — server-side bot verification on /members/api/send-magic-link/.
+# When unset, signup verification is skipped (fails open). Set it to enforce.
+# TURNSTILE_SECRET_KEY=0x....
+#
 # --- Frontend build (deploy.sh uses these for `npm run build`) ---
 # Deploy uses VITE_GHOST_URL when set; otherwise it uses GHOST_URL (same value as server — you need one of them).
 # VITE_GHOST_URL=https://your-ghost-domain.com
@@ -21,3 +25,5 @@ GHOST_ADMIN_API_KEY=YOUR_ID:YOUR_HEX_SECRET
 # VITE_PUBLIC_POSTHOG_TOKEN=
 # VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
 # VITE_PUBLIC_POSTHOG_ENABLED=true
+# Cloudflare Turnstile site key (public) — baked into the client bundle at build time.
+# VITE_TURNSTILE_SITE_KEY=0x....
