@@ -14,6 +14,7 @@ import {
   setDevMemberOverride,
 } from './utils'
 import { identifyMember, resetAnalyticsIdentity, trackEvent } from './utils/analytics'
+import { clearAuthCallback, readAuthCallback, stripAuthCallbackParams } from './utils/authCallback'
 
 const CONNECT_BODY_CLASS = 'route-connect'
 
@@ -129,12 +130,10 @@ export default function Connect() {
   }, [portalHashActive, refreshMemberStatus])
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const isMagicLinkSuccess =
-      (params.get('action') === 'signin' || params.get('action') === 'signup') &&
-      params.get('success') === 'true'
+    const callback = readAuthCallback()
 
-    if (!isMagicLinkSuccess) return
+    if (!callback) return
+    clearAuthCallback()
 
     let cancelled = false
     const retryDelaysMs = [0, 400, 1200, 2500, 5000, 8000]
@@ -150,14 +149,11 @@ export default function Connect() {
         const tier = await refreshMemberStatus()
         if (tier !== 'none') {
           setShowAuthForm(false)
-          if (params.get('action') === 'signup') {
+          if (callback.action === 'signup') {
             const member = await getCurrentMember().catch(() => null)
             storeWelcomeMemberIdentity(member)
             trackEvent('signup_callback_resolved', { membership_tier: tier })
-            const next = new URL(window.location.href)
-            next.searchParams.delete('action')
-            next.searchParams.delete('success')
-            window.history.replaceState({}, '', `${next.pathname}${next.search}${next.hash}`)
+            window.history.replaceState({}, '', `${stripAuthCallbackParams(window.location.pathname, window.location.search)}${window.location.hash}`)
             navigateTo('/welcome')
           }
           return
