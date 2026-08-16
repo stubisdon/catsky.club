@@ -210,3 +210,25 @@ test.describe('magic-link callback regression coverage', () => {
     expect(await page.evaluate(() => sessionStorage.getItem('catsky_app_shell_recovery_attempted'))).toBe('true')
   })
 })
+
+test.describe('magic-link callback lands on the uncached /auth path', () => {
+  // Production nginx rewrites Ghost's "/?action=..." magic-link redirect to "/auth?action=...".
+  // The root URL was once served with a 1-year Cache-Control, so browsers still hold a broken
+  // shell for it and the server can never reach them. /auth was never cacheable.
+  test('routes every callback correctly from /auth', async ({ page }) => {
+    await page.route('**/members/api/member**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(member),
+    }))
+
+    await page.goto('/auth?action=signup&success=true')
+    await expect(page).toHaveURL(/\/welcome$/)
+
+    await page.goto('/auth?action=signin&success=true')
+    await expect(page).toHaveURL(/\/listen$/)
+
+    await page.goto('/auth?action=signup&errorCode=INVALID_TOKEN&success=false')
+    await expect(page).toHaveURL(/\/connect$/)
+  })
+})
