@@ -14,11 +14,42 @@ import {
   setDevMemberOverride,
 } from './utils'
 import { identifyMember, resetAnalyticsIdentity, trackEvent } from './utils/analytics'
+import { clearAuthCallback, readAuthCallback, stripAuthCallbackParams } from './utils/authCallback'
 
 const CONNECT_BODY_CLASS = 'route-connect'
 
 const MAGIC_LINK_API = '/members/api/send-magic-link/'
 const WELCOME_MEMBER_STORAGE_KEY = 'catsky_welcome_member'
+
+// Cloudflare Turnstile site key (public). Set VITE_TURNSTILE_SITE_KEY at build time to enable
+// the anti-bot challenge on signup/login. When unset, the form behaves exactly as before.
+const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) || ''
+
+let turnstileScriptPromise: Promise<void> | null = null
+function loadTurnstileScript(): Promise<void> {
+  if (typeof window === 'undefined') return Promise.resolve()
+  if ((window as unknown as { turnstile?: unknown }).turnstile) return Promise.resolve()
+  if (turnstileScriptPromise) return turnstileScriptPromise
+  turnstileScriptPromise = new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+    script.async = true
+    script.defer = true
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('Failed to load Turnstile'))
+    document.head.appendChild(script)
+  })
+  return turnstileScriptPromise
+}
+
+type TurnstileApi = {
+  render: (el: HTMLElement, opts: Record<string, unknown>) => string
+  reset: (id?: string) => void
+  remove: (id?: string) => void
+}
+function getTurnstile(): TurnstileApi | null {
+  return (window as unknown as { turnstile?: TurnstileApi }).turnstile ?? null
+}
 
 function storeWelcomeMemberIdentity(member: { id?: string; uuid?: string; email?: string } | null) {
   const memberId = typeof member?.id === 'string' ? member.id.trim() : ''
@@ -43,6 +74,9 @@ export default function Connect() {
   const [authStatus, setAuthStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [authError, setAuthError] = useState<string | null>(null)
   const [paidPlans, setPaidPlans] = useState<PaidPlanOption[]>([])
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const turnstileContainerRef = React.useRef<HTMLDivElement | null>(null)
+  const turnstileWidgetIdRef = React.useRef<string | null>(null)
 
   const isLoggedIn = useMemo(() => membershipTier !== null && membershipTier !== 'none', [membershipTier])
 
@@ -96,12 +130,10 @@ export default function Connect() {
   }, [portalHashActive, refreshMemberStatus])
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const isMagicLinkSuccess =
-      (params.get('action') === 'signin' || params.get('action') === 'signup') &&
-      params.get('success') === 'true'
+    const callback = readAuthCallback()
 
-    if (!isMagicLinkSuccess) return
+    if (!callback) return
+    clearAuthCallback()
 
     let cancelled = false
     const retryDelaysMs = [0, 400, 1200, 2500, 5000, 8000]
@@ -117,14 +149,11 @@ export default function Connect() {
         const tier = await refreshMemberStatus()
         if (tier !== 'none') {
           setShowAuthForm(false)
-          if (params.get('action') === 'signup') {
+          if (callback.action === 'signup') {
             const member = await getCurrentMember().catch(() => null)
             storeWelcomeMemberIdentity(member)
             trackEvent('signup_callback_resolved', { membership_tier: tier })
-            const next = new URL(window.location.href)
-            next.searchParams.delete('action')
-            next.searchParams.delete('success')
-            window.history.replaceState({}, '', `${next.pathname}${next.search}${next.hash}`)
+            window.history.replaceState({}, '', `${stripAuthCallbackParams(window.location.pathname, window.location.search)}${window.location.hash}`)
             navigateTo('/welcome')
           }
           return
@@ -190,6 +219,54 @@ export default function Connect() {
     setAuthError(null)
   }, [])
 
+  const resetTurnstile = useCallback(() => {
+    setTurnstileToken('')
+    const turnstile = getTurnstile()
+    if (turnstile && turnstileWidgetIdRef.current) {
+      try {
+        turnstile.reset(turnstileWidgetIdRef.current)
+      } catch {
+        // ignore
+      }
+    }
+  }, [])
+
+  // Render the Turnstile widget while the auth form is open; tear it down when it closes.
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || !showAuthForm) return
+    let cancelled = false
+    loadTurnstileScript()
+      .then(() => {
+        if (cancelled) return
+        const turnstile = getTurnstile()
+        const container = turnstileContainerRef.current
+        if (!turnstile || !container || turnstileWidgetIdRef.current) return
+        turnstileWidgetIdRef.current = turnstile.render(container, {
+          sitekey: TURNSTILE_SITE_KEY,
+          theme: 'dark',
+          callback: (token: string) => setTurnstileToken(token),
+          'expired-callback': () => setTurnstileToken(''),
+          'error-callback': () => setTurnstileToken(''),
+        })
+      })
+      .catch(() => {
+        // Widget failed to load; server still enforces, so submit will surface the error.
+      })
+    return () => {
+      cancelled = true
+      const turnstile = getTurnstile()
+      if (turnstile && turnstileWidgetIdRef.current) {
+        try {
+          turnstile.remove(turnstileWidgetIdRef.current)
+        } catch {
+          // ignore
+        }
+        turnstileWidgetIdRef.current = null
+      }
+      setTurnstileToken('')
+    }
+  }, [showAuthForm])
+
   const handleAuthSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
@@ -200,6 +277,11 @@ export default function Connect() {
         trackEvent('magic_link_request_failed', { entry_point: authEntryPoint, status: 'validation' })
         return
       }
+      if (TURNSTILE_SITE_KEY && !turnstileToken) {
+        setAuthError('Please complete the verification below.')
+        setAuthStatus('error')
+        return
+      }
       setAuthError(null)
       setAuthStatus('loading')
       trackEvent('magic_link_requested', { entry_point: authEntryPoint })
@@ -208,13 +290,15 @@ export default function Connect() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ email }),
+          body: JSON.stringify(TURNSTILE_SITE_KEY ? { email, turnstileToken } : { email }),
         })
-        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        const data = (await res.json().catch(() => ({}))) as { error?: string; errors?: { message?: string }[] }
         if (!res.ok) {
-          setAuthError(data?.error || res.statusText || 'Something went wrong.')
+          const message = data?.error || data?.errors?.[0]?.message || res.statusText || 'Something went wrong.'
+          setAuthError(message)
           setAuthStatus('error')
           trackEvent('magic_link_request_failed', { entry_point: authEntryPoint, status: res.status })
+          resetTurnstile()
           return
         }
         setAuthStatus('success')
@@ -223,9 +307,10 @@ export default function Connect() {
         setAuthError(err instanceof Error ? err.message : 'Network error.')
         setAuthStatus('error')
         trackEvent('magic_link_request_failed', { entry_point: authEntryPoint, status: 'network_error' })
+        resetTurnstile()
       }
     },
-    [authEmail, authEntryPoint]
+    [authEmail, authEntryPoint, turnstileToken, resetTurnstile]
   )
 
   useEffect(() => {
@@ -290,6 +375,13 @@ export default function Connect() {
                     autoFocus
                     className="connect-auth-input"
                   />
+                  {TURNSTILE_SITE_KEY && (
+                    <div
+                      ref={turnstileContainerRef}
+                      className="connect-turnstile"
+                      style={{ marginTop: '0.75rem' }}
+                    />
+                  )}
                   <div className="connect-auth-actions">
                     <button type="submit" className="connect-portal-btn" disabled={authStatus === 'loading'}>
                       {authStatus === 'loading' ? 'sending…' : 'send magic link'}
