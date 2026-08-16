@@ -16,7 +16,7 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 ### Frontend app shell
 
 - Entry: `index.html` bootstraps the app and Ghost Portal integration.
-- React mount: `src/main.tsx` renders `Router` inside `React.StrictMode`.
+- React mount: `src/main.tsx` renders `Router` inside `React.StrictMode`, with a small in-brand error boundary so a rendering failure still offers `/listen` and `/` rather than an empty app root.
 - Router: `src/router/Router.tsx` maps pathname to views and normalizes trailing slashes.
 - Navigation: `src/router/navigation.ts` uses History API and dispatches `popstate`.
 
@@ -64,10 +64,10 @@ Current behavior in `src/Connect.tsx`:
 - Signup/login buttons open an inline email form (not Portal signup UI).
 - Form posts to `/members/api/send-magic-link/`.
 - Callback robustness:
-  - detects `?action=signin|signup&success=true` on any app route; signup normalizes to `/welcome` while signin stays on its current view
-  - captures and removes those callback params in `index.html` before Ghost Portal loads, preventing Portal’s generic subscription toast while handing the callback to React through `window.__catskyAuthCallback`
+  - detects successful and failed `?action=signin|signup` callbacks on any app route; successful signins normalize to `/listen`, successful signups route to `/welcome` only when the member has no saved name (otherwise `/listen`), and failed callbacks normalize to `/connect` with Catsky-owned retry copy
+  - captures and removes callback params (including `errorCode`) in `index.html` before Ghost Portal loads, preventing every Portal notification while handing the callback to React through `window.__catskyAuthCallback`; `Router` is the sole consumer of that one-shot handoff and passes failed-callback state explicitly to `/connect`
   - retries member refresh with backoff
-  - on successful `action=signup`, routes to `/welcome` before app entry and persists the resolved Ghost member identity in `sessionStorage` for the onboarding handoff when the callback flows through `Connect`
+  - on successful `action=signup`, `Router` waits up to 2.5 seconds for the current member name, then routes to `/welcome` only when it is absent (otherwise `/listen`)
   - `/welcome` also hydrates the current Ghost member identity itself on mount so router-level signup callback normalization still carries the real Ghost Members payload into `POST /api/member-profile`; in production this payload is typically `uuid` + `email` rather than an Admin API `id`, so the Express bridge must translate that identity back to the canonical Ghost Admin member record before updating `name`/`note`
   - the page normalizes the signup callback straight into `/welcome` (so `/connect` does not flash first), navigates straight into the app, and leaves the Ghost profile update to the Express server so the user does not wait on client-side hydration.
   - the `/welcome` form keeps required/optional indicators visually secondary (`*` and `(optional)` render as note-style helper text) so the onboarding step stays calm and readable while still conveying field requirements.
@@ -141,6 +141,14 @@ The Node server is intentionally small:
 - Serves static files from:
   - `dist/` first,
   - `public/` second.
+- Hashed bundles under `dist/assets/` are cached for one year (`immutable`), while every
+  HTML entry document is `no-cache, must-revalidate`; this prevents a cached SPA shell
+  from referencing bundles removed by a later deployment. The inline shell also retries
+  once with a cache-busting URL if its module bundle fails to load, then shows links to
+  `/listen` and `/` rather than leaving an empty root. `deploy.sh` retains previous
+  hashed bundles in `.deploy-cache/assets/` for 90 days and restores them after each
+  build without overwriting new output, so browsers already holding a stale shell can
+  still boot it; after a successful app mount, the recovery URL marker is removed.
 - Provides API routes:
   - `POST /api/submit`:
     - validates `{ name, contact }`
@@ -208,6 +216,8 @@ Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redir
   - exports `VITE_GHOST_*` values,
   - installs deps,
   - builds,
+  - retains old hashed assets for 90 days before Vite clears `dist/`, then restores them
+    without replacing the current build's bundles,
   - restarts PM2 app.
 
 ### Diagnostics

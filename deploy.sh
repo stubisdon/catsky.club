@@ -76,6 +76,16 @@ fi
 npm install
 
 # Build the application
+ASSET_RETENTION_DIR=".deploy-cache/assets"
+if [ -d "dist/assets" ] && [ "$(find "dist/assets" -type f -print -quit)" ]; then
+    echo "🗃️  Retaining previous asset bundles..."
+    mkdir -p "$ASSET_RETENTION_DIR" || true
+    # Do not refresh files already retained: their age controls the 90-day expiry.
+    cp -Rn "dist/assets/." "$ASSET_RETENTION_DIR/" || true
+else
+    echo "ℹ️  No previous asset bundles to retain."
+fi
+
 echo "🔨 Building application..."
 npm run build
 
@@ -83,6 +93,17 @@ npm run build
 if [ ! -d "dist" ]; then
     echo "❌ Error: Build failed - dist directory not found"
     exit 1
+fi
+
+if [ -d "$ASSET_RETENTION_DIR" ]; then
+    echo "♻️  Restoring retained asset bundles without overwriting the new build..."
+    mkdir -p "dist/assets" || true
+    cp -Rn "$ASSET_RETENTION_DIR/." "dist/assets/" || true
+
+    pruned_entries="$(find "$ASSET_RETENTION_DIR" -depth -mindepth 1 -mtime +90 -print -delete 2>/dev/null | wc -l | tr -d ' ' || true)"
+    echo "🧹 Pruned ${pruned_entries:-0} retained asset entries older than 90 days."
+else
+    echo "ℹ️  No retained asset bundles to restore or prune."
 fi
 
 echo "✅ Build completed successfully!"

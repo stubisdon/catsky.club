@@ -602,10 +602,19 @@ async function updateMemberProfileInGhost({ memberId, email, firstName, lastName
 
 // Serve static files from dist (production build) and public (additional assets)
 // Order matters: dist first (built assets), then public (audio, docs, etc.)
+function setStaticCacheHeaders(res, filePath) {
+  if (filePath.endsWith('.html')) {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate')
+  } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+  }
+}
+
 app.use(express.static(path.join(__dirname, 'dist'), { 
   maxAge: '1y', // Cache static assets for 1 year
   etag: true,
   setHeaders: (res, filePath) => {
+    setStaticCacheHeaders(res, filePath)
     // Ensure correct MIME types are set
     if (filePath.endsWith('.svg')) {
       res.setHeader('Content-Type', 'image/svg+xml')
@@ -620,6 +629,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1y',
   etag: true,
   setHeaders: (res, filePath) => {
+    setStaticCacheHeaders(res, filePath)
     // Ensure correct MIME types are set
     if (filePath.endsWith('.svg')) {
       res.setHeader('Content-Type', 'image/svg+xml')
@@ -841,7 +851,9 @@ app.get('*', (req, res) => {
     return res.status(404).type('text/plain').send('File not found')
   }
   // Otherwise, serve index.html for SPA routing
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'))
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'), {
+    headers: { 'Cache-Control': 'no-cache, must-revalidate' },
+  })
 })
 
 app.listen(PORT, () => {

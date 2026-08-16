@@ -2,6 +2,16 @@
 
 This is a quick reference for deploying the Catsky Club frontend to your DigitalOcean server where Ghost is already running.
 
+## Shell and asset cache safety
+
+HTML entry documents use `Cache-Control: no-cache, must-revalidate`, while content-hashed
+files under `dist/assets/` use a one-year `immutable` cache lifetime. Do not put the
+long-lived asset header on HTML: an old shell can otherwise point at a bundle removed by
+a later build. Before every build, `deploy.sh` retains existing hashed bundles in
+`.deploy-cache/assets/`, restores them without overwriting new output, and prunes retained
+entries older than 90 days. This lets browsers with a previously cached shell keep loading
+its old bundle until they fetch fresh HTML.
+
 ## Prerequisites
 
 - ✅ Ghost is already running on your DigitalOcean server at catsky.club
