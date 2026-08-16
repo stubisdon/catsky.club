@@ -49,7 +49,7 @@ function isDevelopmentRuntime(): boolean {
 
 function callTestHook(eventName: string, properties?: EventProperties) {
   try {
-    ;(window as AnalyticsWindow).__CATSKY_ANALYTICS_CAPTURE__?.(eventName, properties)
+    (window as AnalyticsWindow).__CATSKY_ANALYTICS_CAPTURE__?.(eventName, properties)
   } catch {
     // ignore test hook failures
   }

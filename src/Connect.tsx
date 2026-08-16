@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { PageTitle, Link } from './components'
-import { navigateTo } from './router/navigation'
 import {
   clearLocalSessionFlags,
   getCurrentMember,
@@ -14,12 +13,11 @@ import {
   setDevMemberOverride,
 } from './utils'
 import { identifyMember, resetAnalyticsIdentity, trackEvent } from './utils/analytics'
-import { clearAuthCallback, readAuthCallback, stripAuthCallbackParams } from './utils/authCallback'
+import { type AuthCallback } from './utils/authCallback'
 
 const CONNECT_BODY_CLASS = 'route-connect'
 
 const MAGIC_LINK_API = '/members/api/send-magic-link/'
-const WELCOME_MEMBER_STORAGE_KEY = 'catsky_welcome_member'
 
 // Cloudflare Turnstile site key (public). Set VITE_TURNSTILE_SITE_KEY at build time to enable
 // the anti-bot challenge on signup/login. When unset, the form behaves exactly as before.
@@ -51,21 +49,11 @@ function getTurnstile(): TurnstileApi | null {
   return (window as unknown as { turnstile?: TurnstileApi }).turnstile ?? null
 }
 
-function storeWelcomeMemberIdentity(member: { id?: string; uuid?: string; email?: string } | null) {
-  const memberId = typeof member?.id === 'string' ? member.id.trim() : ''
-  const memberUuid = typeof member?.uuid === 'string' ? member.uuid.trim() : ''
-  const email = typeof member?.email === 'string' ? member.email.trim().toLowerCase() : ''
-
-  if ((!memberId && !memberUuid) || !email) return
-
-  try {
-    window.sessionStorage.setItem(WELCOME_MEMBER_STORAGE_KEY, JSON.stringify({ memberId, memberUuid, email }))
-  } catch {
-    // ignore storage failures
-  }
+interface ConnectProps {
+  failedAuthCallback?: AuthCallback | null
 }
 
-export default function Connect() {
+export default function Connect({ failedAuthCallback = null }: ConnectProps) {
   const [portalHashActive, setPortalHashActive] = useState(false)
   const [membershipTier, setMembershipTier] = useState<MembershipTier | null>(null)
   const [showAuthForm, setShowAuthForm] = useState(false)
@@ -73,10 +61,13 @@ export default function Connect() {
   const [authEmail, setAuthEmail] = useState('')
   const [authStatus, setAuthStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [authError, setAuthError] = useState<string | null>(null)
+  const [resendSeconds, setResendSeconds] = useState(0)
   const [paidPlans, setPaidPlans] = useState<PaidPlanOption[]>([])
   const [turnstileToken, setTurnstileToken] = useState('')
   const turnstileContainerRef = React.useRef<HTMLDivElement | null>(null)
   const turnstileWidgetIdRef = React.useRef<string | null>(null)
+  const confirmationRef = React.useRef<HTMLDivElement | null>(null)
+  const resendSecondsRef = React.useRef(0)
 
   const isLoggedIn = useMemo(() => membershipTier !== null && membershipTier !== 'none', [membershipTier])
 
@@ -130,43 +121,13 @@ export default function Connect() {
   }, [portalHashActive, refreshMemberStatus])
 
   useEffect(() => {
-    const callback = readAuthCallback()
+    if (!failedAuthCallback) return
 
-    if (!callback) return
-    clearAuthCallback()
-
-    let cancelled = false
-    const retryDelaysMs = [0, 400, 1200, 2500, 5000, 8000]
-
-    const run = async () => {
-      for (const delay of retryDelaysMs) {
-        if (cancelled) return
-        if (delay > 0) {
-          await new Promise((resolve) => setTimeout(resolve, delay))
-          if (cancelled) return
-        }
-
-        const tier = await refreshMemberStatus()
-        if (tier !== 'none') {
-          setShowAuthForm(false)
-          if (callback.action === 'signup') {
-            const member = await getCurrentMember().catch(() => null)
-            storeWelcomeMemberIdentity(member)
-            trackEvent('signup_callback_resolved', { membership_tier: tier })
-            window.history.replaceState({}, '', `${stripAuthCallbackParams(window.location.pathname, window.location.search)}${window.location.hash}`)
-            navigateTo('/welcome')
-          }
-          return
-        }
-      }
-    }
-
-    run()
-
-    return () => {
-      cancelled = true
-    }
-  }, [refreshMemberStatus])
+    setAuthEntryPoint(failedAuthCallback.action)
+    setShowAuthForm(true)
+    setAuthStatus('error')
+    setAuthError('that link has expired or was already used. request a new one.')
+  }, [failedAuthCallback])
 
   useEffect(() => {
     const onFocus = () => {
@@ -210,6 +171,8 @@ export default function Connect() {
     setShowAuthForm(true)
     setAuthStatus('idle')
     setAuthError(null)
+    resendSecondsRef.current = 0
+    setResendSeconds(0)
     trackEvent('auth_form_opened', { entry_point: entryPoint })
   }, [])
 
@@ -217,6 +180,8 @@ export default function Connect() {
     setShowAuthForm(false)
     setAuthStatus('idle')
     setAuthError(null)
+    resendSecondsRef.current = 0
+    setResendSeconds(0)
   }, [])
 
   const resetTurnstile = useCallback(() => {
@@ -230,6 +195,23 @@ export default function Connect() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (authStatus !== 'success' || resendSecondsRef.current <= 0) return
+    const timer = window.setInterval(() => {
+      const nextSeconds = Math.max(0, resendSecondsRef.current - 1)
+      resendSecondsRef.current = nextSeconds
+      setResendSeconds(nextSeconds)
+      if (nextSeconds === 0) {
+        window.clearInterval(timer)
+      }
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [authStatus])
+
+  useEffect(() => {
+    if (authStatus === 'success') confirmationRef.current?.focus()
+  }, [authStatus])
 
   // Render the Turnstile widget while the auth form is open; tear it down when it closes.
   useEffect(() => {
@@ -270,6 +252,10 @@ export default function Connect() {
   const handleAuthSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
+      if (authStatus === 'success') {
+        resetTurnstile()
+        trackEvent('magic_link_resend_clicked', { entry_point: authEntryPoint })
+      }
       const email = authEmail.trim()
       if (!email || !email.includes('@')) {
         setAuthError('Please enter a valid email.')
@@ -302,6 +288,8 @@ export default function Connect() {
           return
         }
         setAuthStatus('success')
+        resendSecondsRef.current = 30
+        setResendSeconds(30)
         trackEvent('magic_link_request_succeeded', { entry_point: authEntryPoint, status: res.status })
       } catch (err) {
         setAuthError(err instanceof Error ? err.message : 'Network error.')
@@ -310,7 +298,7 @@ export default function Connect() {
         resetTurnstile()
       }
     },
-    [authEmail, authEntryPoint, turnstileToken, resetTurnstile]
+    [authEmail, authEntryPoint, authStatus, turnstileToken, resetTurnstile]
   )
 
   useEffect(() => {
@@ -370,8 +358,12 @@ export default function Connect() {
                     type="email"
                     placeholder="your@email.com"
                     value={authEmail}
-                    onChange={(e) => setAuthEmail(e.target.value)}
+                    onChange={(e) => {
+                      setAuthEmail(e.target.value)
+                      if (authStatus === 'success' && resendSeconds === 0) setAuthStatus('idle')
+                    }}
                     disabled={authStatus === 'loading'}
+                    readOnly={authStatus === 'success' && resendSeconds > 0}
                     autoFocus
                     className="connect-auth-input"
                   />
@@ -383,8 +375,14 @@ export default function Connect() {
                     />
                   )}
                   <div className="connect-auth-actions">
-                    <button type="submit" className="connect-portal-btn" disabled={authStatus === 'loading'}>
-                      {authStatus === 'loading' ? 'sending…' : 'send magic link'}
+                    <button type="submit" className="connect-portal-btn" disabled={authStatus === 'loading' || (authStatus === 'success' && resendSeconds > 0)}>
+                      {authStatus === 'loading'
+                        ? 'sending…'
+                        : authStatus === 'success' && resendSeconds > 0
+                          ? 'link sent'
+                          : authStatus === 'success'
+                            ? 'send again'
+                            : 'send magic link'}
                     </button>
                     <button
                       type="button"
@@ -395,11 +393,11 @@ export default function Connect() {
                     </button>
                   </div>
                   {authStatus === 'success' && (
-                    <p className="connect-auth-message">
-                      {authEntryPoint === 'signin'
-                        ? 'check your email for the log-in link.'
-                        : 'check your email for the sign-up link.'}
-                    </p>
+                    <div className="connect-auth-confirmation" role="status" aria-live="polite" tabIndex={-1} ref={confirmationRef}>
+                      <p>check your inbox — we sent a {authEntryPoint === 'signin' ? 'log-in' : 'sign-up'} link to {authEmail.trim()}</p>
+                      <p>it can take a minute. check spam if it isn&apos;t there.</p>
+                      {resendSeconds > 0 && <p>you can send another in {resendSeconds}s.</p>}
+                    </div>
                   )}
                   {authStatus === 'error' && authError && (
                     <p className="connect-auth-error">{authError}</p>

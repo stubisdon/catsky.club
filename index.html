@@ -9,6 +9,8 @@
     <style>
       html, body { background: #000; color: #fff; margin: 0; }
       #ghost-portal-triggers { display: none !important; }
+      #ghost-portal-root iframe[data-testid="portal-notification-frame"],
+      #ghost-portal-root iframe.gh-portal-notification-iframe { display: none !important; }
     </style>
     <!-- Workaround for Portal bugs (undefined firstpromoter_account, site.url) - MUST load before Portal -->
     <script>
@@ -258,10 +260,13 @@
       (function() {
         var params = new URLSearchParams(window.location.search);
         var action = params.get('action');
-        if ((action === 'signup' || action === 'signin') && params.get('success') === 'true') {
-          window.__catskyAuthCallback = { action: action, success: true };
+        var success = params.get('success');
+        if ((action === 'signup' || action === 'signin') && (success === 'true' || success === 'false')) {
+          var errorCode = params.get('errorCode');
+          window.__catskyAuthCallback = { action: action, success: success === 'true', errorCode: errorCode || undefined };
           params.delete('action');
           params.delete('success');
+          params.delete('errorCode');
           var query = params.toString();
           history.replaceState({}, '', location.pathname + (query ? '?' + query : '') + location.hash);
         }
@@ -332,6 +337,42 @@
       <button id="ghost-portal-trigger-signout" data-members-signout type="button" style="display:none">sign out</button>
     </div>
     <div id="root"></div>
+    <script data-app-shell-recovery>
+      // A stale HTML shell can reference a bundle removed by a later deploy. Refresh it once
+      // with a unique URL; if that also cannot boot, leave a useful in-brand fallback behind.
+      (function() {
+        var recoveryKey = 'catsky_app_shell_recovery_attempted';
+        var recovered = false;
+        function rootHasContent() {
+          var root = document.getElementById('root');
+          return !!(root && (root.children.length || root.textContent.trim()));
+        }
+        function showFallback() {
+          var root = document.getElementById('root');
+          if (root && !rootHasContent()) {
+            root.innerHTML = '<main style="padding:24px;font:16px/1.5 sans-serif">we could not load Catsky Club. <a href="/listen" style="color:#fff">→ listen</a> / <a href="/" style="color:#fff">→ home</a></main>';
+          }
+        }
+        function recover() {
+          if (recovered || rootHasContent()) return;
+          recovered = true;
+          try {
+            if (sessionStorage.getItem(recoveryKey)) return showFallback();
+            sessionStorage.setItem(recoveryKey, 'true');
+            var url = new URL(window.location.href);
+            url.searchParams.set('__catsky_reload', String(Date.now()));
+            window.location.replace(url.toString());
+          } catch (_) {
+            showFallback();
+          }
+        }
+        window.addEventListener('error', function(event) {
+          var target = event.target;
+          if (target instanceof HTMLScriptElement && target.type === 'module') recover();
+        }, true);
+        window.setTimeout(recover, 5000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
