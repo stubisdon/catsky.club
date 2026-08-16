@@ -108,6 +108,18 @@ describe('Connect membership states and magic-link refresh', () => {
     expect(navigateToMock).not.toHaveBeenCalled()
   })
 
+  it('consumes the captured signin callback so it cannot affect later navigation', async () => {
+    window.__catskyAuthCallback = { action: 'signin', success: true }
+    window.history.replaceState({}, '', '/connect')
+
+    await act(async () => {
+      render(<Connect />)
+      await Promise.resolve()
+    })
+
+    expect(window.__catskyAuthCallback).toBeUndefined()
+  })
+
   it('opens account plans in Ghost Portal when free-member video upgrade CTA is clicked', async () => {
     getMembershipTierMock.mockResolvedValue('free')
 
@@ -204,5 +216,37 @@ describe('Connect membership states and magic-link refresh', () => {
       status: 400,
     })
     expect(JSON.stringify(trackEventMock.mock.calls)).not.toContain('ada@example.com')
+  })
+
+  it('keeps the magic-link request to Ghost’s established email-only contract', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: vi.fn().mockResolvedValue({ success: true }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<Connect />)
+
+    await act(async () => {
+      await vi.runAllTimersAsync()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'log in →' }))
+    fireEvent.change(screen.getByPlaceholderText('your@email.com'), {
+      target: { value: 'ada@example.com' },
+    })
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: 'send magic link' }).closest('form')!)
+      await vi.runAllTimersAsync()
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith('/members/api/send-magic-link/', expect.objectContaining({
+      body: JSON.stringify({
+        email: 'ada@example.com',
+      }),
+    }))
   })
 })

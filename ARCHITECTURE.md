@@ -64,7 +64,8 @@ Current behavior in `src/Connect.tsx`:
 - Signup/login buttons open an inline email form (not Portal signup UI).
 - Form posts to `/members/api/send-magic-link/`.
 - Callback robustness:
-  - detects `?action=signin|signup&success=true`
+  - detects `?action=signin|signup&success=true` on any app route; signup normalizes to `/welcome` while signin stays on its current view
+  - captures and removes those callback params in `index.html` before Ghost Portal loads, preventing Portal’s generic subscription toast while handing the callback to React through `window.__catskyAuthCallback`
   - retries member refresh with backoff
   - on successful `action=signup`, routes to `/welcome` before app entry and persists the resolved Ghost member identity in `sessionStorage` for the onboarding handoff when the callback flows through `Connect`
   - `/welcome` also hydrates the current Ghost member identity itself on mount so router-level signup callback normalization still carries the real Ghost Members payload into `POST /api/member-profile`; in production this payload is typically `uuid` + `email` rather than an Admin API `id`, so the Express bridge must translate that identity back to the canonical Ghost Admin member record before updating `name`/`note`

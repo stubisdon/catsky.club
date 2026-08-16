@@ -7,52 +7,35 @@ import Listen from '../Listen'
 import Welcome from '../Welcome'
 import Video from '../Video'
 import { trackPageView } from '../utils/analytics'
-
-export type View = 'home' | 'listen' | 'watch' | 'video' | 'connect' | 'welcome' | 'mission'
-
-interface ResolvedView {
-  view: View
-  normalizedPath?: string
-}
-
-function normalizePathname(pathname: string): string {
-  if (pathname.length > 1) return pathname.replace(/\/+$/, '')
-  return pathname
-}
-
-function resolveView(pathnameRaw: string, search = ''): ResolvedView {
-  const pathname = normalizePathname(pathnameRaw)
-  const params = new URLSearchParams(search)
-
-  if (pathname === '/connect' && params.get('action') === 'signup' && params.get('success') === 'true') {
-    return { view: 'welcome', normalizedPath: '/welcome' }
-  }
-
-  if (pathname === '/') return { view: 'home' }
-  if (pathname === '/watch') return { view: 'watch' }
-  if (pathname === '/video') return { view: 'video' }
-  if (pathname === '/connect') return { view: 'connect' }
-  if (pathname === '/listen') return { view: 'listen' }
-  if (pathname === '/mission') return { view: 'mission' }
-  if (pathname === '/welcome') return { view: 'welcome' }
-
-  return { view: 'home', normalizedPath: '/' }
-}
+import { clearAuthCallback, readAuthCallback, type AuthCallback } from '../utils/authCallback'
+import { resolveView, type View } from './resolveView'
 
 export default function Router() {
-  const [view, setView] = useState<View>(() => resolveView(window.location.pathname, window.location.search).view)
+  const [view, setView] = useState<View>(() => resolveView(
+    window.location.pathname,
+    window.location.search,
+    readAuthCallback(window.location.search),
+  ).view)
   const lastTrackedUrl = useRef<string | null>(null)
 
   useEffect(() => {
     const handleLocationChange = () => {
-      const { view: nextView, normalizedPath } = resolveView(window.location.pathname, window.location.search)
+      const callback: AuthCallback | null = readAuthCallback(window.location.search)
+      const { view: nextView, normalizedPath } = resolveView(
+        window.location.pathname,
+        window.location.search,
+        callback,
+      )
       let normalized = false
       if (normalizedPath) {
-        const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`
+        const currentPath = `${window.location.pathname}${window.location.search}`
         if (normalizedPath !== currentPath) {
-          window.history.replaceState({}, '', normalizedPath)
+          window.history.replaceState({}, '', `${normalizedPath}${window.location.hash}`)
           normalized = true
         }
+      }
+      if (callback?.action === 'signup' || (callback?.action === 'signin' && nextView !== 'connect')) {
+        clearAuthCallback()
       }
       setView(nextView)
 

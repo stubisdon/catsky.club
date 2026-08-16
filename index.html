@@ -253,6 +253,20 @@
         };
       })();
     </script>
+    <script>
+      // Capture Catsky auth callbacks before Portal reads them and renders its own toast.
+      (function() {
+        var params = new URLSearchParams(window.location.search);
+        var action = params.get('action');
+        if ((action === 'signup' || action === 'signin') && params.get('success') === 'true') {
+          window.__catskyAuthCallback = { action: action, success: true };
+          params.delete('action');
+          params.delete('success');
+          var query = params.toString();
+          history.replaceState({}, '', location.pathname + (query ? '?' + query : '') + location.hash);
+        }
+      })();
+    </script>
     <!-- Ghost Portal: load dynamically so we can patch undefined site.url before it runs -->
     <script id="ghost-portal-config" data-ghost="%VITE_GHOST_URL%" data-key="%VITE_GHOST_CONTENT_API_KEY%"></script>
     <script>
