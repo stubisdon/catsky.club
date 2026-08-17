@@ -6,6 +6,7 @@ import Mission from '../Mission'
 import Listen from '../Listen'
 import Welcome from '../Welcome'
 import Video from '../Video'
+import TopBar from '../components/TopBar'
 import { trackPageView } from '../utils/analytics'
 import { clearAuthCallback, readAuthCallback, type AuthCallback } from '../utils/authCallback'
 import { resolveView, type View } from './resolveView'
@@ -62,22 +63,32 @@ export default function Router() {
     }
   }, [])
 
+  let page
   switch (view) {
     case 'home':
-      return <App />
+      page = <App />
+      break
     case 'watch':
-      return <Watch />
+      page = <Watch />
+      break
     case 'video':
-      return <Video />
+      page = <Video />
+      break
     case 'connect':
-      return <Connect />
+      page = <Connect />
+      break
     case 'listen':
-      return <Listen />
+      page = <Listen />
+      break
     case 'mission':
-      return <Mission />
+      page = <Mission />
+      break
     case 'welcome':
-      return <Welcome />
+      page = <Welcome />
+      break
     default:
-      return <App />
+      page = <App />
   }
+
+  return <><TopBar />{page}</>
 }

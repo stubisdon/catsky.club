@@ -5,9 +5,21 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Catsky Club</title>
-    <!-- Critical: black first paint so no white flash before CSS loads -->
+    <meta name="theme-color" content="#F5F0E6" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('catsky_theme');
+          document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
+    <!-- Critical: themed first paint so no flash before CSS loads -->
     <style>
-      html, body { background: #000; color: #fff; margin: 0; }
+      html, body { background: #F5F0E6; color: #241A14; margin: 0; }
+      html[data-theme="dark"], html[data-theme="dark"] body { background: #000; color: #fff; }
       #ghost-portal-triggers { display: none !important; }
     </style>
     <!-- Workaround for Portal bugs (undefined firstpromoter_account, site.url) - MUST load before Portal -->

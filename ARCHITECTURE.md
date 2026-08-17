@@ -33,10 +33,10 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 
 ### Styling model
 
-- Global theme/layout tokens in `src/index.css`.
+- Global theme/layout tokens in `src/index.css`; `src/utils/theme.ts` applies the persisted light/dark choice to `<html data-theme>`.
 - Shared reusable style objects in `src/styles/common.ts`.
 - Route components mostly use inline style objects for local presentation.
-- Reusable primitives in `src/components/` (`Link`, `PageContainer`, `PageTitle`).
+- Reusable primitives in `src/components/` (`Link`, `PageContainer`, `PageTitle`, plus route-independent `TopBar` and `ThemeToggle`).
 
 ## 3) Ghost integration
 

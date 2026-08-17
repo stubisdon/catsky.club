@@ -1,10 +1,8 @@
-/* Immersive Black Screen Experience */
+/* Immersive Light Screen Experience */
 
 :root {
-  --color-bg: #000000;
-  --color-text: #ffffff;
-  --color-accent: #ffffff;
   --font-mono: 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace;
+  --topbar-height: 3rem;
   
   /* Brand colors from branding.md */
   --color-warm-narrative: #A6563E;
@@ -15,6 +13,34 @@
   --color-anchor: var(--color-warm-narrative);
   --color-support: var(--color-gentle-bond);
   --color-brand-accent: var(--color-inspired-path);
+}
+
+html[data-theme="light"] {
+  --color-bg: #F5F0E6;
+  --color-text: #241A14;
+  --color-accent: #241A14;
+  --color-bg-rgb: 245, 240, 230;
+  --color-text-rgb: 36, 26, 20;
+  --color-surface-raised: #FFFCF5;
+  --color-on-surface-raised: #241A14;
+  --color-surface-sunken: #EBE3D5;
+  --color-error: #8C2F2F;
+  --tint-selected: rgba(var(--color-text-rgb), 0.08);
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  --color-bg: #000000;
+  --color-text: #ffffff;
+  --color-accent: #ffffff;
+  --color-bg-rgb: 0, 0, 0;
+  --color-text-rgb: 255, 255, 255;
+  --color-surface-raised: #EDEDED;
+  --color-on-surface-raised: #101010;
+  --color-surface-sunken: #0A0A0A;
+  --color-error: #FFB4B4;
+  --tint-selected: rgba(var(--color-text-rgb), 0.1);
+  color-scheme: dark;
 }
 
 * {
@@ -73,10 +99,60 @@ body {
   overflow: hidden;
   transition: background-color 1s ease-out;
   box-sizing: border-box;
+  padding-top: var(--topbar-height);
 }
 
 .listen-page-shell {
   align-items: flex-start;
+}
+
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-height);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 1rem;
+  background: var(--color-bg);
+  z-index: 1500;
+  box-sizing: border-box;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0.2rem;
+  background: transparent;
+  border: 1px solid rgba(var(--color-text-rgb), 0.3);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.theme-toggle svg {
+  width: 34px;
+  height: 34px;
+}
+
+.theme-toggle:hover {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .theme-toggle {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
 }
 
 /* Ensure Ghost Portal can overlay our full-screen app */
@@ -148,14 +224,19 @@ body {
 
 .connect-auth-input {
   width: 100%;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-surface-raised);
   border: 2px solid var(--color-text);
-  color: #101010;
+  color: var(--color-on-surface-raised);
   font-family: var(--font-mono);
   font-size: clamp(1rem, 2vw, 1.2rem);
   letter-spacing: 0.05em;
   padding: 0.9rem 1rem;
   box-sizing: border-box;
+}
+
+.connect-auth-input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .connect-auth-actions {
@@ -166,11 +247,11 @@ body {
 }
 
 .connect-portal-buttons .connect-portal-btn-text {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(var(--color-text-rgb), 0.8);
   text-decoration: none;
   font-size: clamp(1rem, 2vw, 1.2rem);
   letter-spacing: 0.1em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(var(--color-text-rgb), 0.35);
   padding-bottom: 0.2rem;
   text-transform: lowercase;
   background: transparent;
@@ -193,7 +274,7 @@ body {
 }
 
 .connect-auth-error {
-  color: rgba(255, 180, 180, 0.95);
+  color: var(--color-error);
 }
 
 .connect-portal-hint {
@@ -253,7 +334,7 @@ body.route-connect #ghost-portal-triggers.ghost-portal-triggers {
 }
 
 .ghost-portal-triggers button[data-portal="signin"] {
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(var(--color-text-rgb), 0.35);
 }
 
 /* Allow text selection on landing page */
@@ -265,16 +346,16 @@ body.route-connect #ghost-portal-triggers.ghost-portal-triggers {
 }
 
 .app-container.flash-white {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(var(--color-text-rgb), 0.8);
   animation: flashFade 2.1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes flashFade {
   0% {
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(var(--color-text-rgb), 0.8);
   }
   4.76% {
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(var(--color-text-rgb), 0.8);
   }
   100% {
     background-color: var(--color-bg);
@@ -375,7 +456,7 @@ body.route-connect #ghost-portal-triggers.ghost-portal-triggers {
   text-align: center;
   letter-spacing: 0.1em;
   line-height: 1.4;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 1px 2px rgba(var(--color-bg-rgb), 0.9);
   position: relative;
   animation: none !important;
   position: absolute;
@@ -421,14 +502,14 @@ body.route-connect #ghost-portal-triggers.ghost-portal-triggers {
   text-align: center;
   letter-spacing: 0.1em;
   opacity: 0.9;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 1px 2px rgba(var(--color-bg-rgb), 0.9);
 }
 
 .form-label {
   text-align: center;
   letter-spacing: 0.1em;
   margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 1px 2px rgba(var(--color-bg-rgb), 0.9);
   width: 100%;
 }
 
@@ -453,7 +534,7 @@ body.route-connect #ghost-portal-triggers.ghost-portal-triggers {
 }
 
 .form-input::placeholder {
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(var(--color-text-rgb), 0.35);
   opacity: 1;
 }
 
@@ -502,9 +583,9 @@ textarea.form-input {
 }
 
 .glow-text {
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8),
-               0 0 20px rgba(255, 255, 255, 0.6),
-               0 0 30px rgba(255, 255, 255, 0.4);
+  text-shadow: 0 0 10px rgba(var(--color-text-rgb), 0.35),
+               0 0 20px rgba(var(--color-text-rgb), 0.22),
+               0 0 30px rgba(var(--color-text-rgb), 0.12);
   transition: opacity 0.1s ease-out;
 }
 
@@ -561,8 +642,8 @@ textarea.form-input {
   left: 0;
   right: 0;
   height: 80px;
-  background: rgba(0, 0, 0, 0.8);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(var(--color-bg-rgb), 0.9);
+  border-top: 1px solid rgba(var(--color-text-rgb), 0.2);
   z-index: 10;
   display: flex;
   align-items: center;
@@ -573,7 +654,7 @@ textarea.form-input {
   position: relative;
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(var(--color-text-rgb), 0.2);
   cursor: pointer;
   margin: 0 auto;
   border-radius: 2px;
@@ -599,7 +680,7 @@ textarea.form-input {
   border-radius: 50%;
   cursor: pointer;
   z-index: 1;
-  box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 4px rgba(var(--color-text-rgb), 0.5);
   pointer-events: none;
 }
 
@@ -609,14 +690,14 @@ textarea.form-input {
   transform: translate(-50%, -50%);
   width: 2px;
   height: 8px;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(var(--color-text-rgb), 0.6);
   z-index: 3;
   cursor: pointer;
   pointer-events: auto;
 }
 
 .timeline-marker:hover {
-  background: rgba(255, 255, 255, 1);
+  background: var(--color-text);
   height: 12px;
 }
 
@@ -624,8 +705,8 @@ textarea.form-input {
   position: absolute;
   bottom: 100%;
   margin-bottom: 8px;
-  background: rgba(0, 0, 0, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--color-surface-sunken);
+  border: 1px solid rgba(var(--color-text-rgb), 0.3);
   padding: 0.5rem 0.75rem;
   border-radius: 4px;
   white-space: nowrap;
@@ -637,7 +718,7 @@ textarea.form-input {
 }
 
 .timeline-tooltip-time {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(var(--color-text-rgb), 0.8);
   margin-bottom: 0.25rem;
   font-weight: 600;
 }
