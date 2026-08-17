@@ -50,7 +50,7 @@ This document defines the **authoritative V1.0 user experience scope**. If any o
 - `/connect` shows a single contextual paid-upgrade CTA for free members, `upgrade to $5/month to unlock the music video`, which opens Ghost-managed account plans.
 - `/connect` may also show non-clickable paid-tier names/perks hydrated from Ghost backend tiers so free members can understand plan context without seeing duplicate upgrade buttons.
 - `/connect` plan upgrade clicks open Ghost Portal account plans via the dedicated `account/plans` portal trigger.
-- Successful magic-link signups from any Catsky route open `/welcome` for first/last-name capture; Ghost Portal’s generic callback notification is suppressed so Catsky owns the onboarding transition.
+- Successful magic-link signups from any Catsky route open `/welcome` for first/last-name capture only when no name is already saved, then continue to `/listen`; successful signins continue to `/listen`, and expired/used links open Catsky’s in-brand retry form instead of a Ghost Portal notification.
 - `/watch` remains the public trailer surface and paid-entry prompt.
 - `/video` is the paid-gated embedded unreleased video route (`paid_5` + `paid_20` unlock; guests/free see lock messaging + `/connect` path).
 - `/listen` lets registered free users play songs with announced release dates while keeping in-progress/no-date demos locked to paid tiers.

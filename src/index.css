@@ -211,8 +211,15 @@ body {
 }
 
 .connect-portal-btn:disabled {
-  opacity: 0.45;
+  opacity: 1;
   cursor: not-allowed;
+  border-color: rgba(var(--color-text-rgb), 0.3);
+  color: rgba(var(--color-text-rgb), 0.48);
+  background: rgba(var(--color-text-rgb), 0.06);
+}
+
+.connect-portal-btn:disabled:focus {
+  outline: none;
 }
 
 .connect-auth-form {
@@ -237,6 +244,13 @@ body {
 .connect-auth-input:focus {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+/* Themed equivalent of the original white-based read-only styling. */
+.connect-auth-input:read-only {
+  opacity: 0.55;
+  border-color: rgba(var(--color-text-rgb), 0.38);
+  background: var(--color-surface-raised);
 }
 
 .connect-auth-actions {
@@ -271,6 +285,31 @@ body {
 
 .connect-auth-message {
   opacity: 0.85;
+}
+
+.connect-auth-confirmation {
+  margin: 0.5rem 0 0;
+  padding: 0.8rem 1rem;
+  border-left: 3px solid rgba(var(--color-text-rgb), 0.82);
+  background: rgba(var(--color-text-rgb), 0.08);
+  font-size: 1.08rem;
+  letter-spacing: 0.035em;
+  line-height: 1.45;
+}
+
+.connect-auth-confirmation p {
+  margin: 0;
+}
+
+.connect-auth-confirmation p + p {
+  margin-top: 0.3rem;
+  font-size: 0.86rem;
+  opacity: 0.72;
+}
+
+#ghost-portal-root iframe[data-testid="portal-notification-frame"],
+#ghost-portal-root iframe.gh-portal-notification-iframe {
+  display: none !important;
 }
 
 .connect-auth-error {

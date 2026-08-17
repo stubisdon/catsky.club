@@ -109,4 +109,9 @@ describe('Welcome onboarding', () => {
     expect(sendBeaconMock).toHaveBeenCalledWith('/api/member-profile', expect.any(Blob))
     expect(navigateToMock).toHaveBeenCalledWith('/listen')
   })
+
+  it('offers a skip link to the music page', () => {
+    render(<Welcome />)
+    expect(screen.getByRole('link', { name: /skip for now/i })).toHaveAttribute('href', '/listen')
+  })
 })
