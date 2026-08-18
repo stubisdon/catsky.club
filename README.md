@@ -2,11 +2,11 @@
 
 > Canonical repository identity: `catsky.club` (used by project/task integrations such as Linear).
 
-An immersive, minimalistic black screen frontend for Ghost CMS built with React, Vite, and TypeScript.
+An immersive, minimalistic Ghost CMS frontend with switchable warm beige and black themes, built with React, Vite, and TypeScript.
 
 ## Features
 
-- ✅ **Immersive Black Screen Design** - Black background with white monospace font
+- ✅ **Immersive Theme Toggle** - Persistent light (beige/brown) and dark (black/white) modes
 - ✅ **Interactive Experience Format** - JSON-based timeline with text, input, and choice events
 - ✅ **Audio-Synced Timeline** - Text and interactions synced to audio playback
 - ✅ **Timeline Debugging Tools** - Visual timeline with markers and seek functionality
@@ -45,7 +45,7 @@ Visit [http://localhost:3000](http://localhost:3000) to see your site.
 
 ## User Experience Flow
 
-1. **Play Button**: Black screen with centered play button
+1. **Play Button**: Warm beige screen with centered play button
 2. **Audio Experience**: Audio plays with text events appearing at specific timestamps
 3. **Interactive Inputs**: User can enter text when prompted
 4. **Choice Selections**: User can choose from options when presented
@@ -58,7 +58,7 @@ catsky.club/
 ├── src/
 │   ├── App.tsx          # Main application component
 │   ├── main.tsx         # React entry point
-│   ├── index.css        # Global styles (black screen design)
+│   ├── index.css        # Global styles (light screen design)
 │   └── types/
 │       └── experience.ts # Experience format type definitions
 ├── public/
@@ -82,9 +82,17 @@ Edit the `EXPERIENCE_DATA` constant in `src/App.tsx` or load from a JSON file. S
 
 Edit `src/index.css`:
 ```css
+html[data-theme="light"] {
+  --color-bg: #F5F0E6;
+  --color-text: #241A14;
+}
+
+html[data-theme="dark"] {
+  --color-bg: #000000;
+  --color-text: #ffffff;
+}
+
 :root {
-  --color-bg: #000000;      /* Background color */
-  --color-text: #ffffff;    /* Text color */
   --font-mono: 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace;
 }
 ```

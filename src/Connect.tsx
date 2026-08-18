@@ -516,8 +516,8 @@ export default function Connect({ failedAuthCallback = null }: ConnectProps) {
               }}
               style={{
                 background: 'none',
-                border: '1px solid rgba(255,255,255,0.4)',
-                color: 'rgba(255,255,255,0.9)',
+                border: '1px solid rgba(var(--color-text-rgb), 0.4)',
+                color: 'rgba(var(--color-text-rgb), 0.9)',
                 padding: '0.25rem 0.5rem',
                 cursor: 'pointer',
                 letterSpacing: '0.05em',
@@ -534,8 +534,8 @@ export default function Connect({ failedAuthCallback = null }: ConnectProps) {
               }}
               style={{
                 background: 'none',
-                border: '1px solid rgba(255,255,255,0.4)',
-                color: 'rgba(255,255,255,0.9)',
+                border: '1px solid rgba(var(--color-text-rgb), 0.4)',
+                color: 'rgba(var(--color-text-rgb), 0.9)',
                 padding: '0.25rem 0.5rem',
                 cursor: 'pointer',
                 letterSpacing: '0.05em',
@@ -552,8 +552,8 @@ export default function Connect({ failedAuthCallback = null }: ConnectProps) {
               }}
               style={{
                 background: 'none',
-                border: '1px solid rgba(255,255,255,0.4)',
-                color: 'rgba(255,255,255,0.9)',
+                border: '1px solid rgba(var(--color-text-rgb), 0.4)',
+                color: 'rgba(var(--color-text-rgb), 0.9)',
                 padding: '0.25rem 0.5rem',
                 cursor: 'pointer',
                 letterSpacing: '0.05em',
@@ -570,8 +570,8 @@ export default function Connect({ failedAuthCallback = null }: ConnectProps) {
               }}
               style={{
                 background: 'none',
-                border: '1px solid rgba(255,255,255,0.4)',
-                color: 'rgba(255,255,255,0.9)',
+                border: '1px solid rgba(var(--color-text-rgb), 0.4)',
+                color: 'rgba(var(--color-text-rgb), 0.9)',
                 padding: '0.25rem 0.5rem',
                 cursor: 'pointer',
                 letterSpacing: '0.05em',

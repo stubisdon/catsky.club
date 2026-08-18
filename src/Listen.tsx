@@ -196,7 +196,7 @@ export default function Listen() {
           textAlign: 'left',
           letterSpacing: '0.05em',
           lineHeight: '1.8',
-          height: '100dvh',
+          height: 'calc(100dvh - var(--topbar-height))',
           overflowY: 'auto',
           userSelect: 'text',
           WebkitUserSelect: 'text',
@@ -214,11 +214,11 @@ export default function Listen() {
                 openPortalAccount()
               }}
               style={{
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: 'rgba(var(--color-text-rgb), 0.7)',
                 textDecoration: 'none',
                 fontSize: '0.95rem',
                 letterSpacing: '0.05em',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.25)',
+                borderBottom: '1px solid rgba(var(--color-text-rgb), 0.25)',
                 paddingBottom: '0.1rem',
                 cursor: 'pointer',
                 textTransform: 'lowercase',
@@ -230,7 +230,7 @@ export default function Listen() {
         )}
 
         {currentTrack && (
-          <div style={{ border: '1px solid rgba(255, 255, 255, 0.3)', padding: '1.5rem', marginBottom: '2rem' }}>
+          <div style={{ border: '1px solid rgba(var(--color-text-rgb), 0.3)', padding: '1.5rem', marginBottom: '2rem' }}>
             <div style={{ marginBottom: '1rem' }}>
               <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>{currentTrack.title}</div>
               {currentTrack.audioSource.type === 'direct' && (
@@ -239,7 +239,7 @@ export default function Listen() {
                 </div>
               )}
               {trackLoadError && (
-                <div style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                <div style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '0.5rem', color: 'rgba(var(--color-text-rgb), 0.7)' }}>
                   ⚠ {trackLoadError}
                 </div>
               )}
@@ -256,7 +256,7 @@ export default function Listen() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center', textTransform: 'lowercase',
                     }}
                   >{isPlaying ? '⏸' : '▶'}</button>
-                  <div style={{ flex: 1, height: '4px', background: 'rgba(255, 255, 255, 0.2)', position: 'relative' }}>
+                  <div style={{ flex: 1, height: '4px', background: 'rgba(var(--color-text-rgb), 0.2)', position: 'relative' }}>
                     <div
                       style={{
                         height: '100%', background: 'var(--color-text)',
@@ -316,13 +316,13 @@ export default function Listen() {
               <div
                 key={track.id}
                 style={{
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  border: '1px solid rgba(var(--color-text-rgb), 0.3)',
                   padding: '0.85rem 1rem',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-                  backgroundColor: currentTrackId === track.id ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                  backgroundColor: currentTrackId === track.id ? 'var(--tint-selected)' : 'transparent',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--tint-selected)' }}
                 onMouseLeave={(e) => {
                   if (currentTrackId !== track.id) e.currentTarget.style.backgroundColor = 'transparent'
                 }}
@@ -343,7 +343,7 @@ export default function Listen() {
                         onClick={(e) => { e.stopPropagation(); handleVote(track.id, 'up') }}
                         style={{
                           background: 'transparent', border: 'none',
-                          color: trackVotes[track.id] === 'up' ? 'var(--color-text)' : 'rgba(255, 255, 255, 0.5)',
+                          color: trackVotes[track.id] === 'up' ? 'var(--color-text)' : 'rgba(var(--color-text-rgb), 0.5)',
                           cursor: 'pointer', fontSize: '1.2rem', padding: '0.25rem',
                         }}
                       >↑</button>
@@ -351,14 +351,14 @@ export default function Listen() {
                         onClick={(e) => { e.stopPropagation(); handleVote(track.id, 'down') }}
                         style={{
                           background: 'transparent', border: 'none',
-                          color: trackVotes[track.id] === 'down' ? 'var(--color-text)' : 'rgba(255, 255, 255, 0.5)',
+                          color: trackVotes[track.id] === 'down' ? 'var(--color-text)' : 'rgba(var(--color-text-rgb), 0.5)',
                           cursor: 'pointer', fontSize: '1.2rem', padding: '0.25rem',
                         }}
                       >↓</button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setShowFeedback(showFeedback === track.id ? null : track.id) }}
                         style={{
-                          background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.3)',
+                          background: 'transparent', border: '1px solid rgba(var(--color-text-rgb), 0.3)',
                           color: 'var(--color-text)', cursor: 'pointer', fontSize: '0.85rem',
                           padding: '0.25rem 0.5rem', textTransform: 'lowercase',
                         }}
@@ -367,14 +367,14 @@ export default function Listen() {
                   )}
                 </div>
                 {showFeedback === track.id && (
-                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(var(--color-text-rgb), 0.2)' }}>
                     <textarea
                       value={feedbackText}
                       onChange={(e) => setFeedbackText(e.target.value)}
                       placeholder="share your thoughts on this track..."
                       style={{
-                        width: '100%', minHeight: '80px', background: 'rgba(0, 0, 0, 0.3)',
-                        border: '1px solid rgba(255, 255, 255, 0.3)', color: 'var(--color-text)',
+                        width: '100%', minHeight: '80px', background: 'var(--color-surface-sunken)',
+                        border: '1px solid rgba(var(--color-text-rgb), 0.3)', color: 'var(--color-text)',
                         fontFamily: 'var(--font-mono)', padding: '0.5rem', fontSize: '0.9rem', resize: 'vertical',
                       }}
                     />
@@ -387,7 +387,7 @@ export default function Listen() {
                       }}
                     >submit</button>
                     {feedbackSubmitted === track.id && (
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', opacity: 0.7, color: 'rgba(255, 255, 255, 0.8)' }}>
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', opacity: 0.7, color: 'rgba(var(--color-text-rgb), 0.8)' }}>
                         ✓ feedback submitted. thank you!
                       </div>
                     )}
@@ -404,7 +404,7 @@ export default function Listen() {
                     <div
                       key={track.id}
                       style={{
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        border: '1px solid rgba(var(--color-text-rgb), 0.1)',
                         padding: '0.85rem 1rem',
                         opacity: 0.6,
                         position: 'relative',

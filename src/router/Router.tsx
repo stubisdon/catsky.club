@@ -6,6 +6,7 @@ import Mission from '../Mission'
 import Listen from '../Listen'
 import Welcome from '../Welcome'
 import Video from '../Video'
+import TopBar from '../components/TopBar'
 import { trackPageView } from '../utils/analytics'
 import { clearAuthCallback, readAuthCallback, type AuthCallback } from '../utils/authCallback'
 import { resolveView, type View } from './resolveView'
@@ -100,28 +101,38 @@ export default function Router() {
     }
   }, [])
 
+  let page
   if (view === null) {
-    return <div className="app-container" role="status">connecting…</div>
+    page = <div className="app-container" role="status">connecting…</div>
+  } else {
+    switch (view) {
+      case 'home':
+        page = <App />
+        break
+      case 'watch':
+        page = <Watch />
+        break
+      case 'video':
+        page = <Video />
+        break
+      case 'connect':
+        page = <Connect failedAuthCallback={failedAuthCallback} />
+        break
+      case 'listen':
+        page = <Listen />
+        break
+      case 'mission':
+        page = <Mission />
+        break
+      case 'welcome':
+        page = <Welcome />
+        break
+      default:
+        page = <App />
+    }
   }
 
-  switch (view) {
-    case 'home':
-      return <App />
-    case 'watch':
-      return <Watch />
-    case 'video':
-      return <Video />
-    case 'connect':
-      return <Connect failedAuthCallback={failedAuthCallback} />
-    case 'listen':
-      return <Listen />
-    case 'mission':
-      return <Mission />
-    case 'welcome':
-      return <Welcome />
-    default:
-      return <App />
-  }
+  return <><TopBar />{page}</>
 }
 
 function awaitMemberNameForSignup(): Promise<string | null | undefined> {

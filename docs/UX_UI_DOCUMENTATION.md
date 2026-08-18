@@ -53,6 +53,10 @@ This document is updated to reflect the current V1.0 product vision.
 
 ## UX Patterns
 
+### Visual theme
+- The persistent top-bar toggle switches between the default light theme (beige `#F5F0E6` page, brown `#241A14` ink) and dark theme (black page, white ink). The `data-theme` attribute on `<html>` owns this contract; `catsky_theme` stores the explicit choice.
+- Both themes provide `--color-bg`, `--color-text`, `--color-accent`, `--color-bg-rgb`, `--color-text-rgb`, `--color-surface-raised`, `--color-on-surface-raised`, `--color-surface-sunken`, and `--color-error`; alpha ramps always derive from the RGB tokens.
+
 ### Access gating
 - Never gate public discovery content.
 - For locked content, show:
