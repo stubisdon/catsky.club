@@ -43,9 +43,13 @@ export {
 
 export {
   type Theme,
+  type ThemeMode,
   DEFAULT_THEME,
+  DEFAULT_MODE,
   getStoredTheme,
+  getStoredMode,
   resolveInitialTheme,
   applyTheme,
   storeTheme,
+  storeMode,
 } from './theme'

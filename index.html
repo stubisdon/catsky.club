@@ -6,14 +6,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Catsky Club</title>
     <meta name="theme-color" content="#F5F0E6" />
+    <!--
+      Pre-paint theme, in the same precedence order as src/utils/theme.ts: stored preference
+      ('catsky_theme' = light | dark) > OS prefers-color-scheme > cached automatic resolution
+      ('catsky_theme_auto', while still inside its validity window) > light. A stored 'system' or
+      a missing key both mean "match system". The solar math is deliberately NOT inlined here - it
+      runs in src/utils/theme.ts and leaves its result in the cache for the next visit, so this
+      render-blocking script stays tiny.
+    -->
     <script>
       (function () {
+        var theme = null;
         try {
-          var t = localStorage.getItem('catsky_theme');
-          document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
-        } catch (e) {
-          document.documentElement.setAttribute('data-theme', 'light');
+          var stored = localStorage.getItem('catsky_theme');
+          if (stored === 'dark' || stored === 'light') theme = stored;
+        } catch (e) {}
+        if (!theme) {
+          try {
+            if (window.matchMedia) {
+              if (window.matchMedia('(prefers-color-scheme: dark)').matches) theme = 'dark';
+              else if (window.matchMedia('(prefers-color-scheme: light)').matches) theme = 'light';
+            }
+          } catch (e) {}
         }
+        if (!theme) {
+          try {
+            var raw = localStorage.getItem('catsky_theme_auto');
+            if (raw) {
+              var cached = JSON.parse(raw);
+              if (cached && (cached.theme === 'dark' || cached.theme === 'light') &&
+                  typeof cached.validUntil === 'number' && cached.validUntil > Date.now()) {
+                theme = cached.theme;
+              }
+            }
+          } catch (e) {}
+        }
+        document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
       })();
     </script>
     <!-- Critical: themed first paint so no flash before CSS loads -->

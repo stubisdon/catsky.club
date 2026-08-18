@@ -33,10 +33,40 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 
 ### Styling model
 
-- Global theme/layout tokens in `src/index.css`; `src/utils/theme.ts` applies the persisted light/dark choice to `<html data-theme>`.
+- Global theme/layout tokens in `src/index.css`; `src/utils/theme.ts` resolves the active theme and applies it to `<html data-theme>` (see 2.1).
 - Shared reusable style objects in `src/styles/common.ts`.
 - Route components mostly use inline style objects for local presentation.
 - Reusable primitives in `src/components/` (`Link`, `PageContainer`, `PageTitle`, plus route-independent `TopBar` and `ThemeToggle`).
+
+### 2.1 Theme resolution
+
+The visitor's preference is **three-state** and lives in `localStorage.catsky_theme`:
+
+| mode | meaning |
+| --- | --- |
+| `light` | pinned light |
+| `dark` | pinned dark |
+| `system` | **default** — match the OS, then the sun |
+
+Values written before the mode existed (`'light'` / `'dark'`) are already valid modes, so there is no migration.
+
+`resolveAutoTheme()` in `src/utils/theme.ts` walks this chain, highest first:
+
+1. **stored preference** — mode `light` / `dark` (`source: 'preference'`),
+2. **OS `prefers-color-scheme`** — `getSystemTheme()` (`source: 'system'`),
+3. **sun position** — `getSolarTheme()` (`source: 'solar'`, carries `nextTransition`),
+4. **`DEFAULT_THEME` = `light`** (`source: 'default'`).
+
+Notes that matter when editing this:
+
+- `getSystemTheme()` queries **both** `(prefers-color-scheme: dark)` and `(prefers-color-scheme: light)` and returns `null` only when neither matches. Assuming `light` on a miss would make step 3 unreachable.
+- `no-preference` was dropped from the CSS spec, so real browsers essentially always answer light or dark. Step 3 is therefore a genuine fallback, not the common path; `e2e/theme.spec.ts` has to stub `matchMedia` to reach it.
+- Solar input is `src/utils/solar.ts` (NOAA sunrise/sunset) fed by `src/utils/timezoneCoords.ts` (IANA zone → coordinates). `navigator.geolocation` is deliberately never used — no permission prompt on an immersive landing page.
+- `src/components/ThemeToggle.tsx` is a single button cycling `light → dark → system → light`. The icon names the **current** mode (`SunIcon` / `MoonIcon` / `SystemIcon` from `ThemeIcons.tsx`); the label reads `theme: <current> — switch to <next>`.
+- `storeMode()` is the only writer of `catsky_theme` and is only ever reached from the click handler. Writing it from a mount effect pins a theme the visitor never chose (regression covered in `ThemeToggle.test.tsx`).
+- While the mode is `system` the toggle follows the world: a solar timer clamped to ≤ 6h per tick, plus `matchMedia` `change`, `visibilitychange`, and `focus`. All of it is torn down on unmount and whenever the mode leaves `system`.
+- Automatic results are cached under the separate key `catsky_theme_auto` (`{ theme, validUntil }`, max age 6h) so the pre-paint script can reuse them without running solar math. Only `system` and `solar` sources are cached; a preference never is.
+- The pre-paint inline script in `index.html` mirrors this order — preference, `matchMedia` dark, `matchMedia` light, valid `catsky_theme_auto`, then `light` — so there is no flash before React mounts.
 
 ## 3) Ghost integration
 
