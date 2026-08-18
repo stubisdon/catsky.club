@@ -35,6 +35,7 @@ Avoid:
 Be extra careful in:
 
 - `index.html` Ghost Portal patch/hardening script (script order is intentional),
+- `index.html` pre-paint theme script — it must stay first, tiny, dependency-free, and mirror the precedence in `src/utils/theme.ts` (preference → OS `prefers-color-scheme` → cached `catsky_theme_auto` → light). Never inline the solar math into it, and never reorder it relative to the Ghost Portal patch block below it. See `ARCHITECTURE.md` §2.1,
 - `src/utils/subscription.ts` and auth/session flows,
 - `src/Connect.tsx` login/signup/callback behavior,
 - `src/Welcome.tsx` post-signup onboarding handoff, background profile save, and lightweight field-label note styling,

@@ -31,6 +31,7 @@
     "test:e2e:navigation": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/navigation.spec.ts --config=playwright.config.cjs",
     "test:e2e:pages": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/pages.spec.ts --config=playwright.config.cjs",
     "test:e2e:regression": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/regression.spec.ts --config=playwright.config.cjs",
+    "test:e2e:theme": "npm run test:e2e:setup && NODE_OPTIONS=\"--import tsx\" playwright test e2e/theme.spec.ts --project=chromium --config=playwright.config.cjs",
     "test:e2e:blast": "node scripts/e2e-blast-radius.mjs",
     "test:e2e:blast:run": "node scripts/e2e-blast-radius.mjs --run",
     "test:e2e:setup": "npx playwright install --with-deps chromium firefox webkit",
