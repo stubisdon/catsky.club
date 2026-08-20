@@ -1,3 +1,5 @@
 export { default as Link } from './Link'
 export { default as PageContainer } from './PageContainer'
 export { default as PageTitle } from './PageTitle'
+export { default as ThemeToggle } from './ThemeToggle'
+export { default as TopNav } from './TopNav'

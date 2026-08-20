@@ -32,11 +32,11 @@ export default function App() {
         style={{
           width: '100%',
           maxWidth: '900px',
-          padding: '2rem',
+          padding: '0 2rem 2rem 2rem',
           textAlign: 'left',
           letterSpacing: '0.05em',
           lineHeight: 1.8,
-          maxHeight: '100vh',
+          maxHeight: '100%',
           overflowY: 'auto',
           userSelect: 'text',
           WebkitUserSelect: 'text',

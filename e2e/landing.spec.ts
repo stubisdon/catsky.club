@@ -45,7 +45,8 @@ test.describe('Landing Page - Navigation Links', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    const listenLink = page.getByRole('link', { name: 'listen' })
+    // Scope to app-container to get page content link, not nav link
+    const listenLink = page.locator('.app-container a[href="/listen"]').first()
     await expect(listenLink).toBeVisible()
     await expect(listenLink).toHaveAttribute('href', '/listen')
   })
@@ -54,7 +55,8 @@ test.describe('Landing Page - Navigation Links', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    const watchLink = page.getByRole('link', { name: 'watch' })
+    // Scope to app-container to get page content link, not nav link
+    const watchLink = page.locator('.app-container a[href="/watch"]').first()
     await expect(watchLink).toBeVisible()
     await expect(watchLink).toHaveAttribute('href', '/watch')
   })
@@ -63,7 +65,8 @@ test.describe('Landing Page - Navigation Links', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    const connectLink = page.getByRole('link', { name: 'connect' })
+    // Scope to app-container to get page content link, not nav link
+    const connectLink = page.locator('.app-container a[href="/connect"]').first()
     await expect(connectLink).toBeVisible()
     await expect(connectLink).toHaveAttribute('href', '/connect')
   })
@@ -72,7 +75,7 @@ test.describe('Landing Page - Navigation Links', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    await page.getByRole('link', { name: 'listen' }).click()
+    await page.locator('.app-container a[href="/listen"]').first().click()
     await expect(page).toHaveURL(/.*\/listen/)
   })
 
@@ -80,7 +83,7 @@ test.describe('Landing Page - Navigation Links', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    await page.getByRole('link', { name: 'watch' }).click()
+    await page.locator('.app-container a[href="/watch"]').first().click()
     await expect(page).toHaveURL(/.*\/watch/)
   })
 
@@ -88,7 +91,7 @@ test.describe('Landing Page - Navigation Links', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    await page.getByRole('link', { name: 'connect' }).click()
+    await page.locator('.app-container a[href="/connect"]').first().click()
     await expect(page).toHaveURL(/.*\/connect/)
   })
 
@@ -96,10 +99,11 @@ test.describe('Landing Page - Navigation Links', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    const links = ['listen', 'watch', 'connect']
+    const links = ['/listen', '/watch', '/connect']
 
-    for (const linkText of links) {
-      const link = page.getByRole('link', { name: linkText })
+    for (const href of links) {
+      // Scope to app-container to get page content link, not nav link
+      const link = page.locator(`.app-container a[href="${href}"]`).first()
 
       // Get initial background
       const initialBg = await link.evaluate((el) => {
@@ -141,7 +145,8 @@ test.describe('Landing Page - Styling', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    const listenLink = page.getByRole('link', { name: 'listen' })
+    // Scope to app-container to get page content link, not nav link
+    const listenLink = page.locator('.app-container a[href="/listen"]').first()
 
     const borderStyle = await listenLink.evaluate((el) => {
       return window.getComputedStyle(el).borderStyle
@@ -154,7 +159,8 @@ test.describe('Landing Page - Styling', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    const listenLink = page.getByRole('link', { name: 'listen' })
+    // Scope to app-container to get page content link, not nav link
+    const listenLink = page.locator('.app-container a[href="/listen"]').first()
 
     const padding = await listenLink.evaluate((el) => {
       const style = window.getComputedStyle(el)
@@ -183,9 +189,10 @@ test.describe('Landing Page - Responsive Design', () => {
 
     // All critical elements should be visible
     await expect(page.getByRole('heading', { name: /catsky\.club/i })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'listen' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'connect' })).toBeVisible()
+    // Scope to app-container to get page content links
+    await expect(page.locator('.app-container a[href="/listen"]').first()).toBeVisible()
+    await expect(page.locator('.app-container a[href="/watch"]').first()).toBeVisible()
+    await expect(page.locator('.app-container a[href="/connect"]').first()).toBeVisible()
   })
 
   test('displays correctly on tablet viewport', async ({ page }) => {
@@ -196,9 +203,10 @@ test.describe('Landing Page - Responsive Design', () => {
 
     // All critical elements should be visible
     await expect(page.getByRole('heading', { name: /catsky\.club/i })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'listen' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'connect' })).toBeVisible()
+    // Scope to app-container to get page content links
+    await expect(page.locator('.app-container a[href="/listen"]').first()).toBeVisible()
+    await expect(page.locator('.app-container a[href="/watch"]').first()).toBeVisible()
+    await expect(page.locator('.app-container a[href="/connect"]').first()).toBeVisible()
   })
 
   test('displays correctly on desktop viewport', async ({ page }) => {
@@ -209,9 +217,10 @@ test.describe('Landing Page - Responsive Design', () => {
 
     // All critical elements should be visible
     await expect(page.getByRole('heading', { name: /catsky\.club/i })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'listen' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'connect' })).toBeVisible()
+    // Scope to app-container to get page content links
+    await expect(page.locator('.app-container a[href="/listen"]').first()).toBeVisible()
+    await expect(page.locator('.app-container a[href="/watch"]').first()).toBeVisible()
+    await expect(page.locator('.app-container a[href="/connect"]').first()).toBeVisible()
   })
 
   test('navigation links wrap correctly on small screens', async ({ page }) => {
@@ -220,10 +229,10 @@ test.describe('Landing Page - Responsive Design', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    // Links should still be visible and accessible
-    await expect(page.getByRole('link', { name: 'listen' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'connect' })).toBeVisible()
+    // Links should still be visible and accessible (scope to app-container)
+    await expect(page.locator('.app-container a[href="/listen"]').first()).toBeVisible()
+    await expect(page.locator('.app-container a[href="/watch"]').first()).toBeVisible()
+    await expect(page.locator('.app-container a[href="/connect"]').first()).toBeVisible()
 
     // Check that navigation container has flex-wrap
     const navContainer = page.locator('.app-container > div > div').last()
@@ -252,8 +261,8 @@ test.describe('Landing Page - Accessibility', () => {
     // Tab through the page
     await page.keyboard.press('Tab')
 
-    // First link should be focusable
-    const listenLink = page.getByRole('link', { name: 'listen' })
+    // First link should be focusable (scope to app-container)
+    const listenLink = page.locator('.app-container a[href="/listen"]').first()
     await listenLink.focus()
 
     // Should be able to activate with Enter
@@ -278,8 +287,8 @@ test.describe('Landing Page - Accessibility', () => {
     await page.goto('/')
     await page.waitForLoadState('networkidle')
 
-    // Focus on a link
-    const listenLink = page.getByRole('link', { name: 'listen' })
+    // Focus on a link (scope to app-container)
+    const listenLink = page.locator('.app-container a[href="/listen"]').first()
     await listenLink.focus()
 
     // Check that the focused element is visible
