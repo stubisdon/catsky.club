@@ -211,9 +211,6 @@ export default function Welcome() {
           {error && <p className="connect-auth-error">{error}</p>}
         </form>
 
-        <Link href="/" variant="subtle" style={{ position: 'fixed', bottom: '1rem', left: '1rem' }}>
-          ← home
-        </Link>
         <Link href="/listen" variant="subtle" style={{ position: 'fixed', bottom: '1rem', right: '1rem' }}>
           skip for now →
         </Link>

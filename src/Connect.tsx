@@ -582,14 +582,6 @@ export default function Connect({ failedAuthCallback = null }: ConnectProps) {
             </button>
           </div>
         )}
-
-        <Link
-          href="/"
-          variant="subtle"
-          style={{ position: 'fixed', bottom: '1rem', left: '1rem' }}
-        >
-          ← home
-        </Link>
       </div>
     </div>
   )

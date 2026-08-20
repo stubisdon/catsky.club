@@ -8,6 +8,10 @@ const analytics = vi.hoisted(() => ({
   getCurrentMember: vi.fn(),
 }))
 
+const utils = vi.hoisted(() => ({
+  getMembershipTier: vi.fn(),
+}))
+
 vi.mock('../App', () => ({ default: () => <div>home view</div> }))
 vi.mock('../Watch', () => ({ default: () => <div>watch view</div> }))
 vi.mock('../Video', () => ({ default: () => <div>video view</div> }))
@@ -24,12 +28,14 @@ vi.mock('../utils/analytics', () => ({
 }))
 vi.mock('../utils', () => ({
   getCurrentMember: analytics.getCurrentMember,
+  getMembershipTier: utils.getMembershipTier,
 }))
 
 describe('Router signup callback normalization', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     analytics.getCurrentMember.mockResolvedValue({ name: '' })
+    utils.getMembershipTier.mockResolvedValue('none')
     delete window.__catskyAuthCallback
     window.history.replaceState({}, '', '/connect')
   })

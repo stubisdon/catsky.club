@@ -6,7 +6,7 @@ import Mission from '../Mission'
 import Listen from '../Listen'
 import Welcome from '../Welcome'
 import Video from '../Video'
-import TopBar from '../components/TopBar'
+import { TopNav } from '../components'
 import { trackPageView } from '../utils/analytics'
 import { clearAuthCallback, readAuthCallback, type AuthCallback } from '../utils/authCallback'
 import { resolveView, type View } from './resolveView'
@@ -94,7 +94,7 @@ export default function Router() {
     
     window.addEventListener('popstate', handleLocationChange)
     handleLocationChange()
-    
+
     return () => {
       cancelled = true
       window.removeEventListener('popstate', handleLocationChange)
@@ -132,7 +132,12 @@ export default function Router() {
     }
   }
 
-  return <><TopBar />{page}</>
+  return (
+    <>
+      <TopNav currentView={view} />
+      {page}
+    </>
+  )
 }
 
 function awaitMemberNameForSignup(): Promise<string | null | undefined> {

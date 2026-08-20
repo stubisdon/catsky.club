@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { PageContainer, PageTitle, Link } from './components'
+import { PageContainer, PageTitle } from './components'
 import { navigateTo } from './router'
 import {
   getMembershipTier,
@@ -191,12 +191,12 @@ export default function Listen() {
         style={{
           width: '100%',
           maxWidth: '800px',
-          padding: '1rem 1.5rem',
+          padding: '0 1.5rem 1rem 1.5rem',
           boxSizing: 'border-box',
           textAlign: 'left',
           letterSpacing: '0.05em',
           lineHeight: '1.8',
-          height: 'calc(100dvh - var(--topbar-height))',
+          height: '100%',
           overflowY: 'auto',
           userSelect: 'text',
           WebkitUserSelect: 'text',
@@ -453,13 +453,6 @@ export default function Listen() {
             )}
           </div>
         </div>
-        <Link
-          href="/"
-          variant="subtle"
-          style={{ position: 'fixed', bottom: '1rem', left: '1rem' }}
-        >
-          ← home
-        </Link>
       </div>
     </div>
   )
