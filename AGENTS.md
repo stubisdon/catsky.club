@@ -146,3 +146,23 @@ Execution requirements:
 - Include screenshots in the final task summary with clear labels in journey order.
 - If capture is blocked by environment/tooling, explicitly state what was attempted and why evidence could not be collected.
 - Do not mark the task done without screenshot evidence for user-visible changes unless a hard blocker is documented.
+
+
+## 10) PostHog analytics and MCP access
+
+PostHog is already installed and live in production. Client instrumentation is in `src/utils/analytics.ts`, initialized from `src/main.tsx`. Config comes from `VITE_PUBLIC_POSTHOG_TOKEN` / `VITE_PUBLIC_POSTHOG_HOST` in `.env.server` on the production host, baked into the bundle at build time by `deploy.sh`. Do not add a second analytics init path.
+
+A PostHog MCP server is available for querying live site data (events, HogQL, insights, dashboards, session recordings). It is **not** configured in this repo and must not be — the config carries a bearer token. Register it per machine at local scope:
+
+```bash
+claude mcp add --scope local --transport http posthog \
+  https://mcp.posthog.com/mcp \
+  --header "Authorization: Bearer <personal-api-key>"
+```
+
+Two things that are easy to get wrong:
+
+- The personal API key must use the **"MCP Server" scope preset** in PostHog user settings. A hand-picked read/write scope list is not enough; `user:read` is required and the server returns 403 on `initialize` without it. Restrict the key to the catsky.club project under *Organization & project access*.
+- Claude resolves `--scope local` to the **git root**, not the current directory. One registration under the main checkout covers every worktree; re-running it from a worktree reports "already exists" and is a no-op.
+
+Ask the repo owner for the key. Never commit it, and never write it into `.mcp.json`.
