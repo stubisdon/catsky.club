@@ -7,6 +7,22 @@
     <title>Catsky Club</title>
     <meta name="theme-color" content="#F5F0E6" />
     <!--
+      Typography: display serif (Instrument Serif) for headings, old-style serif (EB Garamond)
+      for prose, Courier Prime for eyebrows/labels/metadata. Self-hosted from /fonts (latin
+      subsets, 128 KB total) rather than loaded from the Google Fonts CDN: it removes a
+      third-party request from every page load, keeps visitor IPs off Google, and means the
+      site's typography does not depend on a CDN we do not control. @font-face lives in
+      src/index.css; only the two hero faces are preloaded.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/instrument-serif-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="preload" href="/fonts/eb-garamond-var.woff2" as="font" type="font/woff2" crossorigin />
+    <!--
       Pre-paint theme, in the same precedence order as src/utils/theme.ts: stored preference
       ('catsky_theme' = light | dark) > OS prefers-color-scheme > cached automatic resolution
       ('catsky_theme_auto', while still inside its validity window) > light. A stored 'system' or
