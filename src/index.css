@@ -662,4 +662,230 @@ textarea.form-input {
   }
 }
 
+/* Read section
+   Native aesthetic (black, mono, white) but with a long-form reading rhythm.
+   Post titles and article bodies keep their authored case: the site-wide
+   lowercase styling belongs to chrome only. */
+
+.read-state {
+  opacity: 0.85;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+}
+
+.read-feed {
+  display: flex;
+  flex-direction: column;
+}
+
+.read-card {
+  display: block;
+  padding: 2.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.read-card:first-child {
+  padding-top: 0.5rem;
+}
+
+.read-card:last-child {
+  border-bottom: 0;
+}
+
+.read-card-image {
+  display: block;
+  width: 100%;
+  /* Ghost feature images are arbitrary sizes; pin the card's image box so a
+     square or portrait upload can't swallow the feed's vertical rhythm. */
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  margin-bottom: 1.25rem;
+}
+
+.read-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  opacity: 0.55;
+  margin-bottom: 0.6rem;
+}
+
+.read-card-lock {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0 0.4rem;
+}
+
+.read-card-title {
+  text-transform: none;
+  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+}
+
+.read-card:hover .read-card-title {
+  opacity: 1;
+}
+
+.read-card-excerpt {
+  margin-top: 0.75rem;
+  font-size: clamp(0.9rem, 1.5vw, 1rem);
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  opacity: 0.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.read-article-title {
+  text-transform: none;
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.75rem;
+}
+
+.read-article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  opacity: 0.55;
+  margin-bottom: 2.5rem;
+}
+
+/* The global body font clamp goes up to 1.5rem, which is unreadable for
+   long-form monospace. The article opts out with its own scale. */
+.read-article {
+  max-width: 720px;
+  font-size: clamp(0.95rem, 1.6vw, 1.05rem);
+  line-height: 1.85;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.read-article > *:first-child {
+  margin-top: 0;
+}
+
+.read-article p {
+  margin-bottom: 1.5rem;
+}
+
+.read-article h2 {
+  margin: 2.5rem 0 0.75rem;
+}
+
+.read-article h3 {
+  margin: 2rem 0 0.6rem;
+}
+
+.read-article h4 {
+  margin: 1.75rem 0 0.5rem;
+}
+
+.read-article h2 + *,
+.read-article h3 + *,
+.read-article h4 + * {
+  margin-top: 0;
+}
+
+.read-article ul,
+.read-article ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.read-article li {
+  margin-bottom: 0.5rem;
+}
+
+.read-article blockquote {
+  border-left: 2px solid rgba(255, 255, 255, 0.25);
+  padding-left: 1rem;
+  margin: 2rem 0;
+  opacity: 0.85;
+}
+
+.read-article img,
+.read-article iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+.read-article figure {
+  margin: 2rem 0;
+}
+
+.read-article figcaption {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.read-article pre {
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.read-article code {
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+}
+
+.read-article pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.read-article a {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.4);
+}
+
+.read-article a:hover {
+  text-decoration-color: rgba(255, 255, 255, 1);
+}
+
+.read-article hr {
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  margin: 2.5rem 0;
+}
+
+.read-locked-cta {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 640px) {
+  /* PageContainer sets its padding inline, so the mobile override has to win. */
+  .read-page {
+    padding: 1.25rem !important;
+  }
+
+  .read-card {
+    padding: 1.75rem 0;
+  }
+
+  .read-article-meta {
+    margin-bottom: 2rem;
+  }
+}
+
 /* Force reload 1765564342 */

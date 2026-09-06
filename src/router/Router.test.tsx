@@ -14,6 +14,10 @@ vi.mock('../Connect', () => ({ default: () => <div>connect view</div> }))
 vi.mock('../Mission', () => ({ default: () => <div>mission view</div> }))
 vi.mock('../Listen', () => ({ default: () => <div>listen view</div> }))
 vi.mock('../Welcome', () => ({ default: () => <div>welcome view</div> }))
+vi.mock('../Read', () => ({ default: () => <div>read view</div> }))
+vi.mock('../ReadPost', () => ({
+  default: ({ slug }: { slug: string }) => <div>read post view: {slug}</div>,
+}))
 vi.mock('../utils/analytics', () => ({
   trackPageView: analytics.trackPageView,
 }))
@@ -163,5 +167,113 @@ describe('Router signup callback normalization', () => {
     render(<Router />)
 
     expect(screen.getByText('video view')).toBeInTheDocument()
+  })
+})
+
+describe('resolveView read routes', () => {
+  it('resolves the feed, with and without a trailing slash', () => {
+    expect(resolveView('/read')).toEqual({ view: 'read', normalizedPath: undefined })
+    expect(resolveView('/read/')).toEqual({ view: 'read', normalizedPath: undefined })
+  })
+
+  it('resolves a post slug, with and without a trailing slash', () => {
+    expect(resolveView('/read/sugar-daddy-sample-pack')).toEqual({
+      view: 'readPost',
+      slug: 'sugar-daddy-sample-pack',
+      normalizedPath: undefined,
+    })
+    expect(resolveView('/read/sugar-daddy-sample-pack/')).toMatchObject({
+      view: 'readPost',
+      slug: 'sugar-daddy-sample-pack',
+    })
+  })
+
+  it('decodes percent-encoded slugs', () => {
+    expect(resolveView('/read/hello%20world')).toMatchObject({
+      view: 'readPost',
+      slug: 'hello world',
+    })
+  })
+
+  it('falls back to the feed for malformed slugs instead of throwing', () => {
+    expect(resolveView('/read/%E0%A4%A')).toEqual({ view: 'read', normalizedPath: '/read' })
+  })
+
+  it('collapses nested read paths back to the feed', () => {
+    expect(resolveView('/read/some-post/extra')).toEqual({ view: 'read', normalizedPath: '/read' })
+    expect(resolveView('/read/some-post/extra/deeper')).toEqual({
+      view: 'read',
+      normalizedPath: '/read',
+    })
+  })
+
+  it('keeps signup callback precedence over read routes', () => {
+    expect(resolveView('/read', '?action=signup&success=true')).toEqual({
+      view: 'welcome',
+      normalizedPath: '/welcome',
+    })
+    expect(resolveView('/read/some-post', '?action=signup&success=true')).toEqual({
+      view: 'welcome',
+      normalizedPath: '/welcome',
+    })
+  })
+
+  it('strips signin callback params while staying on the read route', () => {
+    expect(resolveView('/read', '?action=signin&success=true')).toEqual({
+      view: 'read',
+      normalizedPath: '/read',
+    })
+    expect(resolveView('/read/some-post', '?action=signin&success=true')).toEqual({
+      view: 'readPost',
+      slug: 'some-post',
+      normalizedPath: '/read/some-post',
+    })
+  })
+})
+
+describe('Router read views', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    delete window.__catskyAuthCallback
+  })
+
+  it('renders the feed for /read', () => {
+    window.history.replaceState({}, '', '/read')
+
+    render(<Router />)
+
+    expect(screen.getByText('read view')).toBeInTheDocument()
+  })
+
+  it('renders the article for /read/<slug> and passes the slug through', () => {
+    window.history.replaceState({}, '', '/read/sugar-daddy-sample-pack')
+
+    render(<Router />)
+
+    expect(screen.getByText('read post view: sugar-daddy-sample-pack')).toBeInTheDocument()
+  })
+
+  it('switches between feed and article on popstate navigation', async () => {
+    window.history.replaceState({}, '', '/read')
+
+    render(<Router />)
+
+    expect(screen.getByText('read view')).toBeInTheDocument()
+
+    window.history.pushState({}, '', '/read/second-post')
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('read post view: second-post')).toBeInTheDocument()
+    })
+    expect(analytics.trackPageView).toHaveBeenLastCalledWith({
+      path: '/read/second-post',
+      search_present: false,
+      hash_present: false,
+      view: 'readPost',
+      normalized: false,
+    })
   })
 })

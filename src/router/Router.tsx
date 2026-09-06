@@ -6,22 +6,32 @@ import Mission from '../Mission'
 import Listen from '../Listen'
 import Welcome from '../Welcome'
 import Video from '../Video'
+import Read from '../Read'
+import ReadPost from '../ReadPost'
 import { trackPageView } from '../utils/analytics'
 import { clearAuthCallback, readAuthCallback, type AuthCallback } from '../utils/authCallback'
 import { resolveView, type View } from './resolveView'
 
+interface Route {
+  view: View
+  slug?: string
+}
+
 export default function Router() {
-  const [view, setView] = useState<View>(() => resolveView(
-    window.location.pathname,
-    window.location.search,
-    readAuthCallback(window.location.search),
-  ).view)
+  const [route, setRoute] = useState<Route>(() => {
+    const resolved = resolveView(
+      window.location.pathname,
+      window.location.search,
+      readAuthCallback(window.location.search),
+    )
+    return { view: resolved.view, slug: resolved.slug }
+  })
   const lastTrackedUrl = useRef<string | null>(null)
 
   useEffect(() => {
     const handleLocationChange = () => {
       const callback: AuthCallback | null = readAuthCallback(window.location.search)
-      const { view: nextView, normalizedPath } = resolveView(
+      const { view: nextView, normalizedPath, slug: nextSlug } = resolveView(
         window.location.pathname,
         window.location.search,
         callback,
@@ -37,7 +47,7 @@ export default function Router() {
       if (callback?.action === 'signup' || (callback?.action === 'signin' && nextView !== 'connect')) {
         clearAuthCallback()
       }
-      setView(nextView)
+      setRoute({ view: nextView, slug: nextSlug })
 
       const path = window.location.pathname
       const search = window.location.search
@@ -62,7 +72,7 @@ export default function Router() {
     }
   }, [])
 
-  switch (view) {
+  switch (route.view) {
     case 'home':
       return <App />
     case 'watch':
@@ -77,6 +87,10 @@ export default function Router() {
       return <Mission />
     case 'welcome':
       return <Welcome />
+    case 'read':
+      return <Read />
+    case 'readPost':
+      return route.slug ? <ReadPost slug={route.slug} /> : <Read />
     default:
       return <App />
   }

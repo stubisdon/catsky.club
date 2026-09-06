@@ -30,12 +30,14 @@
     "test:e2e:video": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/video.spec.ts --project=chromium --config=playwright.config.cjs",
     "test:e2e:navigation": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/navigation.spec.ts --config=playwright.config.cjs",
     "test:e2e:pages": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/pages.spec.ts --config=playwright.config.cjs",
+    "test:e2e:read": "VITE_GHOST_CONTENT_API_KEY=e2e-test-key NODE_OPTIONS=\"--import tsx\" playwright test e2e/read.spec.ts --project=chromium --config=playwright.config.cjs",
     "test:e2e:regression": "NODE_OPTIONS=\"--import tsx\" playwright test e2e/regression.spec.ts --config=playwright.config.cjs",
     "test:e2e:blast": "node scripts/e2e-blast-radius.mjs",
     "test:e2e:blast:run": "node scripts/e2e-blast-radius.mjs --run",
     "test:e2e:setup": "npx playwright install --with-deps chromium firefox webkit",
     "test:e2e:preflight": "node scripts/playwright-webserver.mjs --check",
-    "screenshots:journey": "node scripts/capture-ui-journey-screenshots.mjs"
+    "screenshots:journey": "node scripts/capture-ui-journey-screenshots.mjs",
+    "screenshots:read": "node scripts/capture-read-screenshots.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",

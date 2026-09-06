@@ -31,6 +31,19 @@ export {
   setDevMemberOverride,
 } from './subscription'
 
+// Ghost Content API utilities
+export { getGhostContentApiKey } from './ghostApi'
+
+export {
+  type GhostPostSummary,
+  type GhostPostDetail,
+  GhostContentError,
+  fetchPosts,
+  fetchPostBySlug,
+  formatPublishedDate,
+  requiredLevelLabel,
+} from './ghostContent'
+
 // Member session utilities
 export {
   clearLocalSessionFlags,

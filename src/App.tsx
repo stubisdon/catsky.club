@@ -71,6 +71,7 @@ export default function App() {
         >
           <Link href="/listen" variant="button">listen</Link>
           <Link href="/watch" variant="button">watch</Link>
+          <Link href="/read" variant="button">read</Link>
           <Link href="/connect" variant="button">connect</Link>
           {isPaid && <Link href="/video" variant="button">secrets</Link>}
         </div>

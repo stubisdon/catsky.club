@@ -8,6 +8,7 @@ interface LinkProps {
   style?: CSSProperties
   variant?: 'default' | 'button' | 'subtle'
   onClick?: (e: MouseEvent<HTMLAnchorElement>) => void
+  'data-testid'?: string
 }
 
 const baseStyle: CSSProperties = {
@@ -42,6 +43,7 @@ export default function Link({
   style,
   variant = 'default',
   onClick,
+  'data-testid': dataTestId,
 }: LinkProps) {
   const handleClick = useCallback(
     (e: MouseEvent<HTMLAnchorElement>) => {
@@ -90,6 +92,7 @@ export default function Link({
       onMouseLeave={handleMouseLeave}
       className={className}
       style={{ ...variantStyle, ...style }}
+      data-testid={dataTestId}
     >
       {children}
     </a>
