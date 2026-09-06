@@ -1200,6 +1200,18 @@ textarea.form-input {
    there is no separate mobile padding override. */
 .read-page {
   padding: 0 var(--page-gutter) var(--page-gutter) !important;
+  /*
+    PageContainer scrolls its own centred column, so its scrollbar lands inside
+    the plate rather than at the window edge, which reads as a stray vertical
+    line down the middle of the page. Hide it; wheel, trackpad, keyboard and
+    touch scrolling are unaffected.
+  */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.read-page::-webkit-scrollbar {
+  display: none;
 }
 
 /* Loading / error / empty / not-found. Chrome, not prose: mono, quiet ink. */
@@ -1214,21 +1226,23 @@ textarea.form-input {
 /* --- Feed ---------------------------------------------------------------- */
 
 /*
-  Ruled like the album tracklist: one hairline opens the list, one closes each
-  row. That is how every other list on this site separates its items, so the
-  feed reads as the same drawing rather than a stack of cards.
+  No rules between entries: white space does the separating. Each post is one
+  block of date, title and excerpt, and the gap between blocks is larger than
+  anything inside them, so the grouping reads without a drawn line.
 */
 .read-feed {
   display: flex;
   flex-direction: column;
-  border-top: var(--rule-hairline) solid var(--rule-color);
 }
 
 .read-card {
   display: block;
-  padding: clamp(1.75rem, 4vw, 2.5rem) 0.5rem;
-  border-bottom: var(--rule-hairline) solid var(--rule-color);
+  padding: clamp(2.25rem, 5vw, 3.25rem) 0.5rem;
   color: var(--color-text);
+}
+
+.read-card:first-child {
+  padding-top: clamp(1rem, 2vw, 1.5rem);
 }
 
 .read-card:hover,
