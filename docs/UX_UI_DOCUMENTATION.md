@@ -25,7 +25,8 @@ This document is updated to reflect the current V1.0 product vision.
 - `/blog` — public posts
 - `/connect` — sign up, sign in, upgrade, unsubscribe/account controls
 - `/welcome` — post-signup first/last name collection for new users
-- `/welcome` should open immediately after a successful signup callback without flashing `/connect`, let a new user type their name and press **continue** immediately, and queue the profile save in the background so the user lands in the app without waiting for client-side session hydration or Ghost profile writes to finish.
+- `/subscribe` — standalone, shareable email-signup landing page (email → magic link → `/welcome`); no separate account controls of its own
+- `/welcome` should open immediately after a successful signup callback without flashing `/connect`, let a new user type their name, confirm they're not a bot, and press **sign up** to finish. The name/verification save is awaited: the user only lands in the app once the server confirms it, and a failed bot check shows an inline error instead of navigating away.
 - `/welcome` field requirement hints should read like helper notes, not primary copy: keep the required `*` and optional `(optional)` indicators smaller and visually quieter than the field label text.
 
 ## Required UX Behavior
@@ -64,6 +65,12 @@ This document is updated to reflect the current V1.0 product vision.
 - Upgrade options: $5 and $20 monthly.
 - Upgrade CTA appears on locked-content surfaces and account area; `/connect` uses a single contextual upgrade CTA for free members and may show backend tier/perk context as non-clickable copy.
 - Upgrade CTA clicks and Ghost Portal entry/open/close transitions are analytics events; Portal iframe internals remain Ghost-owned and are not inspected from the parent page.
+
+### Engagement-triggered email capture
+- A one-time popup asks logged-out visitors to leave their email after they show real interest: watching a video to completion, several minutes of active listening/watching, or playing multiple songs mostly through.
+- Never shown on `/subscribe`, `/welcome`, or `/connect` (already email/signup surfaces), and never shown to a visitor who already has any membership tier.
+- Dismissing it snoozes it for a week; submitting an email (here, on `/subscribe`, or via `/connect`) suppresses it permanently.
+- Submitting requires the same bot-verification step as the other signup entry points.
 
 ### Journey analytics
 - SPA route visits are captured after router normalization.

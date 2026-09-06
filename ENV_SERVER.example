@@ -13,9 +13,14 @@ GHOST_ADMIN_API_KEY=YOUR_ID:YOUR_HEX_SECRET
 # GHOST_ADMIN_API_VERSION=v5.0   (use v6.0 if your Ghost is 6.x)
 # SIGNUPS_API_TOKEN=dev-only-token
 #
-# Cloudflare Turnstile secret key — server-side bot verification on /members/api/send-magic-link/.
-# When unset, signup verification is skipped (fails open). Set it to enforce.
+# Cloudflare Turnstile secret key — server-side bot verification, enforced on BOTH
+# /members/api/send-magic-link/ (step 1, email) and /api/member-profile (step 2, name).
+# When unset, signup verification is skipped on both endpoints (fails open). Set it to enforce.
 # TURNSTILE_SECRET_KEY=0x....
+#
+# Cloudflare siteverify URL override — TEST-ONLY, so tests can point verification at a local
+# mock instead of Cloudflare. Leave unset. Do NOT set this in production.
+# TURNSTILE_VERIFY_URL=https://challenges.cloudflare.com/turnstile/v0/siteverify
 #
 # --- Frontend build (deploy.sh uses these for `npm run build`) ---
 # Deploy uses VITE_GHOST_URL when set; otherwise it uses GHOST_URL (same value as server — you need one of them).

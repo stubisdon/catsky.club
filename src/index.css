@@ -663,3 +663,248 @@ textarea.form-input {
 }
 
 /* Force reload 1765564342 */
+
+/* ==========================================================================
+   Email capture feature: Turnstile widget container, /subscribe page,
+   and the global email-capture modal. Reuses the existing dark, lowercase,
+   monospace vocabulary (.connect-auth-*, .connect-portal-btn) — no new palette.
+   ========================================================================== */
+
+/* Turnstile widget container: shared by the /connect auth form and the
+   /subscribe page. Reserve space so layout doesn't jump while the iframe loads. */
+.connect-turnstile,
+.catsky-turnstile {
+  display: block;
+  margin-top: 0.75rem;
+  min-height: 65px;
+}
+
+/* --------------------------------------------------------------------
+   /subscribe landing page
+   -------------------------------------------------------------------- */
+
+.subscribe-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  letter-spacing: 0.05em;
+  line-height: 1.8;
+  box-sizing: border-box;
+}
+
+.subscribe-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+  width: min(28rem, 100%);
+  margin-top: 1.5rem;
+}
+
+.subscribe-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2px solid var(--color-text);
+  color: #101010;
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  letter-spacing: 0.05em;
+  padding: 0.9rem 1rem;
+  box-sizing: border-box;
+}
+
+.subscribe-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.subscribe-message,
+.subscribe-error,
+.subscribe-success {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+
+.subscribe-message {
+  opacity: 0.85;
+}
+
+.subscribe-error {
+  color: rgba(255, 180, 180, 0.95);
+}
+
+.subscribe-success {
+  color: rgba(180, 255, 200, 0.95);
+}
+
+/* --------------------------------------------------------------------
+   Global email-capture modal (Portal owns z-index >= 999999; this sits below it)
+   -------------------------------------------------------------------- */
+
+.email-capture-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.75);
+  box-sizing: border-box;
+  animation: emailCaptureFadeIn 0.2s ease-out;
+}
+
+@supports (backdrop-filter: blur(6px)) or (-webkit-backdrop-filter: blur(6px)) {
+  .email-capture-overlay {
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+}
+
+.email-capture-modal {
+  width: 100%;
+  max-width: 26rem;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  background: var(--color-bg);
+  border: 2px solid var(--color-text);
+  padding: 2rem;
+  box-sizing: border-box;
+  text-align: left;
+  letter-spacing: 0.05em;
+  line-height: 1.6;
+  position: relative;
+  animation: emailCaptureSlideIn 0.25s ease-out;
+}
+
+.email-capture-title {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+
+.email-capture-body {
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+
+.email-capture-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.email-capture-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2px solid var(--color-text);
+  color: #101010;
+  font-family: var(--font-mono);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  letter-spacing: 0.05em;
+  padding: 0.9rem 1rem;
+  box-sizing: border-box;
+}
+
+.email-capture-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.email-capture-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.5rem;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.email-capture-close:hover {
+  opacity: 1;
+}
+
+.email-capture-message,
+.email-capture-error,
+.email-capture-success {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+}
+
+.email-capture-message {
+  opacity: 0.85;
+}
+
+.email-capture-error {
+  color: rgba(255, 180, 180, 0.95);
+}
+
+.email-capture-success {
+  color: rgba(180, 255, 200, 0.95);
+}
+
+@keyframes emailCaptureFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes emailCaptureSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .email-capture-overlay,
+  .email-capture-modal {
+    animation: none;
+  }
+}
+
+/* Narrow phone viewports */
+@media (max-width: 380px) {
+  .email-capture-overlay {
+    padding: 0.75rem;
+  }
+
+  .email-capture-modal {
+    padding: 1.25rem;
+    max-height: calc(100vh - 1.5rem);
+  }
+
+  .subscribe-page {
+    padding: 1.25rem;
+  }
+}

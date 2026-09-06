@@ -171,6 +171,12 @@ Current test coverage includes:
 - Increase timeout in `playwright.config.ts`
 - Check for slow network requests
 
+### E2E tests pass/fail against the wrong branch's code (parallel worktrees)
+`playwright.config.cjs` honors `PLAYWRIGHT_WEB_PORT` / `PLAYWRIGHT_WEB_HOST` (default `127.0.0.1:3000`) instead of a hardcoded port. If you run more than one checkout of this repo at once — e.g. parallel Conductor workspaces — and both default to port 3000, `reuseExistingServer` will silently attach to whichever dev server got there first, and you'll be testing another workspace's code without any error. Give each parallel checkout its own port:
+```bash
+PLAYWRIGHT_WEB_PORT=3111 npm run test:e2e:landing
+```
+
 ### Post-deployment tests fail
 - Verify the server is running: `pm2 status`
 - Check server logs: `pm2 logs catsky-club`

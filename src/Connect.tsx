@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { PageTitle, Link } from './components'
+import { PageTitle, Link, TurnstileWidget, TURNSTILE_SITE_KEY } from './components'
 import { navigateTo } from './router/navigation'
 import {
   clearLocalSessionFlags,
@@ -20,36 +20,6 @@ const CONNECT_BODY_CLASS = 'route-connect'
 
 const MAGIC_LINK_API = '/members/api/send-magic-link/'
 const WELCOME_MEMBER_STORAGE_KEY = 'catsky_welcome_member'
-
-// Cloudflare Turnstile site key (public). Set VITE_TURNSTILE_SITE_KEY at build time to enable
-// the anti-bot challenge on signup/login. When unset, the form behaves exactly as before.
-const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) || ''
-
-let turnstileScriptPromise: Promise<void> | null = null
-function loadTurnstileScript(): Promise<void> {
-  if (typeof window === 'undefined') return Promise.resolve()
-  if ((window as unknown as { turnstile?: unknown }).turnstile) return Promise.resolve()
-  if (turnstileScriptPromise) return turnstileScriptPromise
-  turnstileScriptPromise = new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
-    script.async = true
-    script.defer = true
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load Turnstile'))
-    document.head.appendChild(script)
-  })
-  return turnstileScriptPromise
-}
-
-type TurnstileApi = {
-  render: (el: HTMLElement, opts: Record<string, unknown>) => string
-  reset: (id?: string) => void
-  remove: (id?: string) => void
-}
-function getTurnstile(): TurnstileApi | null {
-  return (window as unknown as { turnstile?: TurnstileApi }).turnstile ?? null
-}
 
 function storeWelcomeMemberIdentity(member: { id?: string; uuid?: string; email?: string } | null) {
   const memberId = typeof member?.id === 'string' ? member.id.trim() : ''
@@ -75,8 +45,7 @@ export default function Connect() {
   const [authError, setAuthError] = useState<string | null>(null)
   const [paidPlans, setPaidPlans] = useState<PaidPlanOption[]>([])
   const [turnstileToken, setTurnstileToken] = useState('')
-  const turnstileContainerRef = React.useRef<HTMLDivElement | null>(null)
-  const turnstileWidgetIdRef = React.useRef<string | null>(null)
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0)
 
   const isLoggedIn = useMemo(() => membershipTier !== null && membershipTier !== 'none', [membershipTier])
 
@@ -217,55 +186,19 @@ export default function Connect() {
     setShowAuthForm(false)
     setAuthStatus('idle')
     setAuthError(null)
+    // Closing unmounts the widget; drop its token so reopening starts from a fresh challenge.
+    setTurnstileToken('')
   }, [])
 
+  // Turnstile tokens are single-use, so a failed submit needs a fresh challenge.
   const resetTurnstile = useCallback(() => {
     setTurnstileToken('')
-    const turnstile = getTurnstile()
-    if (turnstile && turnstileWidgetIdRef.current) {
-      try {
-        turnstile.reset(turnstileWidgetIdRef.current)
-      } catch {
-        // ignore
-      }
-    }
+    setTurnstileResetSignal((n) => n + 1)
   }, [])
 
-  // Render the Turnstile widget while the auth form is open; tear it down when it closes.
-  useEffect(() => {
-    if (!TURNSTILE_SITE_KEY || !showAuthForm) return
-    let cancelled = false
-    loadTurnstileScript()
-      .then(() => {
-        if (cancelled) return
-        const turnstile = getTurnstile()
-        const container = turnstileContainerRef.current
-        if (!turnstile || !container || turnstileWidgetIdRef.current) return
-        turnstileWidgetIdRef.current = turnstile.render(container, {
-          sitekey: TURNSTILE_SITE_KEY,
-          theme: 'dark',
-          callback: (token: string) => setTurnstileToken(token),
-          'expired-callback': () => setTurnstileToken(''),
-          'error-callback': () => setTurnstileToken(''),
-        })
-      })
-      .catch(() => {
-        // Widget failed to load; server still enforces, so submit will surface the error.
-      })
-    return () => {
-      cancelled = true
-      const turnstile = getTurnstile()
-      if (turnstile && turnstileWidgetIdRef.current) {
-        try {
-          turnstile.remove(turnstileWidgetIdRef.current)
-        } catch {
-          // ignore
-        }
-        turnstileWidgetIdRef.current = null
-      }
-      setTurnstileToken('')
-    }
-  }, [showAuthForm])
+  const handleTurnstileToken = useCallback((token: string | null) => {
+    setTurnstileToken(token ?? '')
+  }, [])
 
   const handleAuthSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -375,13 +308,11 @@ export default function Connect() {
                     autoFocus
                     className="connect-auth-input"
                   />
-                  {TURNSTILE_SITE_KEY && (
-                    <div
-                      ref={turnstileContainerRef}
-                      className="connect-turnstile"
-                      style={{ marginTop: '0.75rem' }}
-                    />
-                  )}
+                  <TurnstileWidget
+                    onToken={handleTurnstileToken}
+                    resetSignal={turnstileResetSignal}
+                    className="connect-turnstile"
+                  />
                   <div className="connect-auth-actions">
                     <button type="submit" className="connect-portal-btn" disabled={authStatus === 'loading'}>
                       {authStatus === 'loading' ? 'sending…' : 'send magic link'}

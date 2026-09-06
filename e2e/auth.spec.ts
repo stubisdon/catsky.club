@@ -924,16 +924,17 @@ test.describe('Connect Page - Responsive Design', () => {
 
 
 test.describe('Welcome onboarding flow', () => {
-  test('welcome keeps the continue CTA immediately clickable and styles field notes as secondary helper text', async ({ page }) => {
+  test('welcome gates the sign-up CTA on a first name and styles field notes as secondary helper text', async ({ page }) => {
     await page.goto('/welcome')
 
-    await expect(page.getByText(/save this in the background while you keep browsing/i)).toBeVisible()
+    // Copy must say the signup is not finished yet — this page is step 2 of 2.
+    await expect(page.getByText(/you're not signed up until you do/i)).toBeVisible()
 
-    const continueButton = page.getByRole('button', { name: /continue/i })
-    await expect(continueButton).toBeVisible()
-    await expect(continueButton).toHaveCSS('border-top-width', '2px')
-    await expect(continueButton).toHaveCSS('text-transform', 'lowercase')
-    await expect(continueButton).toBeDisabled()
+    const signUpButton = page.getByRole('button', { name: /sign up/i })
+    await expect(signUpButton).toBeVisible()
+    await expect(signUpButton).toHaveCSS('border-top-width', '2px')
+    await expect(signUpButton).toHaveCSS('text-transform', 'lowercase')
+    await expect(signUpButton).toBeDisabled()
 
     const firstNameLabel = page.locator('label[for="firstName"]')
     const firstNameText = firstNameLabel.locator('span').first()
@@ -947,10 +948,10 @@ test.describe('Welcome onboarding flow', () => {
     await expect(optionalNote).toHaveCSS('opacity', '0.62')
 
     await page.getByLabel(/first name/i).fill('Ada')
-    await expect(continueButton).toBeEnabled()
+    await expect(signUpButton).toBeEnabled()
   })
 
-  test('signup callback opens welcome directly and profile submission continues to listen without waiting for the profile save', async ({ page }) => {
+  test('signup callback opens welcome directly and waits for the profile save before continuing to listen', async ({ page }) => {
     let profileRequestCount = 0
     let profileRequestBody = ''
 
@@ -986,10 +987,15 @@ test.describe('Welcome onboarding flow', () => {
 
     await page.getByLabel(/first name/i).fill('Ada')
     await page.getByLabel(/last name/i).fill('Lovelace')
-    await page.getByRole('button', { name: /continue/i }).click()
+    await page.getByRole('button', { name: /sign up/i }).click()
 
-    await expect(page).toHaveURL(/\/listen$/)
+    // The profile save is deliberately awaited: it is the request the server verifies the
+    // Turnstile token on, so a 403 must be able to stop the signup. While the mocked response
+    // is still in flight (1500ms) the visitor must therefore stay on /welcome.
     await expect.poll(() => profileRequestCount).toBe(1)
+    await expect(page).toHaveURL(/\/welcome$/)
+
+    await expect(page).toHaveURL(/\/listen$/, { timeout: 10_000 })
     await expect.poll(() => JSON.parse(profileRequestBody || '{}')).toMatchObject({
       memberUuid: 'member-uuid-123',
       email: 'ada@example.com',

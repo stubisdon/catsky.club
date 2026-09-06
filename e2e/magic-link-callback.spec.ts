@@ -53,7 +53,10 @@ test.describe('magic-link callback regression coverage', () => {
     }
   })
 
-  test('queues the full profile payload and moves to listen without waiting for its response', async ({ page }) => {
+  // The profile save is deliberately AWAITED (it used to be fire-and-forget). That request is
+  // where the server verifies the Turnstile token, so a rejected challenge has to be able to
+  // stop the signup — which means the visitor must not be moved to /listen before it answers.
+  test('sends the full profile payload and only moves to listen once the save responds', async ({ page }) => {
     let profileRequestBody = ''
     let profileRequestResolved = false
     await mockMember(page)
@@ -67,11 +70,16 @@ test.describe('magic-link callback regression coverage', () => {
     await page.goto('/?action=signup&success=true')
     await page.getByLabel(/first name/i).fill('Ada')
     await page.getByLabel(/last name/i).fill('Lovelace')
-    await page.getByRole('button', { name: /continue/i }).click()
+    await page.getByRole('button', { name: /sign up/i }).click()
 
-    await expect(page).toHaveURL(/\/listen$/)
+    // Still on /welcome while the save is in flight.
+    await expect.poll(() => profileRequestBody).not.toBe('')
     expect(profileRequestResolved).toBe(false)
-    await expect.poll(() => JSON.parse(profileRequestBody || '{}')).toEqual({
+    await expect(page).toHaveURL(/\/welcome$/)
+
+    await expect(page).toHaveURL(/\/listen$/, { timeout: 10_000 })
+    expect(profileRequestResolved).toBe(true)
+    expect(JSON.parse(profileRequestBody)).toEqual({
       memberId: '',
       memberUuid: 'member-uuid-123',
       email: 'ada@example.com',
@@ -80,7 +88,7 @@ test.describe('magic-link callback regression coverage', () => {
     })
   })
 
-  test('queues an empty last name when only the first name is supplied', async ({ page }) => {
+  test('sends an empty last name when only the first name is supplied', async ({ page }) => {
     let profileRequestBody = ''
     await mockMember(page)
     await page.route('**/api/member-profile', (route) => {
@@ -90,9 +98,9 @@ test.describe('magic-link callback regression coverage', () => {
 
     await page.goto('/?action=signup&success=true')
     await page.getByLabel(/first name/i).fill('Ada')
-    await page.getByRole('button', { name: /continue/i }).click()
+    await page.getByRole('button', { name: /sign up/i }).click()
 
-    await expect(page).toHaveURL(/\/listen$/)
+    await expect(page).toHaveURL(/\/listen$/, { timeout: 10_000 })
     await expect.poll(() => JSON.parse(profileRequestBody || '{}').lastName).toBe('')
   })
 

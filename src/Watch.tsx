@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PageContainer, PageTitle, Link } from './components'
 import { getMembershipTier, getPaidPlanOptions, type MembershipTier, type PaidPlanOption } from './utils'
+import { buildYouTubeEmbedSrc, observeYouTubeProgress } from './utils/playerApis'
+import { recordVideoProgress } from './utils/engagement'
 
 const UNRELEASED_VIDEO_POST = '/members/unreleased-video/'
+const VIDEO_ID = '1mEIXt3jYmA'
+const PLAYER_ELEMENT_ID = 'catsky-watch-player'
 
 export default function Watch() {
   const [tier, setTier] = useState<MembershipTier>('none')
@@ -26,6 +30,14 @@ export default function Watch() {
     return () => {
       cancelled = true
     }
+  }, [])
+
+  // Engagement instrumentation only: reports watched fraction, thresholds live in engagement.ts.
+  useEffect(() => {
+    return observeYouTubeProgress({
+      elementId: PLAYER_ELEMENT_ID,
+      onProgress: (fraction) => recordVideoProgress(VIDEO_ID, fraction),
+    })
   }, [])
 
   const isPaid = useMemo(() => tier === 'paid_5' || tier === 'paid_20', [tier])
@@ -58,7 +70,8 @@ export default function Watch() {
           }}
         >
           <iframe
-            src="https://www.youtube.com/embed/1mEIXt3jYmA"
+            id={PLAYER_ELEMENT_ID}
+            src={buildYouTubeEmbedSrc(VIDEO_ID)}
             title="Music Video Teaser"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen

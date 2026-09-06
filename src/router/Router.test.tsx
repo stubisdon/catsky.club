@@ -14,6 +14,10 @@ vi.mock('../Connect', () => ({ default: () => <div>connect view</div> }))
 vi.mock('../Mission', () => ({ default: () => <div>mission view</div> }))
 vi.mock('../Listen', () => ({ default: () => <div>listen view</div> }))
 vi.mock('../Welcome', () => ({ default: () => <div>welcome view</div> }))
+vi.mock('../Subscribe', () => ({ default: () => <div>subscribe view</div> }))
+vi.mock('../components/EmailCaptureModal', () => ({
+  EmailCaptureModal: () => <div>email capture modal</div>,
+}))
 vi.mock('../utils/analytics', () => ({
   trackPageView: analytics.trackPageView,
 }))
@@ -163,5 +167,51 @@ describe('Router signup callback normalization', () => {
     render(<Router />)
 
     expect(screen.getByText('video view')).toBeInTheDocument()
+  })
+})
+
+describe('Router /subscribe route and email capture mount', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    delete window.__catskyAuthCallback
+  })
+
+  it.each(['/subscribe', '/subscribe/'])('resolves %s to the subscribe view', (pathname) => {
+    expect(resolveView(pathname, '')).toMatchObject({ view: 'subscribe' })
+  })
+
+  it('renders the subscribe view for /subscribe', () => {
+    window.history.replaceState({}, '', '/subscribe')
+    render(<Router />)
+    expect(screen.getByText('subscribe view')).toBeInTheDocument()
+  })
+
+  it('mounts the email capture modal on ordinary browsing views', () => {
+    window.history.replaceState({}, '', '/listen')
+    render(<Router />)
+    expect(screen.getByText('listen view')).toBeInTheDocument()
+    expect(screen.getByText('email capture modal')).toBeInTheDocument()
+  })
+
+  // Asking for an email on the pages that already ask for one would be pushy and confusing.
+  it.each([
+    ['/subscribe', 'subscribe view'],
+    ['/welcome', 'welcome view'],
+    ['/connect', 'connect view'],
+  ])('does NOT mount the email capture modal on %s', (pathname, viewText) => {
+    window.history.replaceState({}, '', pathname)
+    render(<Router />)
+    expect(screen.getByText(viewText)).toBeInTheDocument()
+    expect(screen.queryByText('email capture modal')).not.toBeInTheDocument()
+  })
+
+  // resolveView short-circuits every signup callback to /welcome regardless of path, which is
+  // exactly what the double-step signup needs: the emailed link can land anywhere and still
+  // finish on the name + Turnstile form.
+  it('sends a signup callback landing on /subscribe to the welcome view', () => {
+    expect(resolveView('/subscribe', '?action=signup&success=true')).toMatchObject({
+      view: 'welcome',
+      normalizedPath: '/welcome',
+    })
   })
 })
