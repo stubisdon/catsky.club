@@ -3,20 +3,6 @@ import { FEATURED_MUSIC_VIDEO } from '../config/media'
 import { trackEvent } from '../utils/analytics'
 
 /**
- * Format a date-only ISO string as "august 2026".
- *
- * Formatted in UTC on purpose. `new Date('2026-08-01')` is parsed as UTC midnight, so
- * rendering it in a negative-offset timezone lands on July 31 and prints the wrong month.
- */
-function formatReleaseDate(iso: string): string {
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return ''
-  return date
-    .toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
-    .toLowerCase()
-}
-
-/**
  * The released music video.
  *
  * Renders YouTube's poster frame until the visitor asks to play, then swaps in the iframe.
@@ -90,9 +76,8 @@ export default function VideoFeature() {
 
       <figcaption className="video-caption">
         <span className="video-title t-display">{video.title}</span>
-        <span className="t-meta">
-          official music video · {formatReleaseDate(video.releasedOn)}
-        </span>
+        {/* No dateline: the release month dates the page rather than the work. */}
+        <span className="t-meta">official music video</span>
       </figcaption>
     </figure>
   )

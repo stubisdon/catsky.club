@@ -31,6 +31,16 @@ const MODE_ICON: Record<ThemeMode, typeof SunIcon> = {
   system: SystemIcon,
 }
 
+/**
+ * What the visitor is shown. 'system' is called "auto" because that is what it means to someone
+ * who has never read the code; the stored value stays 'system' so existing preferences survive.
+ */
+const MODE_LABEL: Record<ThemeMode, string> = {
+  light: 'light',
+  dark: 'dark',
+  system: 'auto',
+}
+
 function isSameResolution(a: ResolvedTheme, b: ResolvedTheme): boolean {
   return (
     a.theme === b.theme &&
@@ -108,7 +118,7 @@ export default function ThemeToggle() {
   }, [followsWorld])
 
   // With three states the "next" glyph stopped being legible, so the icon names the current mode.
-  const label = `theme: ${mode} — switch to ${nextMode}`
+  const label = `theme: ${MODE_LABEL[mode]} — switch to ${MODE_LABEL[nextMode]}`
 
   const chooseMode = () => {
     // The only place the preference key is ever written.
@@ -118,14 +128,14 @@ export default function ThemeToggle() {
   }
 
   return (
-    <button
-      type="button"
-      className="theme-toggle"
-      aria-label={label}
-      title={label}
-      onClick={chooseMode}
-    >
+    // No `title`: the browser's own tooltip arrives a second late and in the OS's styling, which
+    // is exactly the thing the caption below replaces.
+    <button type="button" className="theme-toggle" aria-label={label} onClick={chooseMode}>
       <Icon />
+      {/* Names the mode the site is in right now, not the one a click moves to. */}
+      <span className="theme-toggle-caption t-eyebrow" aria-hidden="true" data-testid="theme-toggle-caption">
+        {MODE_LABEL[mode]}
+      </span>
     </button>
   )
 }

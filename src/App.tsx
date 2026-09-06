@@ -18,8 +18,7 @@ export default function App() {
       <div className="home-scroll">
         <main className="home-page">
           <header className="home-masthead">
-            <h1 className="t-display home-wordmark">catsky</h1>
-            <p className="t-eyebrow home-domain">catsky.club</p>
+            <h1 className="t-display home-wordmark">catsky.club</h1>
             <div className="home-poem">
               {POEM.map((line) => (
                 <p key={line}>{line}</p>
