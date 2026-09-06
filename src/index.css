@@ -91,7 +91,11 @@
   --ink-faint: rgba(var(--color-text-rgb), 0.55);
   --ink-quiet: rgba(var(--color-text-rgb), 0.72);
 
-  /* Page frame: the thin margin of paper the content floats inside. */
+  /*
+    The thin margin of paper the content floats inside. This used to be drawn as a hairline
+    rectangle; that rectangle is gone (see .paper-surface), but the measurement is still what
+    the nav bar indents by, so the margin stays consistent whether or not it is inked.
+  */
   --page-frame: clamp(0.75rem, 1.6vw, 1.5rem);
   --page-gutter: clamp(1.25rem, 5vw, 4rem);
   --page-measure: 1180px;
@@ -178,16 +182,21 @@ body {
 }
 
 /*
-  Paper grain + hairline frame. Both are fixed, non-interactive overlays that sit above the
-  page background but below the content, so nothing has to opt in and nothing can swallow a
-  click. Printed on ::before/::after of a dedicated element rather than body so the Ghost
-  Portal overlay (z-index 999999) still paints cleanly on top of them.
+  Paper grain. A fixed, non-interactive overlay that sits above the page background but below
+  the content, so nothing has to opt in and nothing can swallow a click. Printed on ::before of
+  a dedicated element rather than body so the Ghost Portal overlay (z-index 999999) still paints
+  cleanly on top of it.
+
+  This element used to also draw a hairline rectangle inset by --page-frame — the "plate edge".
+  It is gone. The theme toggle's glyphs are themselves square plates (see ThemeIcons.tsx), so at
+  the top-right the two rectangles met corner to corner and read as a picture frame around a
+  picture frame. The nav's own bottom rule now does the work of separating chrome from page.
 */
 .paper-surface {
   position: fixed;
   inset: 0;
-  /* Above #root (z-index 0) so grain and frame print over the content, below .top-nav (1000)
-     so the nav stays crisp, and far below #ghost-portal-root (999999). */
+  /* Above #root (z-index 0) so the grain prints over the content, below .top-nav (1000) so the
+     nav stays crisp, and far below #ghost-portal-root (999999). */
   z-index: 2;
   pointer-events: none;
 }
@@ -201,21 +210,6 @@ body {
   background-repeat: repeat;
   opacity: var(--paper-grain-opacity);
   mix-blend-mode: var(--paper-grain-blend);
-}
-
-/* The plate edge: a hairline inset rectangle, the way an engraving sits inside its margin. */
-.paper-surface::after {
-  content: '';
-  position: absolute;
-  inset: var(--page-frame);
-  border: var(--rule-hairline) solid var(--rule-color);
-}
-
-@media (max-width: 640px) {
-  /* On phones the frame eats scarce width and reads as a browser chrome artifact. */
-  .paper-surface::after {
-    display: none;
-  }
 }
 
 /* Grain is decorative texture; drop it when the user has asked for less visual noise. */
@@ -966,7 +960,28 @@ textarea.form-input {
   top: 0;
   left: 0;
   right: 0;
+  /* Fixed height so the band matches the padding every page reserves for it via
+     --top-nav-height. Re-measure this token if the bar's contents change. */
+  height: var(--top-nav-height);
   z-index: 1000;
+  pointer-events: none;
+}
+
+/*
+  The band the nav prints on.
+
+  The bar is fixed and every route scrolls underneath it, so without an opaque backing the page
+  text ran straight through the links. Paper plus a single hairline underneath is the same move
+  the section rules already make: content stops at a ruled edge rather than dissolving into the
+  chrome. Drawn as ::before so it cannot intercept a click and so the links keep their own
+  stacking above it.
+*/
+.top-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--color-bg);
+  border-bottom: var(--rule-hairline) solid var(--rule-color-strong);
   pointer-events: none;
 }
 
@@ -974,10 +989,13 @@ textarea.form-input {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  position: relative;
+  z-index: 1;
   width: 100%;
-  /* Horizontal padding clears the .paper-surface plate edge, which is inset by --page-frame.
-     At 1rem flat the wordmark sat on the rule and looked clipped. */
-  padding: 1rem calc(var(--page-frame) + 0.85rem);
+  height: 100%;
+  /* Indents by the same page margin the rest of the sheet uses, so the wordmark and the
+     content below it hang off one edge. */
+  padding: 0 calc(var(--page-frame) + 0.85rem);
   box-sizing: border-box;
   pointer-events: none;
 }
@@ -1164,8 +1182,9 @@ textarea.form-input {
     display: block;
   }
 
+  /* Vertical centring comes from the band's height; only the side margin narrows. */
   .top-nav-content {
-    padding: 1rem;
+    padding: 0 1rem;
   }
 
   .top-nav-wordmark {
@@ -1243,12 +1262,22 @@ textarea.form-input {
 }
 
 .home-wordmark {
-  /* Large enough to act as the page's plate title; the display serif carries it.
-     Sized off the 11-character wordmark, not the old 6-character one: at the previous
-     15vw it ran past the plate edge on every viewport below ~1400px. */
-  font-size: clamp(2.35rem, 9vw, 6.5rem);
+  /*
+    Set in the old-style serif rather than the display face the rest of the headings use.
+    Instrument Serif is a condensed didone: at wordmark size its stems crowd and the whole
+    name reads narrow and pinched. EB Garamond is already self-hosted for body copy and is
+    materially wider per character, so the name occupies the measure instead of hiding in the
+    middle of it. --font-display still owns every other heading.
+
+    Sized off the 11-character wordmark, not the old 6-character one; at 10vw it fills the
+    plate without running into the page gutter on any viewport.
+  */
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: clamp(2.3rem, 10vw, 7.6rem);
+  letter-spacing: -0.005em;
   margin: 0;
-  line-height: 0.95;
+  line-height: 1;
   /* One word, never two lines - "catsky.club" breaking after the dot reads as two brands. */
   white-space: nowrap;
 }
