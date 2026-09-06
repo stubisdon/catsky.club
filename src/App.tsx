@@ -18,7 +18,8 @@ export default function App() {
       <div className="home-scroll">
         <main className="home-page">
           <header className="home-masthead">
-            <h1 className="t-display home-wordmark">catsky.club</h1>
+            {/* Not .t-display: the wordmark is the one heading set in the body serif. */}
+            <h1 className="home-wordmark">catsky.club</h1>
             <div className="home-poem">
               {POEM.map((line) => (
                 <p key={line}>{line}</p>

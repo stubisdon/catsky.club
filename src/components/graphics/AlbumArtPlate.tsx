@@ -17,10 +17,10 @@ interface AlbumArtPlateProps {
 const VIEWBOX = 600
 
 /*
-  Plate composition, in viewBox units. The bands are laid out so nothing overlaps: the
-  wordmark sits above the orb, the orb occupies the middle, a thin hatched horizon separates
-  it from the lettering, and the title block owns the bottom. Earlier versions centred the orb
-  in the whole square, which pushed it through both the hatch fields and the title.
+  Plate composition, in viewBox units. The bands are laid out so nothing overlaps: the orb
+  occupies the middle, a thin hatched horizon separates it from the lettering, and the title
+  block owns the bottom. Earlier versions centred the orb in the whole square, which pushed it
+  through both the hatch fields and the title.
 */
 const ORB_CY = 252
 const ORB_INNER_R = 24
@@ -150,27 +150,6 @@ export default function AlbumArtPlate({
 
       {/* Lettering sits at full strength even on the held-back plate, so titles stay readable. */}
       <g color="var(--color-text)" textAnchor="middle">
-        <text
-          x="300"
-          y="66"
-          fill="currentColor"
-          opacity="0.7"
-          fontFamily="var(--font-mono)"
-          fontSize="16"
-          letterSpacing="7"
-        >
-          CATSKY
-        </text>
-        <line
-          x1="248"
-          x2="352"
-          y1="84"
-          y2="84"
-          stroke="currentColor"
-          strokeWidth="1"
-          opacity="0.35"
-        />
-
         {caption && (
           <text
             x="300"
