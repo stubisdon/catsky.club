@@ -44,10 +44,13 @@ The visual language is a single ink on paper: one text colour at varying alpha, 
 hue. It is expressed entirely through tokens in `src/index.css`, so both themes get it for free.
 
 - **Type roles.** Three self-hosted families, each with one job:
-  `--font-display` (Instrument Serif) for headings and the wordmark, `--font-body`
-  (EB Garamond) for prose, `--font-mono` (Courier Prime) for eyebrows, labels, metadata, nav
-  and buttons. The `.t-display` / `.t-eyebrow` / `.t-meta` classes are the intended way to
-  apply them; components should not restate font stacks inline.
+  `--font-display` (Instrument Serif) for headings, `--font-body` (EB Garamond) for prose, and
+  `--font-mono` (Courier Prime) for eyebrows, labels, metadata, nav and buttons. The
+  `.t-display` / `.t-eyebrow` / `.t-meta` classes are the intended way to apply them;
+  components should not restate font stacks inline. The one deliberate exception is the landing
+  page wordmark, which is set in `--font-body`: Instrument Serif is a condensed didone whose
+  stems crowd at wordmark size, so the name read narrow and pinched. `.home-wordmark` therefore
+  carries no `.t-display` class and names its family itself.
 - **Fonts are self-hosted** from `public/fonts` (latin subsets, ~128 KB total) and declared
   with `@font-face` at the top of `src/index.css`. They are deliberately *not* loaded from the
   Google Fonts CDN: that removes a third-party request from every page load, keeps visitor IPs
@@ -57,9 +60,15 @@ hue. It is expressed entirely through tokens in `src/index.css`, so both themes 
   are all derived from `--color-text-rgb`. New components should use these rather than
   introducing fresh `rgba()` literals.
 - **Paper surface.** `.paper-surface` (rendered once by `Router`) is a fixed, `pointer-events:
-  none` overlay carrying two things: a tiled fractal-noise grain, and the hairline plate frame.
-  It sits at `z-index: 2` — above `#root` (0) so it prints over content, below `.top-nav`
-  (1000), and far below `#ghost-portal-root` (999999).
+  none` overlay carrying a tiled fractal-noise grain. It sits at `z-index: 2` — above `#root`
+  (0) so it prints over content, below `.top-nav` (1000), and far below `#ghost-portal-root`
+  (999999). It used to also draw a hairline plate frame inset by `--page-frame`; that is gone,
+  because the theme toggle's glyphs are themselves square plates (`ThemeIcons.tsx`) and the two
+  rectangles met at the top-right corner. `--page-frame` survives as the page's side margin.
+- **Top nav band.** `.top-nav` is fixed and every route scrolls underneath it, so it paints an
+  opaque `::before` band in `--color-bg` closed by a `--rule-color-strong` hairline. Without it
+  page text ran straight through the links. Its height is `--top-nav-height`, the same token
+  every page reserves padding from; re-measure that token if the bar's contents change.
 - **Graphics are procedural, not bitmaps.** `src/components/graphics/` draws engraved line art
   in SVG from seeded maths (`engraving.ts`): concentric burin rings with sinusoidally swelling
   stroke weight, stipple halftone crescents, and hatch fields. Because it draws in
