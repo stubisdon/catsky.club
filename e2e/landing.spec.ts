@@ -66,8 +66,9 @@ test.describe('Landing Page - Content', () => {
   test('displays the masthead', async ({ page }) => {
     await gotoLanding(page)
 
-    await expect(page.getByRole('heading', { level: 1, name: 'catsky' })).toBeVisible()
-    await expect(page.locator('.home-domain')).toHaveText('catsky.club')
+    await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible()
+    // The wordmark is the only place the name appears; the old sub-line under it is gone.
+    await expect(page.locator('.home-domain')).toHaveCount(0)
   })
 
   test('displays tagline/poem content', async ({ page }) => {
@@ -330,7 +331,7 @@ test.describe('Landing Page - Social feed', () => {
 
     await gotoLanding(page)
 
-    await expect(page.getByRole('heading', { level: 1, name: 'catsky' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible()
     await expect(page.locator(RELEASED_COVER)).toBeVisible()
   })
 })
@@ -371,7 +372,7 @@ test.describe('Landing Page - Responsive Design', () => {
       await page.setViewportSize(size)
       await gotoLanding(page)
 
-      await expect(page.getByRole('heading', { level: 1, name: 'catsky' })).toBeVisible()
+      await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible()
       await expect(page.locator(RELEASED_COVER)).toBeVisible()
       await expect(page.locator(UPCOMING_COVER)).toBeVisible()
     })
@@ -479,7 +480,7 @@ test.describe('Landing Page - Error Handling', () => {
 
     await page.goto('/')
 
-    await expect(page.getByRole('heading', { level: 1, name: 'catsky' })).toBeVisible({
+    await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible({
       timeout: 10000,
     })
   })
@@ -515,7 +516,7 @@ test.describe('Landing Page - Direct URL Access', () => {
     await stubSocialPosts(page)
     await page.goto('/')
     await expect(page).toHaveURL('/')
-    await expect(page.getByRole('heading', { level: 1, name: 'catsky' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible()
   })
 })
 
@@ -533,8 +534,93 @@ test.describe('Landing Page - Performance', () => {
     await stubSocialPosts(page)
     await page.goto('/')
 
-    await expect(page.getByRole('heading', { level: 1, name: 'catsky' })).toBeVisible({
+    await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible({
       timeout: 2000,
     })
+  })
+})
+
+test.describe('Landing Page - Album call to action is held back until hover', () => {
+  test.beforeEach(async ({ page }) => {
+    await stubSocialPosts(page)
+  })
+
+  test('the cta is invisible until the cover is hovered', async ({ page }) => {
+    await gotoLanding(page)
+
+    const cta = page.locator(`${RELEASED_COVER} .album-cover-cta`)
+    await expect(cta).toHaveText(/open tracklist/i)
+    await expect(cta).toHaveCSS('opacity', '0')
+
+    await page.locator(RELEASED_COVER).hover()
+    await expect(cta).toHaveCSS('opacity', '1')
+  })
+
+  test('the upcoming cover reveals its own cta, not the released one', async ({ page }) => {
+    await gotoLanding(page)
+
+    const upcoming = page.locator(`${UPCOMING_COVER} .album-cover-cta`)
+    const released = page.locator(`${RELEASED_COVER} .album-cover-cta`)
+
+    await page.locator(UPCOMING_COVER).hover()
+
+    await expect(upcoming).toHaveText(/get notified/i)
+    await expect(upcoming).toHaveCSS('opacity', '1')
+    await expect(released).toHaveCSS('opacity', '0')
+  })
+
+  test('keyboard focus reveals the cta too', async ({ page }) => {
+    await gotoLanding(page)
+
+    // :focus-visible follows the last interaction modality. One real Tab puts the page in
+    // keyboard modality, after which a programmatic focus() still matches :focus-visible.
+    await page.keyboard.press('Tab')
+    await page.locator(RELEASED_COVER).focus()
+
+    await expect(page.locator(`${RELEASED_COVER} .album-cover-cta`)).toHaveCSS('opacity', '1')
+  })
+
+  test('revealing the cta does not resize the shelf', async ({ page }) => {
+    await gotoLanding(page)
+
+    // The hidden cta keeps its box, so nothing below the shelf jumps when it fades in.
+    const shelf = page.locator('[data-testid="album-shelf"]')
+    const before = await shelf.boundingBox()
+
+    await page.locator(RELEASED_COVER).hover()
+    await expect(page.locator(`${RELEASED_COVER} .album-cover-cta`)).toHaveCSS('opacity', '1')
+
+    expect((await shelf.boundingBox())?.height).toBe(before?.height)
+  })
+})
+
+test.describe('Landing Page - Album call to action on touch', () => {
+  // A touch device can never hover, so the line is removed rather than left unreachable.
+  // isMobile is a Chromium-only capability, which is also the project this file runs under.
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
+
+  test('the cta is not rendered at all on a touch device', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'isMobile emulation is Chromium-only')
+    await stubSocialPosts(page)
+    await gotoLanding(page)
+
+    // Guard the premise: without (hover: none) matching, this test proves nothing.
+    expect(await page.evaluate(() => window.matchMedia('(hover: none)').matches)).toBe(true)
+
+    await expect(page.locator(`${RELEASED_COVER} .album-cover-cta`)).toBeHidden()
+    // The destination is still named for assistive tech.
+    await expect(page.locator(RELEASED_COVER)).toHaveAttribute('aria-label', /open tracklist/i)
+  })
+})
+
+test.describe('Landing Page - Music video caption carries no dateline', () => {
+  test('the caption names the video but not its release month', async ({ page }) => {
+    await stubSocialPosts(page)
+    await gotoLanding(page)
+
+    const caption = page.locator('.video-caption')
+    await expect(caption).toContainText('official music video')
+    await expect(caption).not.toContainText(/august/i)
+    await expect(caption).not.toContainText(/20\d\d/)
   })
 })

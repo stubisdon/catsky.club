@@ -1,7 +1,7 @@
 export interface MusicVideo {
   youtubeId: string
   title: string
-  /** Release date, ISO. Rendered as the plate's dateline. */
+  /** Release date, ISO. Kept as a record; deliberately not rendered on the landing page. */
   releasedOn: string
   watchUrl: string
 }

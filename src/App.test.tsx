@@ -45,8 +45,10 @@ async function renderLanding() {
 describe('App landing page', () => {
   it('renders the masthead and tagline', async () => {
     await renderLanding()
-    expect(screen.getByRole('heading', { level: 1, name: 'catsky' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeInTheDocument()
     expect(screen.getByText(/in the world of data/i)).toBeInTheDocument()
+    // The wordmark used to be 'catsky' with a separate 'catsky.club' line under it.
+    expect(document.querySelector('.home-domain')).toBeNull()
   })
 
   it('renders both album covers', async () => {
@@ -59,6 +61,14 @@ describe('App landing page', () => {
     await renderLanding()
     expect(screen.getByTestId('video-feature')).toBeInTheDocument()
     expect(screen.getByTestId('social-feed')).toBeInTheDocument()
+  })
+
+  it('captions the music video without a dateline', async () => {
+    await renderLanding()
+
+    const caption = screen.getByTestId('video-feature').querySelector('.video-caption')
+    expect(caption).toHaveTextContent('official music video')
+    expect(caption?.textContent).not.toMatch(/august|20\d\d/i)
   })
 
   it('links out to each streaming platform', async () => {

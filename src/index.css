@@ -285,15 +285,18 @@ body {
 }
 
 .theme-toggle {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* The 44px box is the touch target; the glyph inside it is the visible control. */
   width: 2.75rem;
   height: 2.75rem;
-  padding: 0.2rem;
+  padding: 0;
   background: transparent;
-  border: 1px solid rgba(var(--color-text-rgb), 0.3);
-  color: var(--color-text);
+  /* No border: every glyph draws its own plate edge, and two frames read as a picture frame. */
+  border: 0;
+  color: var(--ink-quiet);
   cursor: pointer;
   pointer-events: auto;
 }
@@ -303,9 +306,13 @@ body {
   height: 34px;
 }
 
+/*
+  Hover asserts the plate rather than inverting the button. The old inversion painted a 44px
+  ink square behind a 28px plate, and against the dark glyph - which is already solid ink - it
+  read as a misprint. The caption fading in below carries the affordance.
+*/
 .theme-toggle:hover {
-  background: var(--color-text);
-  color: var(--color-bg);
+  color: var(--color-text);
 }
 
 .theme-toggle:focus-visible {
@@ -313,9 +320,35 @@ body {
   outline-offset: 2px;
 }
 
+/*
+  The word for the mode the site is in right now. It hangs under the button rather than beside
+  it: to the left it would collide with the "connect" link at desktop widths, and this corner of
+  the plate is otherwise empty. Colour is set rather than inherited, because the button inverts
+  its own text colour on hover and the caption sits outside the inverted box.
+*/
+.theme-toggle-caption {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+  color: var(--ink-quiet);
+  opacity: 0;
+}
+
+.theme-toggle:hover .theme-toggle-caption,
+.theme-toggle:focus-visible .theme-toggle-caption {
+  opacity: 1;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .theme-toggle {
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: color 0.3s ease;
+  }
+
+  .theme-toggle-caption {
+    transition: opacity 0.25s ease;
   }
 }
 
@@ -1210,14 +1243,14 @@ textarea.form-input {
 }
 
 .home-wordmark {
-  /* Large enough to act as the page's plate title; the display serif carries it. */
-  font-size: clamp(3.75rem, 15vw, 11rem);
+  /* Large enough to act as the page's plate title; the display serif carries it.
+     Sized off the 11-character wordmark, not the old 6-character one: at the previous
+     15vw it ran past the plate edge on every viewport below ~1400px. */
+  font-size: clamp(2.35rem, 9vw, 6.5rem);
   margin: 0;
-  line-height: 0.9;
-}
-
-.home-domain {
-  margin-top: 0.9rem;
+  line-height: 0.95;
+  /* One word, never two lines - "catsky.club" breaking after the dot reads as two brands. */
+  white-space: nowrap;
 }
 
 .home-poem {
@@ -1334,13 +1367,35 @@ textarea.form-input {
   color: var(--ink-quiet);
 }
 
+/*
+  The call to action is held back until the visitor reaches for the cover. It keeps its box
+  while hidden, so revealing it never shifts the caption below it.
+
+  Pointer devices only. On touch there is no hover to reveal it with, so rather than leave a
+  line nobody can summon, it is removed outright - each cover's aria-label still names its
+  destination, so nothing is lost to assistive tech.
+*/
 .album-cover-cta {
-  color: var(--ink-faint);
+  display: none;
+  color: var(--color-text);
 }
 
-.album-cover:hover .album-cover-cta,
-.album-cover:focus-visible .album-cover-cta {
-  color: var(--color-text);
+@media (hover: hover) and (pointer: fine) {
+  .album-cover-cta {
+    display: block;
+    opacity: 0;
+  }
+
+  .album-cover:hover .album-cover-cta,
+  .album-cover:focus-visible .album-cover-cta {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .album-cover-cta {
+    transition: opacity 0.32s ease;
+  }
 }
 
 @media (max-width: 560px) {

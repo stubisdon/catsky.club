@@ -9,9 +9,9 @@ import {
 import ThemeToggle from './ThemeToggle'
 
 // The label names the current mode first, then the one a click moves to.
-const SYSTEM = 'theme: system — switch to light'
+const SYSTEM = 'theme: auto — switch to light'
 const LIGHT = 'theme: light — switch to dark'
-const DARK = 'theme: dark — switch to system'
+const DARK = 'theme: dark — switch to auto'
 
 function toggle(name: string) {
   return screen.getByRole('button', { name })
@@ -19,6 +19,11 @@ function toggle(name: string) {
 
 function renderedIcon(): string | null {
   return screen.getByRole('button').querySelector('svg')?.getAttribute('data-icon') ?? null
+}
+
+/** The word revealed on hover. CSS hides it until then; the text itself is always rendered. */
+function caption(): string | null {
+  return screen.getByTestId('theme-toggle-caption').textContent
 }
 
 // Unknown timezone + no OS preference keeps the component on DEFAULT_THEME, so the tests below
@@ -93,6 +98,57 @@ describe('ThemeToggle - three-state cycle', () => {
     act(() => colorScheme.set('light'))
 
     expect(document.documentElement.dataset.theme).toBe('light')
+  })
+})
+
+describe('ThemeToggle - the caption names the mode the site is in', () => {
+  it('says "auto" rather than "system", which is the word visitors do not use', () => {
+    render(<ThemeToggle />)
+
+    expect(caption()).toBe('auto')
+    expect(toggle(SYSTEM)).toBeInTheDocument()
+  })
+
+  it('follows the cycle: auto → light → dark → auto', async () => {
+    const user = userEvent.setup()
+    render(<ThemeToggle />)
+
+    expect(caption()).toBe('auto')
+
+    await user.click(toggle(SYSTEM))
+    expect(caption()).toBe('light')
+
+    await user.click(toggle(LIGHT))
+    expect(caption()).toBe('dark')
+
+    await user.click(toggle(DARK))
+    expect(caption()).toBe('auto')
+  })
+
+  it('stays on "auto" when the world, not the visitor, flips the theme', () => {
+    const colorScheme = stubPrefersColorScheme('light')
+    render(<ThemeToggle />)
+
+    expect(caption()).toBe('auto')
+
+    act(() => colorScheme.set('dark'))
+
+    // The resolved theme changed; the *mode* did not, so neither does the word.
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(caption()).toBe('auto')
+  })
+
+  it('is hidden from assistive tech, which reads the button label instead', () => {
+    render(<ThemeToggle />)
+
+    expect(screen.getByTestId('theme-toggle-caption')).toHaveAttribute('aria-hidden', 'true')
+    expect(toggle(SYSTEM)).toHaveAccessibleName('theme: auto — switch to light')
+  })
+
+  it('no longer sets a title, so the OS tooltip cannot double up on it', () => {
+    render(<ThemeToggle />)
+
+    expect(screen.getByRole('button')).not.toHaveAttribute('title')
   })
 })
 
