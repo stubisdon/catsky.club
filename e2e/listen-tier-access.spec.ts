@@ -1,7 +1,15 @@
 import { test, expect, type Page } from '@playwright/test'
 
+/**
+ * Stub the Ghost member endpoint.
+ *
+ * Matched with a regex, not the glob `**\/members/api/member/`: the client appends a
+ * cache-busting `?_=<timestamp>`, which the trailing-slash glob does not match. With the glob
+ * the route silently never fired, the real request failed, and the tier fell back to 'none' —
+ * so any assertion expecting a *locked* track passed regardless of the tier being mocked.
+ */
 function mockMember(page: Page, amount?: number) {
-  return page.route('**/members/api/member/', (route) => {
+  return page.route(/\/members\/api\/member\//, (route) => {
     if (amount === undefined) {
       route.fulfill({
         status: 200,
@@ -27,92 +35,85 @@ function mockMember(page: Page, amount?: number) {
   })
 }
 
-async function freezeClientDate(page: Page, isoDate: string) {
-  await page.addInitScript(({ nowIso }) => {
-    const fixedNow = new Date(nowIso).valueOf()
-    const RealDate = Date
-
-    class MockDate extends RealDate {
-      constructor(...args: ConstructorParameters<DateConstructor>) {
-        if (args.length === 0) {
-          super(fixedNow)
-          return
-        }
-
-        super(...args)
-      }
-
-      static now() {
-        return fixedNow
-      }
-    }
-
-    Object.defineProperty(MockDate, 'parse', { value: RealDate.parse })
-    Object.defineProperty(MockDate, 'UTC', { value: RealDate.UTC })
-    // @ts-expect-error test-only window override
-    window.Date = MockDate
-  }, { nowIso: isoDate })
-}
+/**
+ * The five released tracks are all `public` now that they are out on the streaming services,
+ * so the still-gated fixtures are the unreleased paid_5 demos: Overpriced Airbnb, Nova and
+ * Vision, which render with the default "in progress" label.
+ *
+ * The date-lock matrix (availableFrom / announcedReleaseDate against each membership tier)
+ * is exercised in src/utils/trackAccess.test.ts with synthetic fixtures, which is the right
+ * home for it: it does not break every time a real track is released.
+ */
+const RELEASED_TRACKS = ['Intro', 'Baby Mama', 'Plank Song', 'Motherless Child', 'Sugar Daddy']
+const LOCKED_DEMO = 'Overpriced Airbnb'
 
 test.describe('Listen catalog tier access', () => {
-  test('guest sees first two public tracks including Baby Mama rename', async ({ page }) => {
-    await freezeClientDate(page, '2026-03-19T12:00:00.000Z')
+  test('guest sees every released track, including the Baby Mama rename', async ({ page }) => {
     await mockMember(page)
     await page.goto('/listen')
 
-    await expect(page.getByText('Intro')).toBeVisible()
-    await expect(page.getByText('Baby Mama')).toBeVisible()
+    for (const title of RELEASED_TRACKS) {
+      await expect(page.getByText(title, { exact: true })).toBeVisible()
+    }
     await expect(page.getByText('Baby Mama 2')).toHaveCount(0)
-
-    await expect(page.getByText('coming Apr 10, 2026')).toBeVisible()
   })
 
-  test('free member can play tracks with announced release dates but not in-progress demos', async ({ page }) => {
-    await freezeClientDate(page, '2026-03-19T12:00:00.000Z')
+  test('guest sees unreleased demos as locked', async ({ page }) => {
+    await mockMember(page)
+    await page.goto('/listen')
+
+    await expect(
+      page.locator('div').filter({ hasText: new RegExp(`^${LOCKED_DEMO}.*in progress$`, 'i') }).first()
+    ).toBeVisible()
+  })
+
+  test('free member sees released tracks but still not in-progress demos', async ({ page }) => {
     await mockMember(page, 0)
     await page.goto('/listen')
 
-    await expect(page.getByText('Plank Song')).toBeVisible()
-    const motherlessChildLocked = page.locator('div').filter({ hasText: /^Motherless Child.*coming Apr 10, 2026$/i }).first()
-    await expect(motherlessChildLocked).toBeVisible()
-
-    await expect(page.getByText('Sugar Daddy')).toBeVisible()
-    await expect(page.locator('div').filter({ hasText: /^Overpriced Airbnb.*in progress$/i }).first()).toBeVisible()
+    await expect(page.getByText('Plank Song', { exact: true })).toBeVisible()
+    await expect(page.getByText('Sugar Daddy', { exact: true })).toBeVisible()
+    await expect(
+      page.locator('div').filter({ hasText: new RegExp(`^${LOCKED_DEMO}.*in progress$`, 'i') }).first()
+    ).toBeVisible()
   })
 
-  test('paid $5 members unlock demo tracks while date locks still apply', async ({ page }) => {
-    await freezeClientDate(page, '2026-03-19T12:00:00.000Z')
+  test('paid $5 members unlock the demo tracks', async ({ page }) => {
     await mockMember(page, 500)
     await page.goto('/listen')
 
-    const motherlessChildLocked = page.locator('div').filter({ hasText: /^Motherless Child.*coming Apr 10, 2026$/i }).first()
-    await expect(motherlessChildLocked).toBeVisible()
-
-    await expect(page.getByText('Overpriced Airbnb')).toBeVisible()
+    await expect(page.getByText(LOCKED_DEMO, { exact: true })).toBeVisible()
+    // Unlocked, so it no longer carries a locked status label.
+    await expect(
+      page.locator('div').filter({ hasText: new RegExp(`^${LOCKED_DEMO}.*in progress$`, 'i') })
+    ).toHaveCount(0)
   })
 
-
-  test('hovering locked track shows listen early CTA', async ({ page }) => {
+  test('hovering a locked track shows the listen early CTA', async ({ page }) => {
     await mockMember(page)
     await page.goto('/listen')
 
-    const sugarDaddyCard = page.getByText('Sugar Daddy').locator('..').locator('..').first()
-    await expect(sugarDaddyCard).toContainText('coming May 8, 2026')
+    const lockedCard = page.getByText(LOCKED_DEMO, { exact: true }).locator('..').locator('..').first()
+    await expect(lockedCard).toContainText('in progress')
 
-    await sugarDaddyCard.hover()
-    await expect(sugarDaddyCard).toContainText(/listen early/i)
-    await expect(sugarDaddyCard).not.toContainText('coming May 8, 2026')
+    await lockedCard.hover()
+    await expect(lockedCard).toContainText(/listen early/i)
+    await expect(lockedCard).not.toContainText('in progress')
 
     await page.locator('h1').hover()
-    await expect(sugarDaddyCard).toContainText('coming May 8, 2026')
-    await expect(sugarDaddyCard).not.toContainText(/listen early/i)
+    await expect(lockedCard).toContainText('in progress')
+    await expect(lockedCard).not.toContainText(/listen early/i)
   })
 
-  test('clicking locked paid track routes user to /connect', async ({ page }) => {
+  test('clicking a locked paid track routes the user to /connect', async ({ page }) => {
     await mockMember(page, 0)
     await page.goto('/listen')
 
-    await page.locator('div').filter({ hasText: /^Sugar Daddy.*coming May 8, 2026$/i }).first().click()
+    await page
+      .locator('div')
+      .filter({ hasText: new RegExp(`^${LOCKED_DEMO}.*in progress$`, 'i') })
+      .first()
+      .click()
     await expect(page).toHaveURL(/\/connect$/)
   })
 })

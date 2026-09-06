@@ -10,6 +10,7 @@ import crypto from 'crypto'
 import fs from 'fs'
 import http from 'http'
 import https from 'https'
+import { createSocialPostsCache, loadSocialPosts } from './server/socialFeeds.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -56,6 +57,17 @@ const GHOST_ADMIN_API_VERSION = process.env.GHOST_ADMIN_API_VERSION || 'v5.0'
 const SIGNUPS_API_TOKEN = process.env.SIGNUPS_API_TOKEN || ''
 const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || ''
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+
+// Social feed credentials. All optional: an unset platform reports an error for itself and the
+// rest of the feed still renders. YouTube additionally falls back to its public Atom feed when
+// YOUTUBE_API_KEY is absent, so that column works with no credentials at all.
+const SOCIAL_FEED_CONFIG = {
+  instagramAccessToken: process.env.INSTAGRAM_ACCESS_TOKEN || '',
+  tiktokAccessToken: process.env.TIKTOK_ACCESS_TOKEN || '',
+  youtubeApiKey: process.env.YOUTUBE_API_KEY || '',
+  youtubeChannelId: process.env.YOUTUBE_CHANNEL_ID || 'UCaDbdaRYUr6-5aExHdnwa7Q',
+}
+const socialPostsCache = createSocialPostsCache()
 
 app.use(cors())
 app.use(express.json())
@@ -636,6 +648,34 @@ app.use(express.static(path.join(__dirname, 'public'), {
     }
   }
 }))
+
+/**
+ * Latest posts for the landing page social feed.
+ *
+ * Credentials stay server-side; the browser only receives normalised posts. Responses are
+ * cached in-process (15 min) and may be served stale for up to a week if a refresh fails, so
+ * an expired Instagram token degrades to slightly old content rather than an empty section.
+ */
+app.get('/api/social-posts', async (req, res) => {
+  const limitParam = Number.parseInt(String(req.query.limit ?? ''), 10)
+  const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 10) : 3
+
+  try {
+    const payload = await socialPostsCache.get(() =>
+      loadSocialPosts({ config: SOCIAL_FEED_CONFIG, limit })
+    )
+    // Short browser cache, long shared cache: the content changes on the order of hours.
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600')
+    return res.json(payload)
+  } catch (error) {
+    console.error('[Social posts fetch failed]', String(error?.message || error))
+    return res.status(502).json({
+      posts: { instagram: [], tiktok: [], youtube: [] },
+      errors: { all: 'Social feed is temporarily unavailable.' },
+      fetchedAt: new Date().toISOString(),
+    })
+  }
+})
 
 app.post('/api/member-profile', memberProfileTextBodyParser, async (req, res) => {
   const parsedBody = parseMemberProfileBody(req.body)

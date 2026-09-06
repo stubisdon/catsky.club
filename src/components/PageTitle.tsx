@@ -6,9 +6,15 @@ interface PageTitleProps {
 }
 
 const titleStyle: CSSProperties = {
-  fontSize: 'clamp(1.8rem, 4vw, 3rem)',
+  // Display serif, matching the landing masthead. The wide tracking the mono title needed is
+  // dropped: at this size the serif's own proportions do that work, and 0.1em on a serif
+  // reads as a stretched logo rather than a title.
+  fontFamily: 'var(--font-display)',
+  fontWeight: 400,
+  fontSize: 'clamp(2.25rem, 5vw, 3.75rem)',
   marginBottom: '1.25rem',
-  letterSpacing: '0.1em',
+  letterSpacing: '-0.01em',
+  lineHeight: 1.05,
   textTransform: 'lowercase',
 }
 

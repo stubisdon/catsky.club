@@ -136,6 +136,8 @@ export default function Router() {
     <>
       <TopNav currentView={view} />
       {page}
+      {/* Grain and plate edge, printed over every route. Purely decorative and click-through. */}
+      <div className="paper-surface" aria-hidden="true" />
     </>
   )
 }

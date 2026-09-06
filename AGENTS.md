@@ -42,6 +42,11 @@ Be extra careful in:
 - `vite.config.ts` proxy + cookie/redirect rewriting,
 - `server.js` env loading, static serving order, and SPA fallback.
 - `src/utils/analytics.ts` privacy boundary (never send emails, names, raw form values, feedback text, or Ghost API keys).
+- `src/utils/magicLink.ts` shared magic-link request used by both `/connect` and the landing
+  page subscribe prompt; changing the request shape affects both signup entry points and the
+  server-side Turnstile check they depend on.
+- `server/socialFeeds.mjs` credential handling: tokens must never be included in a response
+  body. The route returns normalised posts only.
 - nginx templates: `catsky.club-ssl.conf`, `nginx.conf.example`, `nginx-ssl-update.txt` (Ghost route ownership must stay intact).
 
 ### Ghost asset/routing protection (to prevent favicon/email regressions)
@@ -58,6 +63,27 @@ Be extra careful in:
 - When touching Ghost-owned route handling, update the regression contract in `e2e/ghost-infra-fallback.spec.ts` and run it so the nginx + Express safety-net behavior stays documented in code.
 
 For these areas: prefer the smallest valid patch and validate behavior directly.
+
+### Design system
+
+The site uses a single-ink "engraved plate" system (see ARCHITECTURE.md 2.2). When adding UI:
+
+- Use the type-role classes (`.t-display`, `.t-eyebrow`, `.t-meta`) and the ink/rule tokens
+  (`--ink-faint`, `--ink-quiet`, `--rule-color`, `--rule-color-strong`) rather than new
+  `rgba()` literals or inline font stacks. Both themes are derived from these.
+- Do not introduce a second hue. Hierarchy comes from alpha and weight, not colour.
+- Fonts are self-hosted in `public/fonts`. Do not re-add a Google Fonts `<link>`: it puts a
+  third party on every page load and makes Playwright's `networkidle` unreachable.
+- New engraved graphics belong in `src/components/graphics/`, drawn in `currentColor` so they
+  work in both themes without a second asset.
+
+### E2E waiting
+
+Prefer waiting on the element under test over `page.waitForLoadState('networkidle')`. The app
+legitimately talks to Ghost, YouTube and SoundCloud, so `networkidle` is not reliably
+reachable — several pre-existing specs time out in sandboxed environments for this reason.
+`e2e/landing.spec.ts` shows the pattern (`gotoLanding`): stub the third-party hosts, then wait
+for a specific locator.
 
 ## 5) Required execution workflow for every task
 
