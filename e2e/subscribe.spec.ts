@@ -66,7 +66,7 @@ test.describe('Subscribe page', () => {
     await page.locator('#subscribe-email').fill('test@example.com')
     await page.getByRole('button', { name: /subscribe/i }).click()
 
-    const success = page.locator('.subscribe-success')
+    const success = page.locator('.subscribe-confirmation')
     await expect(success).toBeVisible()
     await expect(success).toHaveAttribute('role', 'status')
     await expect(success).toContainText(/click the link/i)
@@ -87,7 +87,7 @@ test.describe('Subscribe page', () => {
     await page.locator('#subscribe-email').fill('test@example.com')
     await page.getByRole('button', { name: /subscribe/i }).click()
 
-    const error = page.locator('.subscribe-error')
+    const error = page.locator('.connect-auth-error')
     await expect(error).toBeVisible()
     await expect(error).toHaveAttribute('role', 'alert')
     await expect(error).toContainText(/verification failed/i)
@@ -112,8 +112,14 @@ test.describe('Subscribe page', () => {
     await page.locator('#subscribe-email').fill('ada@example.com')
     await page.getByRole('button', { name: /subscribe/i }).click()
 
-    await expect(page.locator('.subscribe-success')).toBeVisible()
-    expect(JSON.parse(requestBody || '{}')).toEqual({ email: 'ada@example.com' })
+    await expect(page.locator('.subscribe-confirmation')).toBeVisible()
+    // Goes through the shared magicLink helper, so it carries the signup emailType and a
+    // label that lets subscribe-page signups be told apart from /connect ones in Ghost.
+    expect(JSON.parse(requestBody || '{}')).toEqual({
+      email: 'ada@example.com',
+      emailType: 'signup',
+      labels: ['subscribe-page'],
+    })
   })
 
   test('trailing slash resolves to the subscribe page, not home', async ({ page }) => {

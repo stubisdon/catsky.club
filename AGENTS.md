@@ -43,7 +43,7 @@ Be extra careful in:
 - `server.js` env loading, static serving order, and SPA fallback.
 - `server.js` `enforceTurnstile()` and the two endpoints it gates, `POST /members/api/send-magic-link/` and `POST /api/member-profile` — both fail OPEN (allow the request) when `TURNSTILE_SECRET_KEY` is unset and fail CLOSED (403) once it is set; `TURNSTILE_VERIFY_URL` must never be set in production (test-only override).
 - `src/utils/engagement.ts` privacy/storage: only opaque trigger names and thresholds are tracked, state lives in `localStorage` (`catsky_engagement`), and it must never be extended to store emails, names, or raw playback identifiers beyond track/video ids already public in `src/config/tracks.ts`.
-- `src/components/TurnstileWidget.tsx` shared client Turnstile widget (used by `/subscribe`, `/welcome`, `Connect.tsx`, and `EmailCaptureModal.tsx`) — renders nothing when `VITE_TURNSTILE_SITE_KEY` is unset, and tokens are single-use (must be reset via `resetSignal` after a failed submit).
+- `src/components/TurnstileWidget.tsx` shared client Turnstile widget (used by `/subscribe` and `/welcome`; `Connect.tsx` and `SubscribeDialog.tsx` keep their own inline loaders) — renders nothing when `VITE_TURNSTILE_SITE_KEY` is unset, and tokens are single-use (must be reset via `resetSignal` after a failed submit). The site key itself comes from `src/utils/magicLink.ts`.
 - `src/utils/analytics.ts` privacy boundary (never send emails, names, raw form values, feedback text, or Ghost API keys).
 - `src/utils/magicLink.ts` shared magic-link request used by both `/connect` and the landing
   page subscribe prompt; changing the request shape affects both signup entry points and the

@@ -168,11 +168,12 @@ Two-step signup is the standard signup path (used by `/subscribe`, `Connect.tsx`
 - **Step 1 — email.** The visitor submits an email (+ Turnstile token) to `POST /members/api/send-magic-link/`. Ghost creates the member and emails a magic link; no name is collected yet and the member is not fully "signed up" until step 2 completes.
 - **Step 2 — name + verification.** The magic link lands on `/welcome` (`src/Welcome.tsx`), which collects first name (required) + last name (optional) + a fresh Turnstile token, then `await`s `POST /api/member-profile`. Navigation to `/listen` only happens on a successful (2xx) response; a `403` (failed verification) shows an inline error and keeps the visitor on `/welcome`. There is no fire-and-forget or `sendBeacon` fallback here — a beacon cannot surface a verification verdict, so the request must be awaited.
 
-Three entry points feed step 1, all through the shared `src/utils/emailCapture.ts` helpers (`requestMagicLink` / `isValidEmail`) and the shared `src/components/TurnstileWidget.tsx`:
+Four entry points feed step 1, all through the shared `src/utils/magicLink.ts` helpers (`requestMagicLink` / `isValidEmail` / `TURNSTILE_SITE_KEY`), so no caller can drift away from the bot protection the others rely on:
 
 - `/subscribe` (`src/Subscribe.tsx`) — the standalone landing page meant for sharing directly.
 - `Connect.tsx` — the inline email form described in 3.2, now using the shared widget instead of its own inline Turnstile implementation.
-- The engagement-triggered popup (`src/components/EmailCaptureModal.tsx`), see below.
+- `SubscribeDialog.tsx`, opened from the album shelf on the landing page.
+- The engagement-triggered prompt (`src/components/EngagementSubscribePrompt.tsx`), which reuses that same `SubscribeDialog` rather than adding a second email-capture UI. See below.
 
 Each of these three passes a distinct `source` (`subscribe_page` | `popup` | `connect`) into `requestMagicLink`, which is attached to the `magic_link_requested` / `_succeeded` / `_failed` analytics events so the funnels can be told apart. As with the rest of the analytics surface, no email, name, or raw form value is ever sent.
 
@@ -191,11 +192,11 @@ Semantics (identical for both):
 - `turnstileToken` is stripped from the request body before it is proxied/forwarded to Ghost.
 - `TURNSTILE_VERIFY_URL` is overridable via env so tests can point siteverify at a local mock. It must never be set in production.
 
-The client-side widget (`src/components/TurnstileWidget.tsx`, site key in `src/utils/turnstileConfig.ts`) renders nothing when `VITE_TURNSTILE_SITE_KEY` is unset; the server-side gate above is what actually enforces verification, so an unset site key degrades the UX (no visible challenge) rather than the protection.
+`/subscribe` and `/welcome` use the shared `src/components/TurnstileWidget.tsx`; `Connect.tsx` and `SubscribeDialog.tsx` keep their own inline loaders. All of them read the site key from `src/utils/magicLink.ts` and render nothing when `VITE_TURNSTILE_SITE_KEY` is unset — the server-side gate above is what actually enforces verification, so an unset site key degrades the UX (no visible challenge) rather than the protection.
 
 ### 3.5 Engagement-triggered email capture
 
-`src/components/EmailCaptureModal.tsx` is mounted once in `src/router/Router.tsx`, on every view except `/subscribe`, `/welcome`, and `/connect` (those either already ask for an email or are mid-signup). It is driven by the headless module `src/utils/engagement.ts`, which fires exactly one of three triggers for logged-out visitors:
+`src/components/EngagementSubscribePrompt.tsx` is mounted in `src/router/Router.tsx` on every view except `/subscribe`, `/welcome`, and `/connect` (those either already ask for an email or are mid-signup). It opens the existing `SubscribeDialog` and is driven by the headless module `src/utils/engagement.ts`, which fires exactly one of three triggers for logged-out visitors:
 
 - a video watched to `VIDEO_PROGRESS_THRESHOLD` (>= 90%),
 - `ACTIVE_TIME_THRESHOLD_MS` (>= 3 minutes) of *active* time — visible **and** focused tab, not wall-clock time,

@@ -205,3 +205,38 @@ describe('Welcome signup completion', () => {
     expect(screen.getByRole('link', { name: /skip for now/i })).toHaveAttribute('href', '/listen')
   })
 })
+
+describe('Welcome turnstile failure handling', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.stubGlobal('fetch', fetchMock)
+    fetchMock.mockResolvedValue({ ok: true, status: 202 })
+    getCurrentMemberMock.mockResolvedValue(null)
+    window.sessionStorage.clear()
+  })
+
+  // A disabled button with no explanation is a dead end for anyone whose Turnstile was
+  // blocked, or who opened the emailed link in a different browser than they requested it in.
+  it('keeps sign up clickable without a token and explains what is missing', async () => {
+    vi.resetModules()
+    vi.doMock('./utils/magicLink', async () => {
+      const actual = await vi.importActual<typeof import('./utils/magicLink')>('./utils/magicLink')
+      return { ...actual, TURNSTILE_SITE_KEY: 'site-key-present' }
+    })
+    const { default: GatedWelcome } = await import('./Welcome')
+
+    render(<GatedWelcome />)
+
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Ada' } })
+    const button = screen.getByRole('button', { name: /sign up/i })
+    expect(button).toBeEnabled()
+
+    fireEvent.click(button)
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(/complete the verification/i),
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+    vi.doUnmock('./utils/magicLink')
+  })
+})

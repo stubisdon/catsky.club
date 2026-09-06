@@ -126,12 +126,12 @@ export default function Welcome() {
       })
   }, [])
 
-  // A first name and a passed Turnstile challenge are both required to finish signing up.
-  // When no site key is configured the widget renders nothing, so only the name gates.
-  const canSubmit = useMemo(
-    () => firstName.trim().length > 0 && (!TURNSTILE_SITE_KEY || !!turnstileToken),
-    [firstName, turnstileToken],
-  )
+  // Only the name gates the button. The Turnstile token is still required to submit (checked
+  // below, and enforced by the server), but deliberately does NOT disable the button: if the
+  // challenge fails to load — adblocker, or the visitor opened the emailed link in a different
+  // browser than they requested it from — a disabled button is a silent dead end with nothing
+  // to click and no explanation. Letting the click through surfaces the real reason instead.
+  const canSubmit = useMemo(() => firstName.trim().length > 0, [firstName])
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -148,7 +148,7 @@ export default function Welcome() {
     }
 
     if (TURNSTILE_SITE_KEY && !turnstileToken) {
-      setError('Please complete the verification below.')
+      setError('Please complete the verification below to finish signing up.')
       trackEvent('welcome_profile_failed', { status: 'turnstile_missing' })
       return
     }
