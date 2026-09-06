@@ -32,3 +32,21 @@ GHOST_ADMIN_API_KEY=YOUR_ID:YOUR_HEX_SECRET
 # VITE_PUBLIC_POSTHOG_ENABLED=true
 # Cloudflare Turnstile site key (public) — baked into the client bundle at build time.
 # VITE_TURNSTILE_SITE_KEY=0x....
+
+# --- Social feed (GET /api/social-posts) ---
+# Powers the "latest posts" section on the landing page. Every variable is optional: a platform
+# with no credentials reports an error for itself and renders a "see the latest on <platform>"
+# link instead, while the other platforms keep working. See docs/SOCIAL_FEED_SETUP.md.
+#
+# Instagram Graph API. Business/Creator account linked to a Facebook Page.
+# The long-lived token expires every 60 days and must be refreshed.
+# INSTAGRAM_ACCESS_TOKEN=
+#
+# TikTok Display API. OAuth user token with the video.list scope.
+# TIKTOK_ACCESS_TOKEN=
+#
+# YouTube Data API v3. A plain API key (no OAuth, no expiry).
+# Leave unset to use the public Atom feed instead, which needs no credentials at all.
+# YOUTUBE_API_KEY=
+# Defaults to the catsky channel; override only if the channel changes.
+# YOUTUBE_CHANNEL_ID=UCaDbdaRYUr6-5aExHdnwa7Q

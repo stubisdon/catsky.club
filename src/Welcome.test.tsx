@@ -26,16 +26,16 @@ vi.mock('./utils/analytics', () => ({
 // The real widget renders nothing without a site key, which is also the local dev state.
 // Mocking it lets these tests exercise both the "no Turnstile configured" and the
 // "Turnstile configured" paths, and inspect resetSignal.
-vi.mock('./components', async () => {
-  const actual = await vi.importActual<typeof import('./components')>('./components')
-  return {
-    ...actual,
-    TURNSTILE_SITE_KEY: '',
-    TurnstileWidget: (props: { resetSignal?: number }) => {
-      turnstilePropsSpy(props)
-      return <div data-testid="turnstile" data-reset-signal={props.resetSignal} />
-    },
-  }
+vi.mock('./components/TurnstileWidget', () => ({
+  TurnstileWidget: (props: { resetSignal?: number }) => {
+    turnstilePropsSpy(props)
+    return <div data-testid="turnstile" data-reset-signal={props.resetSignal} />
+  },
+}))
+
+vi.mock('./utils/magicLink', async () => {
+  const actual = await vi.importActual<typeof import('./utils/magicLink')>('./utils/magicLink')
+  return { ...actual, TURNSTILE_SITE_KEY: '' }
 })
 
 const submitForm = () =>
@@ -198,5 +198,10 @@ describe('Welcome signup completion', () => {
     const serialized = JSON.stringify(trackEventMock.mock.calls)
     expect(serialized).not.toContain('Ada')
     expect(serialized).not.toContain('Lovelace')
+  })
+
+  it('offers a skip link to the music page', () => {
+    render(<Welcome />)
+    expect(screen.getByRole('link', { name: /skip for now/i })).toHaveAttribute('href', '/listen')
   })
 })

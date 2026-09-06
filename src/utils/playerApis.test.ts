@@ -326,3 +326,12 @@ describe('playerApis', () => {
     })
   })
 })
+
+describe('youTubeJsApiParams', () => {
+  it('appends enablejsapi and the current origin as query suffix params', async () => {
+    const { youTubeJsApiParams } = await import('./playerApis')
+    const params = youTubeJsApiParams()
+    expect(params.startsWith('&enablejsapi=1')).toBe(true)
+    expect(params).toContain('origin=')
+  })
+})

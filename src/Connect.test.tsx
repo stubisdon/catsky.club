@@ -5,7 +5,6 @@ import Connect from './Connect'
 const mocks = vi.hoisted(() => ({
   getMembershipTierMock: vi.fn<() => Promise<'none' | 'free' | 'paid_5' | 'paid_20'>>(),
   getPaidPlanOptionsMock: vi.fn<() => Promise<Array<{ id?: string; name: string; monthlyAmount: number; perks: string[] }>>>(),
-  navigateToMock: vi.fn<(path: string) => void>(),
   getCurrentMemberMock: vi.fn<() => Promise<{ id?: string; uuid?: string; email?: string } | null>>(),
   openPortalAccountPlansMock: vi.fn<() => void>(),
   triggerPortalSignOutMock: vi.fn<() => boolean>(),
@@ -18,7 +17,6 @@ const mocks = vi.hoisted(() => ({
 const {
   getMembershipTierMock,
   getPaidPlanOptionsMock,
-  navigateToMock,
   getCurrentMemberMock,
   openPortalAccountPlansMock,
   triggerPortalSignOutMock,
@@ -42,10 +40,6 @@ vi.mock('./utils/analytics', () => ({
   resetAnalyticsIdentity: mocks.resetAnalyticsIdentityMock,
   trackEvent: mocks.trackEventMock,
   trackPortalEvent: mocks.trackPortalEventMock,
-}))
-
-vi.mock('./router/navigation', () => ({
-  navigateTo: mocks.navigateToMock,
 }))
 
 describe('Connect membership states and magic-link refresh', () => {
@@ -88,36 +82,17 @@ describe('Connect membership states and magic-link refresh', () => {
     expect(screen.getByText('Studio Pass: unfinished demos • Backstage Circle: unreleased music videos')).toBeInTheDocument()
   })
 
-  it('updates to logged-in buttons after signin magic-link success callback', async () => {
-    getMembershipTierMock
-      .mockResolvedValueOnce('none')
-      .mockResolvedValueOnce('none')
-      .mockResolvedValueOnce('paid_5')
+  it('shows Router-owned failed callback messaging without consuming the global handoff', async () => {
+    window.__catskyAuthCallback = { action: 'signup', success: false }
 
-    window.history.replaceState({}, '', '/connect?action=signin&success=true')
-
-    render(<Connect />)
+    render(<Connect failedAuthCallback={{ action: 'signup', success: false }} />)
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(3500)
-    })
-
-    expect(screen.getByRole('link', { name: 'account' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'sign up →' })).not.toBeInTheDocument()
-    expect(screen.getByText('paid access active (Supporter)')).toBeInTheDocument()
-    expect(navigateToMock).not.toHaveBeenCalled()
-  })
-
-  it('consumes the captured signin callback so it cannot affect later navigation', async () => {
-    window.__catskyAuthCallback = { action: 'signin', success: true }
-    window.history.replaceState({}, '', '/connect')
-
-    await act(async () => {
-      render(<Connect />)
       await Promise.resolve()
     })
 
-    expect(window.__catskyAuthCallback).toBeUndefined()
+    expect(screen.getByText('that link has expired or was already used. request a new one.')).toBeInTheDocument()
+    expect(window.__catskyAuthCallback).toEqual({ action: 'signup', success: false })
   })
 
   it('opens account plans in Ghost Portal when free-member video upgrade CTA is clicked', async () => {
@@ -135,36 +110,6 @@ describe('Connect membership states and magic-link refresh', () => {
     })
 
     expect(openPortalAccountPlansMock).toHaveBeenCalledTimes(1)
-  })
-
-  it('routes signup callbacks to welcome after login state is ready', async () => {
-    getMembershipTierMock
-      .mockResolvedValueOnce('none')
-      .mockResolvedValueOnce('none')
-      .mockResolvedValueOnce('paid_5')
-    getCurrentMemberMock.mockResolvedValue({
-      uuid: 'member-uuid-123',
-      email: 'ada@example.com',
-    })
-
-    window.history.replaceState({}, '', '/connect?action=signup&success=true')
-
-    render(<Connect />)
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3500)
-    })
-
-    expect(navigateToMock).toHaveBeenCalledWith('/welcome')
-    expect(window.location.search).toBe('')
-    expect(window.sessionStorage.getItem('catsky_welcome_member')).toBe(
-      JSON.stringify({
-        memberId: '',
-        memberUuid: 'member-uuid-123',
-        email: 'ada@example.com',
-      }),
-    )
-    expect(trackEventMock).toHaveBeenCalledWith('signup_callback_resolved', { membership_tier: 'paid_5' })
   })
 
   it('resets analytics identity on logout', async () => {
@@ -248,5 +193,44 @@ describe('Connect membership states and magic-link refresh', () => {
         email: 'ada@example.com',
       }),
     }))
+  })
+
+  it('de-emphasises a sent link, focuses the confirmation, and enables resend after the cooldown', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({ success: true }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<Connect />)
+    await act(async () => { await vi.runAllTimersAsync() })
+    fireEvent.click(screen.getByRole('button', { name: 'sign up →' }))
+    const input = screen.getByPlaceholderText('your@email.com')
+    fireEvent.change(input, { target: { value: 'ada@example.com' } })
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: 'send magic link' }).closest('form')!)
+      await Promise.resolve()
+    })
+
+    const button = screen.getByRole('button', { name: 'link sent' })
+    expect(button).toBeDisabled()
+    expect(input).toHaveAttribute('readonly')
+    expect(screen.getByRole('status')).toHaveTextContent('ada@example.com')
+    expect(screen.getByRole('status')).toHaveTextContent('you can send another in 30s.')
+    expect(document.activeElement).toBe(screen.getByRole('status'))
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
+    expect(screen.getByRole('button', { name: 'link sent' })).toBeDisabled()
+    expect(screen.getByRole('status')).toHaveTextContent('you can send another in 28s.')
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(28_000) })
+    const resendButton = screen.getByRole('button', { name: 'send again' })
+    expect(resendButton).toBeEnabled()
+    expect(input).not.toHaveAttribute('readonly')
+    await act(async () => {
+      fireEvent.submit(resendButton.closest('form')!)
+      await Promise.resolve()
+    })
+    expect(trackEventMock).toHaveBeenCalledWith('magic_link_resend_clicked', { entry_point: 'signup' })
   })
 })

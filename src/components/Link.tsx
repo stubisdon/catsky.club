@@ -8,6 +8,7 @@ interface LinkProps {
   style?: CSSProperties
   variant?: 'default' | 'button' | 'subtle'
   onClick?: (e: MouseEvent<HTMLAnchorElement>) => void
+  'data-testid'?: string
 }
 
 const baseStyle: CSSProperties = {
@@ -21,7 +22,7 @@ const baseStyle: CSSProperties = {
 const buttonStyle: CSSProperties = {
   ...baseStyle,
   fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-  border: '2px solid rgba(255, 255, 255, 0.3)',
+  border: '2px solid rgba(var(--color-text-rgb), 0.3)',
   padding: '0.9rem 1.5rem',
   display: 'inline-block',
   transition: 'all 0.3s ease',
@@ -29,7 +30,7 @@ const buttonStyle: CSSProperties = {
 
 const subtleStyle: CSSProperties = {
   ...baseStyle,
-  color: 'rgba(255, 255, 255, 0.5)',
+  color: 'rgba(var(--color-text-rgb), 0.5)',
   fontSize: '0.9rem',
   letterSpacing: '0.05em',
   transition: 'color 0.3s ease',
@@ -42,6 +43,7 @@ export default function Link({
   style,
   variant = 'default',
   onClick,
+  'data-testid': dataTestId,
 }: LinkProps) {
   const handleClick = useCallback(
     (e: MouseEvent<HTMLAnchorElement>) => {
@@ -63,7 +65,7 @@ export default function Link({
       e.currentTarget.style.background = 'var(--color-text)'
       e.currentTarget.style.color = 'var(--color-bg)'
     } else if (variant === 'subtle') {
-      e.currentTarget.style.color = 'rgba(255, 255, 255, 1)'
+      e.currentTarget.style.color = 'var(--color-text)'
     }
   }, [variant])
 
@@ -72,7 +74,7 @@ export default function Link({
       e.currentTarget.style.background = 'transparent'
       e.currentTarget.style.color = 'var(--color-text)'
     } else if (variant === 'subtle') {
-      e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)'
+      e.currentTarget.style.color = 'rgba(var(--color-text-rgb), 0.5)'
     }
   }, [variant])
 
@@ -90,6 +92,7 @@ export default function Link({
       onMouseLeave={handleMouseLeave}
       className={className}
       style={{ ...variantStyle, ...style }}
+      data-testid={dataTestId}
     >
       {children}
     </a>

@@ -35,6 +35,7 @@ Avoid:
 Be extra careful in:
 
 - `index.html` Ghost Portal patch/hardening script (script order is intentional),
+- `index.html` pre-paint theme script — it must stay first, tiny, dependency-free, and mirror the precedence in `src/utils/theme.ts` (preference → OS `prefers-color-scheme` → cached `catsky_theme_auto` → light). Never inline the solar math into it, and never reorder it relative to the Ghost Portal patch block below it. See `ARCHITECTURE.md` §2.1,
 - `src/utils/subscription.ts` and auth/session flows,
 - `src/Connect.tsx` login/signup/callback behavior,
 - `src/Welcome.tsx` post-signup onboarding handoff, awaited profile save + Turnstile verification (the `/api/member-profile` call must be awaited so a 403 can block navigation; do not revert this to a fire-and-forget/`sendBeacon` save), and lightweight field-label note styling,
@@ -44,6 +45,11 @@ Be extra careful in:
 - `src/utils/engagement.ts` privacy/storage: only opaque trigger names and thresholds are tracked, state lives in `localStorage` (`catsky_engagement`), and it must never be extended to store emails, names, or raw playback identifiers beyond track/video ids already public in `src/config/tracks.ts`.
 - `src/components/TurnstileWidget.tsx` shared client Turnstile widget (used by `/subscribe`, `/welcome`, `Connect.tsx`, and `EmailCaptureModal.tsx`) — renders nothing when `VITE_TURNSTILE_SITE_KEY` is unset, and tokens are single-use (must be reset via `resetSignal` after a failed submit).
 - `src/utils/analytics.ts` privacy boundary (never send emails, names, raw form values, feedback text, or Ghost API keys).
+- `src/utils/magicLink.ts` shared magic-link request used by both `/connect` and the landing
+  page subscribe prompt; changing the request shape affects both signup entry points and the
+  server-side Turnstile check they depend on.
+- `server/socialFeeds.mjs` credential handling: tokens must never be included in a response
+  body. The route returns normalised posts only.
 - nginx templates: `catsky.club-ssl.conf`, `nginx.conf.example`, `nginx-ssl-update.txt` (Ghost route ownership must stay intact).
 
 ### Ghost asset/routing protection (to prevent favicon/email regressions)
@@ -60,6 +66,27 @@ Be extra careful in:
 - When touching Ghost-owned route handling, update the regression contract in `e2e/ghost-infra-fallback.spec.ts` and run it so the nginx + Express safety-net behavior stays documented in code.
 
 For these areas: prefer the smallest valid patch and validate behavior directly.
+
+### Design system
+
+The site uses a single-ink "engraved plate" system (see ARCHITECTURE.md 2.2). When adding UI:
+
+- Use the type-role classes (`.t-display`, `.t-eyebrow`, `.t-meta`) and the ink/rule tokens
+  (`--ink-faint`, `--ink-quiet`, `--rule-color`, `--rule-color-strong`) rather than new
+  `rgba()` literals or inline font stacks. Both themes are derived from these.
+- Do not introduce a second hue. Hierarchy comes from alpha and weight, not colour.
+- Fonts are self-hosted in `public/fonts`. Do not re-add a Google Fonts `<link>`: it puts a
+  third party on every page load and makes Playwright's `networkidle` unreachable.
+- New engraved graphics belong in `src/components/graphics/`, drawn in `currentColor` so they
+  work in both themes without a second asset.
+
+### E2E waiting
+
+Prefer waiting on the element under test over `page.waitForLoadState('networkidle')`. The app
+legitimately talks to Ghost, YouTube and SoundCloud, so `networkidle` is not reliably
+reachable — several pre-existing specs time out in sandboxed environments for this reason.
+`e2e/landing.spec.ts` shows the pattern (`gotoLanding`): stub the third-party hosts, then wait
+for a specific locator.
 
 ## 5) Required execution workflow for every task
 

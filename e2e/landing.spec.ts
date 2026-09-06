@@ -3,307 +3,453 @@ import { test, expect } from '@playwright/test'
 /**
  * Landing Page Tests
  *
- * Tests for the landing page (/) including:
- * - Page content and branding
- * - Navigation links
- * - Hero section
- * - Responsive design
- * - Accessibility
+ * The landing page is the release shelf: masthead, two album covers, the music video, and the
+ * social feed. The two covers carry the page's two calls to action, so most of what matters
+ * here is that clicking each one opens the right thing.
+ *
+ * Navigation moved into the top bar, so nav-link assertions live in navigation.spec.ts and in
+ * src/components/TopNav.test.tsx rather than here.
  */
 
-test.describe('Landing Page - Content', () => {
-  test('displays main heading with site name', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+const RELEASED_COVER = '[data-testid="album-cover-collection-one"]'
+const UPCOMING_COVER = '[data-testid="album-cover-collection-two"]'
 
-    const heading = page.getByRole('heading', { name: /catsky\.club/i })
-    await expect(heading).toBeVisible()
+type Page = import('@playwright/test').Page
+
+/**
+ * Stub /api/social-posts. The feed calls it on mount and the API has no credentials in e2e,
+ * so without this the request either hangs or returns whatever the environment happens to
+ * have configured.
+ */
+async function stubSocialPosts(page: Page, body?: object) {
+  await page.route('**/api/social-posts*', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(body ?? { posts: {}, errors: {}, fetchedAt: new Date().toISOString() }),
+    })
+  )
+}
+
+/**
+ * Stub the third-party image hosts the page links to (YouTube posters, social thumbnails).
+ * These are real remote URLs, so in a sandboxed or offline runner they stall rather than
+ * fail, which is what previously made `networkidle` unreachable.
+ */
+async function stubRemoteImages(page: Page) {
+  // 1x1 transparent GIF.
+  const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64')
+  await page.route(/i\.ytimg\.com|cdninstagram\.com|tiktokcdn|sndcdn\.com/, (route) =>
+    route.fulfill({ status: 200, contentType: 'image/gif', body: pixel })
+  )
+}
+
+/**
+ * Open the landing page and wait for it to be interactive.
+ *
+ * Deliberately not `waitForLoadState('networkidle')`: the page legitimately talks to Ghost
+ * for membership state and to YouTube for poster frames, and a single slow third party would
+ * make every test in the file time out. Waiting on the element under test is both faster and
+ * a truer statement of what the test needs.
+ */
+async function gotoLanding(page: Page) {
+  await stubRemoteImages(page)
+  await page.goto('/')
+  await page.locator('[data-testid="album-shelf"]').waitFor({ state: 'visible' })
+}
+
+test.describe('Landing Page - Content', () => {
+  test.beforeEach(async ({ page }) => {
+    await stubSocialPosts(page)
+  })
+
+  test('displays the masthead', async ({ page }) => {
+    await gotoLanding(page)
+
+    await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible()
+    // The wordmark is the only place the name appears; the old sub-line under it is gone.
+    await expect(page.locator('.home-domain')).toHaveCount(0)
   })
 
   test('displays tagline/poem content', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await gotoLanding(page)
 
-    // Check for the poem/tagline content
     await expect(page.getByText(/in the world of data/i)).toBeVisible()
     await expect(page.getByText(/scattered everywhere/i)).toBeVisible()
     await expect(page.getByText(/here to find a meaning/i)).toBeVisible()
     await expect(page.getByText(/for the ones who care/i)).toBeVisible()
   })
 
-  test('has app-container wrapper', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+  test('displays both album covers, the video and the social feed', async ({ page }) => {
+    await gotoLanding(page)
 
-    const container = page.locator('.app-container')
-    await expect(container).toBeVisible()
+    await expect(page.locator(RELEASED_COVER)).toBeVisible()
+    await expect(page.locator(UPCOMING_COVER)).toBeVisible()
+    await expect(page.getByTestId('video-feature')).toBeVisible()
+    await expect(page.getByTestId('social-feed')).toBeVisible()
+  })
+
+  test('links out to every streaming platform', async ({ page }) => {
+    await gotoLanding(page)
+
+    const footer = page.locator('.listen-row')
+    await expect(footer.getByRole('link', { name: /spotify/i })).toHaveAttribute(
+      'href',
+      /open\.spotify\.com/
+    )
+    await expect(footer.getByRole('link', { name: /apple music/i })).toHaveAttribute(
+      'href',
+      /music\.apple\.com/
+    )
+    await expect(footer.getByRole('link', { name: /more platforms/i })).toBeVisible()
+  })
+
+  test('links to each social profile', async ({ page }) => {
+    await gotoLanding(page)
+
+    await expect(page.getByTestId('social-profile-instagram')).toHaveAttribute(
+      'href',
+      /instagram\.com/
+    )
+    await expect(page.getByTestId('social-profile-tiktok')).toHaveAttribute('href', /tiktok\.com/)
+    await expect(page.getByTestId('social-profile-youtube')).toHaveAttribute('href', /youtube\.com/)
   })
 })
 
-test.describe('Landing Page - Navigation Links', () => {
-  test('displays listen navigation link', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    const listenLink = page.getByRole('link', { name: 'listen' })
-    await expect(listenLink).toBeVisible()
-    await expect(listenLink).toHaveAttribute('href', '/listen')
+test.describe('Landing Page - Album covers', () => {
+  test.beforeEach(async ({ page }) => {
+    await stubSocialPosts(page)
   })
 
-  test('displays watch navigation link', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+  test('released cover opens the tracklist with all five tracks', async ({ page }) => {
+    await gotoLanding(page)
 
-    const watchLink = page.getByRole('link', { name: 'watch' })
-    await expect(watchLink).toBeVisible()
-    await expect(watchLink).toHaveAttribute('href', '/watch')
+    await page.locator(RELEASED_COVER).click()
+
+    const dialog = page.getByTestId('album-dialog')
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByTestId('album-tracklist').locator('> li')).toHaveCount(5)
+    await expect(dialog.getByText('Sugar Daddy')).toBeVisible()
   })
 
-  test('displays connect navigation link', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+  test('expanding a track reveals its player and platform links', async ({ page }) => {
+    await gotoLanding(page)
 
-    const connectLink = page.getByRole('link', { name: 'connect' })
-    await expect(connectLink).toBeVisible()
-    await expect(connectLink).toHaveAttribute('href', '/connect')
+    await page.locator(RELEASED_COVER).click()
+    await page.getByTestId('album-track-1').click()
+
+    const dialog = page.getByTestId('album-dialog')
+    // Audio streams from SoundCloud; the icons point at the stores.
+    await expect(dialog.locator('.album-track-player')).toHaveAttribute(
+      'src',
+      /w\.soundcloud\.com/
+    )
+    await expect(dialog.getByRole('link', { name: /spotify/i })).toBeVisible()
+    await expect(dialog.getByRole('link', { name: /apple music/i })).toBeVisible()
+    await expect(dialog.getByRole('link', { name: /more platforms/i })).toBeVisible()
   })
 
-  test('listen link navigates to listen page', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+  test('only one track is expanded at a time', async ({ page }) => {
+    await gotoLanding(page)
 
-    await page.getByRole('link', { name: 'listen' }).click()
-    await expect(page).toHaveURL(/.*\/listen/)
+    await page.locator(RELEASED_COVER).click()
+    await page.getByTestId('album-track-1').click()
+    await page.getByTestId('album-track-2').click()
+
+    // A second open player would mean two tracks could play over each other.
+    await expect(page.locator('.album-track-player')).toHaveCount(1)
   })
 
-  test('watch link navigates to watch page', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+  test('upcoming cover opens the subscribe prompt', async ({ page }) => {
+    await gotoLanding(page)
 
-    await page.getByRole('link', { name: 'watch' }).click()
-    await expect(page).toHaveURL(/.*\/watch/)
+    await page.locator(UPCOMING_COVER).click()
+
+    const dialog = page.getByTestId('subscribe-dialog')
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByText(/subscribe for updates about upcoming releases/i)).toBeVisible()
+    await expect(dialog.getByTestId('subscribe-email')).toBeVisible()
   })
 
-  test('connect link navigates to connect page', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+  test('subscribe prompt rejects an invalid email before calling the API', async ({ page }) => {
+    let magicLinkCalls = 0
+    await page.route('**/members/api/send-magic-link/', (route) => {
+      magicLinkCalls += 1
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+    })
 
-    await page.getByRole('link', { name: 'connect' }).click()
-    await expect(page).toHaveURL(/.*\/connect/)
+    await gotoLanding(page)
+
+    await page.locator(UPCOMING_COVER).click()
+    await page.getByTestId('subscribe-email').fill('not-an-email')
+    await page.getByTestId('subscribe-submit').click()
+
+    await expect(page.getByTestId('subscribe-error')).toBeVisible()
+    expect(magicLinkCalls).toBe(0)
   })
 
-  test('all navigation links have hover effects', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+  test('subscribe prompt confirms after a successful magic-link request', async ({ page }) => {
+    await page.route('**/members/api/send-magic-link/', (route) =>
+      route.fulfill({ status: 201, contentType: 'application/json', body: '{}' })
+    )
 
-    const links = ['listen', 'watch', 'connect']
+    await gotoLanding(page)
 
-    for (const linkText of links) {
-      const link = page.getByRole('link', { name: linkText })
+    await page.locator(UPCOMING_COVER).click()
+    await page.getByTestId('subscribe-email').fill('fan@example.com')
+    await page.getByTestId('subscribe-submit').click()
 
-      // Get initial background
-      const initialBg = await link.evaluate((el) => {
-        return window.getComputedStyle(el).backgroundColor
+    await expect(page.getByTestId('subscribe-confirmation')).toBeVisible()
+  })
+
+  test('subscribe prompt surfaces a server error', async ({ page }) => {
+    await page.route('**/members/api/send-magic-link/', (route) =>
+      route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({ errors: [{ message: 'Verification failed. Please try again.' }] }),
       })
+    )
 
-      // Hover over link
-      await link.hover()
+    await gotoLanding(page)
 
-      // Wait for transition
-      await page.waitForTimeout(400)
+    await page.locator(UPCOMING_COVER).click()
+    await page.getByTestId('subscribe-email').fill('fan@example.com')
+    await page.getByTestId('subscribe-submit').click()
 
-      // Check background changed (hover effect)
-      const hoverBg = await link.evaluate((el) => {
-        return window.getComputedStyle(el).backgroundColor
-      })
-
-      // Background should be different on hover
-      expect(hoverBg).not.toBe(initialBg)
-    }
+    await expect(page.getByTestId('subscribe-error')).toContainText(/verification failed/i)
   })
 })
 
-test.describe('Landing Page - Styling', () => {
-  test('heading has lowercase text transform', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    const heading = page.getByRole('heading', { name: /catsky\.club/i })
-
-    const textTransform = await heading.evaluate((el) => {
-      return window.getComputedStyle(el).textTransform
-    })
-
-    expect(textTransform).toBe('lowercase')
+test.describe('Landing Page - Dialog behaviour', () => {
+  test.beforeEach(async ({ page }) => {
+    await stubSocialPosts(page)
   })
 
-  test('navigation links have styled borders', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+  test('escape closes the dialog', async ({ page }) => {
+    await gotoLanding(page)
 
-    const listenLink = page.getByRole('link', { name: 'listen' })
+    await page.locator(UPCOMING_COVER).click()
+    await expect(page.getByTestId('subscribe-dialog')).toBeVisible()
 
-    const borderStyle = await listenLink.evaluate((el) => {
-      return window.getComputedStyle(el).borderStyle
-    })
-
-    expect(borderStyle).toBe('solid')
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('subscribe-dialog')).toBeHidden()
   })
 
-  test('navigation links have padding', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+  test('the close button closes the dialog', async ({ page }) => {
+    await gotoLanding(page)
 
-    const listenLink = page.getByRole('link', { name: 'listen' })
+    await page.locator(RELEASED_COVER).click()
+    await expect(page.getByTestId('album-dialog')).toBeVisible()
 
-    const padding = await listenLink.evaluate((el) => {
-      const style = window.getComputedStyle(el)
-      return {
-        paddingTop: parseFloat(style.paddingTop),
-        paddingBottom: parseFloat(style.paddingBottom),
-        paddingLeft: parseFloat(style.paddingLeft),
-        paddingRight: parseFloat(style.paddingRight),
-      }
+    await page.getByTestId('dialog-close').click()
+    await expect(page.getByTestId('album-dialog')).toBeHidden()
+  })
+
+  test('clicking the backdrop closes the dialog', async ({ page }) => {
+    await gotoLanding(page)
+
+    await page.locator(UPCOMING_COVER).click()
+    await expect(page.getByTestId('subscribe-dialog')).toBeVisible()
+
+    // Top-left corner is backdrop, never panel.
+    await page.locator('.dialog-backdrop').click({ position: { x: 5, y: 5 } })
+    await expect(page.getByTestId('subscribe-dialog')).toBeHidden()
+  })
+
+  test('focus returns to the cover that opened the dialog', async ({ page }) => {
+    await gotoLanding(page)
+
+    await page.locator(UPCOMING_COVER).click()
+    await expect(page.getByTestId('subscribe-dialog')).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(page.locator(UPCOMING_COVER)).toBeFocused()
+  })
+})
+
+test.describe('Landing Page - Social feed', () => {
+  test('renders up to three posts per platform', async ({ page }) => {
+    await stubSocialPosts(page, {
+      posts: {
+        youtube: [
+          {
+            platform: 'youtube',
+            id: 'a',
+            url: 'https://www.youtube.com/watch?v=a',
+            thumbnailUrl: 'https://i.ytimg.com/vi/a/mqdefault.jpg',
+            caption: 'first',
+            publishedAt: new Date().toISOString(),
+          },
+          {
+            platform: 'youtube',
+            id: 'b',
+            url: 'https://www.youtube.com/watch?v=b',
+            thumbnailUrl: 'https://i.ytimg.com/vi/b/mqdefault.jpg',
+            caption: 'second',
+            publishedAt: new Date().toISOString(),
+          },
+          {
+            platform: 'youtube',
+            id: 'c',
+            url: 'https://www.youtube.com/watch?v=c',
+            thumbnailUrl: 'https://i.ytimg.com/vi/c/mqdefault.jpg',
+            caption: 'third',
+            publishedAt: new Date().toISOString(),
+          },
+        ],
+      },
+      errors: {},
+      fetchedAt: new Date().toISOString(),
     })
 
-    // Should have some padding
-    expect(padding.paddingTop).toBeGreaterThan(0)
-    expect(padding.paddingBottom).toBeGreaterThan(0)
-    expect(padding.paddingLeft).toBeGreaterThan(0)
-    expect(padding.paddingRight).toBeGreaterThan(0)
+    await gotoLanding(page)
+
+    const youtubeColumn = page.locator('.social-column').nth(2)
+    await expect(youtubeColumn.locator('.social-post')).toHaveCount(3)
+    await expect(youtubeColumn.getByText('first')).toBeVisible()
+  })
+
+  test('a platform with no posts still invites a follow', async ({ page }) => {
+    // No credentials configured is the normal state until tokens are set; the column must not
+    // render as an empty, broken-looking block.
+    await stubSocialPosts(page, {
+      posts: { instagram: [], tiktok: [], youtube: [] },
+      errors: { instagram: 'INSTAGRAM_ACCESS_TOKEN is not set' },
+      fetchedAt: new Date().toISOString(),
+    })
+
+    await gotoLanding(page)
+
+    await expect(page.locator('.social-empty').first()).toBeVisible()
+    // The visitor is never shown the integration's error.
+    await expect(page.getByText(/ACCESS_TOKEN/)).toHaveCount(0)
+  })
+
+  test('a failing social API does not break the page', async ({ page }) => {
+    await page.route('**/api/social-posts*', (route) => route.fulfill({ status: 502, body: '{}' }))
+
+    await gotoLanding(page)
+
+    await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible()
+    await expect(page.locator(RELEASED_COVER)).toBeVisible()
+  })
+})
+
+test.describe('Landing Page - Music video', () => {
+  test.beforeEach(async ({ page }) => {
+    await stubSocialPosts(page)
+  })
+
+  test('shows a poster rather than embedding YouTube on load', async ({ page }) => {
+    await gotoLanding(page)
+
+    await expect(page.getByTestId('video-play')).toBeVisible()
+    // The facade keeps the YouTube player bundle off the initial page load.
+    await expect(page.locator('.video-embed')).toHaveCount(0)
+  })
+
+  test('swaps in the embed once play is clicked', async ({ page }) => {
+    await gotoLanding(page)
+
+    await page.getByTestId('video-play').click()
+
+    await expect(page.locator('.video-embed')).toHaveAttribute('src', /youtube-nocookie\.com/)
   })
 })
 
 test.describe('Landing Page - Responsive Design', () => {
-  test('displays correctly on mobile viewport', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 667 })
-
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    // All critical elements should be visible
-    await expect(page.getByRole('heading', { name: /catsky\.club/i })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'listen' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'connect' })).toBeVisible()
+  test.beforeEach(async ({ page }) => {
+    await stubSocialPosts(page)
   })
 
-  test('displays correctly on tablet viewport', async ({ page }) => {
-    await page.setViewportSize({ width: 768, height: 1024 })
+  for (const [label, size] of [
+    ['mobile', { width: 375, height: 667 }],
+    ['tablet', { width: 768, height: 1024 }],
+    ['desktop', { width: 1920, height: 1080 }],
+  ] as const) {
+    test(`displays correctly on ${label} viewport`, async ({ page }) => {
+      await page.setViewportSize(size)
+      await gotoLanding(page)
 
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    // All critical elements should be visible
-    await expect(page.getByRole('heading', { name: /catsky\.club/i })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'listen' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'connect' })).toBeVisible()
-  })
-
-  test('displays correctly on desktop viewport', async ({ page }) => {
-    await page.setViewportSize({ width: 1920, height: 1080 })
-
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    // All critical elements should be visible
-    await expect(page.getByRole('heading', { name: /catsky\.club/i })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'listen' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'connect' })).toBeVisible()
-  })
-
-  test('navigation links wrap correctly on small screens', async ({ page }) => {
-    await page.setViewportSize({ width: 320, height: 568 })
-
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    // Links should still be visible and accessible
-    await expect(page.getByRole('link', { name: 'listen' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'watch' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'connect' })).toBeVisible()
-
-    // Check that navigation container has flex-wrap
-    const navContainer = page.locator('.app-container > div > div').last()
-    const flexWrap = await navContainer.evaluate((el) => {
-      return window.getComputedStyle(el).flexWrap
+      await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible()
+      await expect(page.locator(RELEASED_COVER)).toBeVisible()
+      await expect(page.locator(UPCOMING_COVER)).toBeVisible()
     })
+  }
 
-    expect(flexWrap).toBe('wrap')
+  test('album shelf stacks to one column on small screens', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 })
+    await gotoLanding(page)
+
+    const columns = await page
+      .locator('.album-shelf')
+      .evaluate((el) => window.getComputedStyle(el).gridTemplateColumns.split(' ').length)
+
+    expect(columns).toBe(1)
   })
 })
 
 test.describe('Landing Page - Accessibility', () => {
-  test('has proper heading structure', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    // Should have exactly one h1
-    const h1Count = await page.locator('h1').count()
-    expect(h1Count).toBe(1)
+  test.beforeEach(async ({ page }) => {
+    await stubSocialPosts(page)
   })
 
-  test('navigation links are keyboard accessible', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+  test('has exactly one h1', async ({ page }) => {
+    await gotoLanding(page)
 
-    // Tab through the page
-    await page.keyboard.press('Tab')
+    expect(await page.locator('h1').count()).toBe(1)
+  })
 
-    // First link should be focusable
-    const listenLink = page.getByRole('link', { name: 'listen' })
-    await listenLink.focus()
+  test('album covers are reachable and operable by keyboard', async ({ page }) => {
+    await gotoLanding(page)
 
-    // Should be able to activate with Enter
+    await page.locator(RELEASED_COVER).focus()
+    await expect(page.locator(RELEASED_COVER)).toBeFocused()
+
     await page.keyboard.press('Enter')
-    await expect(page).toHaveURL(/.*\/listen/)
+    await expect(page.getByTestId('album-dialog')).toBeVisible()
+  })
+
+  test('each cover names its destination for screen readers', async ({ page }) => {
+    await gotoLanding(page)
+
+    await expect(page.locator(RELEASED_COVER)).toHaveAttribute('aria-label', /open tracklist/i)
+    await expect(page.locator(UPCOMING_COVER)).toHaveAttribute('aria-label', /subscribe/i)
   })
 
   test('text content is selectable', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await gotoLanding(page)
 
-    const contentContainer = page.locator('.app-container > div').first()
-
-    const userSelect = await contentContainer.evaluate((el) => {
-      return window.getComputedStyle(el).userSelect
-    })
+    const userSelect = await page
+      .locator('.home-scroll')
+      .evaluate((el) => window.getComputedStyle(el).userSelect)
 
     expect(userSelect).toBe('text')
   })
 
-  test('page has visible focus indicators', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+  test('decorative grain and frame never intercept clicks', async ({ page }) => {
+    await gotoLanding(page)
 
-    // Focus on a link
-    const listenLink = page.getByRole('link', { name: 'listen' })
-    await listenLink.focus()
+    const pointerEvents = await page
+      .locator('.paper-surface')
+      .evaluate((el) => window.getComputedStyle(el).pointerEvents)
 
-    // Check that the focused element is visible
-    await expect(listenLink).toBeVisible()
-    await expect(listenLink).toBeFocused()
+    expect(pointerEvents).toBe('none')
   })
 })
 
 test.describe('Landing Page - Error Handling', () => {
   test('loads without critical JavaScript errors', async ({ page }) => {
+    await stubSocialPosts(page)
     const errors: string[] = []
 
     page.on('console', (msg) => {
-      if (msg.type() === 'error') {
-        errors.push(msg.text())
-      }
+      if (msg.type() === 'error') errors.push(msg.text())
     })
+    page.on('pageerror', (error) => errors.push(error.message))
 
-    page.on('pageerror', (error) => {
-      errors.push(error.message)
-    })
-
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await gotoLanding(page)
 
     // Filter out non-critical errors (Ghost API, favicon, network errors, dev environment, etc.)
     const criticalErrors = errors.filter(
@@ -314,24 +460,19 @@ test.describe('Landing Page - Error Handling', () => {
         !error.includes('404') &&
         !error.includes('Failed to load resource') &&
         !error.includes('net::ERR') &&
-        !error.includes('Module') && // Dev environment module loading issues
-        !error.includes('read only property') // Module system issues
+        !error.includes('Module') &&
+        !error.includes('read only property')
     )
 
     if (criticalErrors.length > 0) {
       console.error('Critical errors found:', criticalErrors)
     }
 
-    // Log non-critical errors for informational purposes
-    if (errors.length > criticalErrors.length) {
-      console.log('Non-critical errors filtered:', errors.length - criticalErrors.length)
-    }
-
     expect(criticalErrors).toHaveLength(0)
   })
 
   test('handles slow network gracefully', async ({ page }) => {
-    // Slow down network
+    await stubSocialPosts(page)
     await page.route('**/*', async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 100))
       route.continue()
@@ -339,64 +480,147 @@ test.describe('Landing Page - Error Handling', () => {
 
     await page.goto('/')
 
-    // Page should eventually load
-    const heading = page.getByRole('heading', { name: /catsky\.club/i })
-    await expect(heading).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible({
+      timeout: 10000,
+    })
   })
 })
 
 test.describe('Landing Page - Content Scrolling', () => {
   test('page content is scrollable', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await stubSocialPosts(page)
+    await gotoLanding(page)
 
-    const contentContainer = page.locator('.app-container > div').first()
-
-    const overflowY = await contentContainer.evaluate((el) => {
-      return window.getComputedStyle(el).overflowY
-    })
+    const overflowY = await page
+      .locator('.home-scroll')
+      .evaluate((el) => window.getComputedStyle(el).overflowY)
 
     expect(overflowY).toBe('auto')
+  })
+
+  test('the page is taller than the viewport', async ({ page }) => {
+    await stubSocialPosts(page)
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await gotoLanding(page)
+
+    const { scrollHeight, clientHeight } = await page
+      .locator('.home-scroll')
+      .evaluate((el) => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }))
+
+    expect(scrollHeight).toBeGreaterThan(clientHeight)
   })
 })
 
 test.describe('Landing Page - Direct URL Access', () => {
   test('root URL loads landing page', async ({ page }) => {
+    await stubSocialPosts(page)
     await page.goto('/')
     await expect(page).toHaveURL('/')
-
-    const heading = page.getByRole('heading', { name: /catsky\.club/i })
-    await expect(heading).toBeVisible()
-  })
-
-  test('trailing slash is handled', async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    // Should still show landing page
-    const heading = page.getByRole('heading', { name: /catsky\.club/i })
-    await expect(heading).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible()
   })
 })
 
 test.describe('Landing Page - Performance', () => {
   test('page loads within reasonable time', async ({ page }) => {
+    await stubSocialPosts(page)
     const startTime = Date.now()
 
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    await gotoLanding(page)
 
-    const loadTime = Date.now() - startTime
-
-    // Page should load within 5 seconds
-    expect(loadTime).toBeLessThan(5000)
+    expect(Date.now() - startTime).toBeLessThan(5000)
   })
 
   test('critical content appears quickly', async ({ page }) => {
+    await stubSocialPosts(page)
     await page.goto('/')
 
-    // Heading should be visible within 2 seconds
-    const heading = page.getByRole('heading', { name: /catsky\.club/i })
-    await expect(heading).toBeVisible({ timeout: 2000 })
+    await expect(page.getByRole('heading', { level: 1, name: 'catsky.club' })).toBeVisible({
+      timeout: 2000,
+    })
+  })
+})
+
+test.describe('Landing Page - Album call to action is held back until hover', () => {
+  test.beforeEach(async ({ page }) => {
+    await stubSocialPosts(page)
+  })
+
+  test('the cta is invisible until the cover is hovered', async ({ page }) => {
+    await gotoLanding(page)
+
+    const cta = page.locator(`${RELEASED_COVER} .album-cover-cta`)
+    await expect(cta).toHaveText(/open tracklist/i)
+    await expect(cta).toHaveCSS('opacity', '0')
+
+    await page.locator(RELEASED_COVER).hover()
+    await expect(cta).toHaveCSS('opacity', '1')
+  })
+
+  test('the upcoming cover reveals its own cta, not the released one', async ({ page }) => {
+    await gotoLanding(page)
+
+    const upcoming = page.locator(`${UPCOMING_COVER} .album-cover-cta`)
+    const released = page.locator(`${RELEASED_COVER} .album-cover-cta`)
+
+    await page.locator(UPCOMING_COVER).hover()
+
+    await expect(upcoming).toHaveText(/get notified/i)
+    await expect(upcoming).toHaveCSS('opacity', '1')
+    await expect(released).toHaveCSS('opacity', '0')
+  })
+
+  test('keyboard focus reveals the cta too', async ({ page }) => {
+    await gotoLanding(page)
+
+    // :focus-visible follows the last interaction modality. One real Tab puts the page in
+    // keyboard modality, after which a programmatic focus() still matches :focus-visible.
+    await page.keyboard.press('Tab')
+    await page.locator(RELEASED_COVER).focus()
+
+    await expect(page.locator(`${RELEASED_COVER} .album-cover-cta`)).toHaveCSS('opacity', '1')
+  })
+
+  test('revealing the cta does not resize the shelf', async ({ page }) => {
+    await gotoLanding(page)
+
+    // The hidden cta keeps its box, so nothing below the shelf jumps when it fades in.
+    const shelf = page.locator('[data-testid="album-shelf"]')
+    const before = await shelf.boundingBox()
+
+    await page.locator(RELEASED_COVER).hover()
+    await expect(page.locator(`${RELEASED_COVER} .album-cover-cta`)).toHaveCSS('opacity', '1')
+
+    expect((await shelf.boundingBox())?.height).toBe(before?.height)
+  })
+})
+
+test.describe('Landing Page - Album call to action on touch', () => {
+  // A touch device can never hover, so the line is removed rather than left unreachable.
+  // isMobile is a Chromium-only capability, which is also the project this file runs under.
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
+
+  test('the cta is not rendered at all on a touch device', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'isMobile emulation is Chromium-only')
+    await stubSocialPosts(page)
+    await gotoLanding(page)
+
+    // Guard the premise: without (hover: none) matching, this test proves nothing.
+    expect(await page.evaluate(() => window.matchMedia('(hover: none)').matches)).toBe(true)
+
+    await expect(page.locator(`${RELEASED_COVER} .album-cover-cta`)).toBeHidden()
+    // The destination is still named for assistive tech.
+    await expect(page.locator(RELEASED_COVER)).toHaveAttribute('aria-label', /open tracklist/i)
+  })
+})
+
+test.describe('Landing Page - Music video caption carries no dateline', () => {
+  test('the caption names the video but not its release month', async ({ page }) => {
+    await stubSocialPosts(page)
+    await gotoLanding(page)
+
+    const caption = page.locator('.video-caption')
+    await expect(caption).toContainText('official music video')
+    await expect(caption).not.toContainText(/august/i)
+    await expect(caption).not.toContainText(/20\d\d/)
   })
 })

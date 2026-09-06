@@ -1,5 +1,5 @@
 import { useEffect, useRef, type JSX } from 'react'
-import { TURNSTILE_SITE_KEY } from '../utils/turnstileConfig'
+import { TURNSTILE_SITE_KEY } from '../utils/magicLink'
 
 // Re-exported so callers can keep importing the key alongside the widget.
 // eslint-disable-next-line react-refresh/only-export-components -- config constant re-export, not a component

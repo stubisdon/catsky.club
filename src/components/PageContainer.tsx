@@ -11,12 +11,12 @@ interface PageContainerProps {
 
 const containerStyle: CSSProperties = {
   width: '100%',
-  padding: '2rem',
+  padding: '0 2rem 2rem 2rem',
   boxSizing: 'border-box',
   textAlign: 'left',
   letterSpacing: '0.05em',
   lineHeight: 1.8,
-  maxHeight: '100vh',
+  maxHeight: '100%',
   overflowY: 'auto',
   userSelect: 'text',
   WebkitUserSelect: 'text',
@@ -30,7 +30,7 @@ const homeLinkStyle: CSSProperties = {
 
 export default function PageContainer({
   children,
-  showHomeLink = true,
+  showHomeLink = false,
   maxWidth = '800px',
   className,
   style,

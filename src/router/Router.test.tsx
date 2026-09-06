@@ -5,26 +5,41 @@ import { resolveView } from './resolveView'
 
 const analytics = vi.hoisted(() => ({
   trackPageView: vi.fn(),
+  getCurrentMember: vi.fn(),
+}))
+
+const utils = vi.hoisted(() => ({
+  getMembershipTier: vi.fn(),
 }))
 
 vi.mock('../App', () => ({ default: () => <div>home view</div> }))
 vi.mock('../Watch', () => ({ default: () => <div>watch view</div> }))
 vi.mock('../Video', () => ({ default: () => <div>video view</div> }))
-vi.mock('../Connect', () => ({ default: () => <div>connect view</div> }))
+vi.mock('../Connect', () => ({
+  default: ({ failedAuthCallback }: { failedAuthCallback?: { action: string; success: boolean } | null }) => (
+    <div>connect view {failedAuthCallback?.success === false ? 'failed callback' : ''}</div>
+  ),
+}))
 vi.mock('../Mission', () => ({ default: () => <div>mission view</div> }))
 vi.mock('../Listen', () => ({ default: () => <div>listen view</div> }))
 vi.mock('../Welcome', () => ({ default: () => <div>welcome view</div> }))
 vi.mock('../Subscribe', () => ({ default: () => <div>subscribe view</div> }))
-vi.mock('../components/EmailCaptureModal', () => ({
-  EmailCaptureModal: () => <div>email capture modal</div>,
+vi.mock('../components/EngagementSubscribePrompt', () => ({
+  default: () => <div>engagement subscribe prompt</div>,
 }))
 vi.mock('../utils/analytics', () => ({
   trackPageView: analytics.trackPageView,
+}))
+vi.mock('../utils', () => ({
+  getCurrentMember: analytics.getCurrentMember,
+  getMembershipTier: utils.getMembershipTier,
 }))
 
 describe('Router signup callback normalization', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    analytics.getCurrentMember.mockResolvedValue({ name: '' })
+    utils.getMembershipTier.mockResolvedValue('none')
     delete window.__catskyAuthCallback
     window.history.replaceState({}, '', '/connect')
   })
@@ -34,10 +49,10 @@ describe('Router signup callback normalization', () => {
     ['/connect', 'signup', 'welcome'],
     ['/listen', 'signup', 'welcome'],
     ['/watch', 'signup', 'welcome'],
-    ['/', 'signin', 'home'],
-    ['/connect', 'signin', 'connect'],
+    ['/', 'signin', 'listen'],
+    ['/connect', 'signin', 'listen'],
     ['/listen', 'signin', 'listen'],
-    ['/watch', 'signin', 'watch'],
+    ['/watch', 'signin', 'listen'],
   ] as const)('resolves %s %s callbacks without reading captured global state', (pathname, action, view) => {
     window.__catskyAuthCallback = { action: action === 'signup' ? 'signin' : 'signup', success: true }
 
@@ -45,14 +60,20 @@ describe('Router signup callback normalization', () => {
   })
 
   it.each([
-    ['/', ''],
+    ['/', '?action=signup&success=false'],
     ['/connect', '?success=false&action=signup'],
-    ['/listen', '?action=other&success=true'],
     ['/watch', '?action=signin&success=false'],
-  ])('leaves non-success callbacks on their normal view: %s%s', (pathname, search) => {
+  ])('routes failed callbacks to connect: %s%s', (pathname, search) => {
     expect(resolveView(pathname, search)).toMatchObject({
-      view: pathname === '/' ? 'home' : pathname.slice(1),
+      view: 'connect',
     })
+  })
+
+  it.each([
+    ['/', 'home'],
+    ['/listen', 'listen'],
+  ] as const)('leaves unrelated callback-shaped params on their normal view', (pathname, view) => {
+    expect(resolveView(pathname, '?action=other&success=true')).toMatchObject({ view })
   })
 
   it('preserves unrelated query params while normalizing auth callbacks', () => {
@@ -63,6 +84,23 @@ describe('Router signup callback normalization', () => {
     expect(resolveView('/listen', '?source=email&action=signin&success=true')).toEqual({
       view: 'listen',
       normalizedPath: '/listen?source=email',
+    })
+  })
+
+  it.each([
+    [null],
+    [undefined],
+    [''],
+    ['   '],
+  ])('routes signup callbacks with an unknown or blank member name to welcome', (memberName) => {
+    expect(resolveView('/', '?action=signup&success=true', undefined, memberName)).toMatchObject({
+      view: 'welcome',
+    })
+  })
+
+  it('routes signup callbacks with a saved member name to listen', () => {
+    expect(resolveView('/', '?action=signup&success=true', undefined, 'Ada')).toMatchObject({
+      view: 'listen',
     })
   })
 
@@ -121,8 +159,8 @@ describe('Router signup callback normalization', () => {
 
     render(<Router />)
 
-    expect(screen.getByText('welcome view')).toBeInTheDocument()
     await waitFor(() => {
+      expect(screen.getByText('welcome view')).toBeInTheDocument()
       expect(window.location.pathname).toBe('/welcome')
       expect(window.location.search).toBe('')
     })
@@ -141,8 +179,8 @@ describe('Router signup callback normalization', () => {
 
     render(<Router />)
 
-    expect(screen.getByText('welcome view')).toBeInTheDocument()
     await waitFor(() => {
+      expect(screen.getByText('welcome view')).toBeInTheDocument()
       expect(window.location.pathname).toBe('/welcome')
       expect(window.location.search).toBe('?stripe=success')
       expect(window.__catskyAuthCallback).toBeUndefined()
@@ -155,9 +193,79 @@ describe('Router signup callback normalization', () => {
     render(<Router />)
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe('/connect')
+      expect(window.location.pathname).toBe('/listen')
       expect(window.location.search).toBe('')
       expect(window.location.hash).toBe('#/portal/account')
+    })
+  })
+
+  it('skips welcome for a named signup member and falls back to welcome when member resolution fails', async () => {
+    analytics.getCurrentMember.mockResolvedValueOnce({ name: 'Ada Lovelace' })
+    window.history.replaceState({}, '', '/?action=signup&success=true')
+    const { unmount } = render(<Router />)
+    await waitFor(() => expect(screen.getByText('listen view')).toBeInTheDocument())
+    unmount()
+
+    analytics.getCurrentMember.mockResolvedValueOnce(null)
+    window.history.replaceState({}, '', '/?action=signup&success=true')
+    render(<Router />)
+    await waitFor(() => expect(screen.getByText('welcome view')).toBeInTheDocument())
+  })
+
+  it('falls back to welcome after a rejected signup member request', async () => {
+    analytics.getCurrentMember.mockRejectedValueOnce(new Error('member request failed'))
+    window.history.replaceState({}, '', '/?action=signup&success=true')
+
+    render(<Router />)
+
+    await waitFor(() => expect(screen.getByText('welcome view')).toBeInTheDocument())
+    expect(screen.queryByText('connecting…')).not.toBeInTheDocument()
+  })
+
+  it('falls back to welcome after the signup member request times out', async () => {
+    vi.useFakeTimers()
+    analytics.getCurrentMember.mockImplementationOnce(() => new Promise(() => {}))
+    window.history.replaceState({}, '', '/?action=signup&success=true')
+
+    render(<Router />)
+    expect(screen.getByText('connecting…')).toBeInTheDocument()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500)
+    })
+
+    expect(screen.getByText('welcome view')).toBeInTheDocument()
+    expect(screen.queryByText('connecting…')).not.toBeInTheDocument()
+    vi.useRealTimers()
+  })
+
+  it('clears failed callbacks so later navigation is not forced back to connect', async () => {
+    window.__catskyAuthCallback = { action: 'signup', success: false }
+    window.history.replaceState({}, '', '/connect')
+
+    render(<Router />)
+
+    await waitFor(() => expect(screen.getByText(/connect view/)).toBeInTheDocument())
+    expect(window.__catskyAuthCallback).toBeUndefined()
+
+    window.history.pushState({}, '', '/listen')
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+
+    await waitFor(() => expect(screen.getByText('listen view')).toBeInTheDocument())
+  })
+
+  it('uses the captured failed callback even if a child clears the global handoff first', async () => {
+    window.__catskyAuthCallback = { action: 'signup', success: false }
+    window.history.replaceState({}, '', '/')
+
+    render(<Router />)
+    delete window.__catskyAuthCallback
+
+    await waitFor(() => {
+      expect(screen.getByText(/connect view failed callback/)).toBeInTheDocument()
+      expect(window.location.pathname).toBe('/connect')
     })
   })
 
@@ -186,11 +294,11 @@ describe('Router /subscribe route and email capture mount', () => {
     expect(screen.getByText('subscribe view')).toBeInTheDocument()
   })
 
-  it('mounts the email capture modal on ordinary browsing views', () => {
+  it('mounts the engagement subscribe prompt on ordinary browsing views', () => {
     window.history.replaceState({}, '', '/listen')
     render(<Router />)
     expect(screen.getByText('listen view')).toBeInTheDocument()
-    expect(screen.getByText('email capture modal')).toBeInTheDocument()
+    expect(screen.getByText('engagement subscribe prompt')).toBeInTheDocument()
   })
 
   // Asking for an email on the pages that already ask for one would be pushy and confusing.
@@ -198,11 +306,11 @@ describe('Router /subscribe route and email capture mount', () => {
     ['/subscribe', 'subscribe view'],
     ['/welcome', 'welcome view'],
     ['/connect', 'connect view'],
-  ])('does NOT mount the email capture modal on %s', (pathname, viewText) => {
+  ])('does NOT mount the engagement subscribe prompt on %s', (pathname, viewText) => {
     window.history.replaceState({}, '', pathname)
     render(<Router />)
     expect(screen.getByText(viewText)).toBeInTheDocument()
-    expect(screen.queryByText('email capture modal')).not.toBeInTheDocument()
+    expect(screen.queryByText('engagement subscribe prompt')).not.toBeInTheDocument()
   })
 
   // resolveView short-circuits every signup callback to /welcome regardless of path, which is

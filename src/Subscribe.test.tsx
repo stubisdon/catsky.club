@@ -1,56 +1,42 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Subscribe from './Subscribe'
 
-const { getMembershipTierMock, requestMagicLinkMock, isValidEmailMock, turnstileWidgetPropsSpy } = vi.hoisted(() => ({
-  getMembershipTierMock: vi.fn(),
+const { requestMagicLinkMock, getMembershipTierMock, turnstilePropsSpy } = vi.hoisted(() => ({
   requestMagicLinkMock: vi.fn(),
-  isValidEmailMock: vi.fn((email: string) => {
-    const trimmed = email.trim()
-    if (!trimmed) return false
-    const atIndex = trimmed.indexOf('@')
-    if (atIndex <= 0) return false
-    const domain = trimmed.slice(atIndex + 1)
-    return domain.includes('.')
-  }),
-  turnstileWidgetPropsSpy: vi.fn(),
+  getMembershipTierMock: vi.fn(),
+  turnstilePropsSpy: vi.fn(),
 }))
+
+vi.mock('./utils/magicLink', async () => {
+  const actual = await vi.importActual<typeof import('./utils/magicLink')>('./utils/magicLink')
+  return {
+    ...actual,
+    TURNSTILE_SITE_KEY: '',
+    requestMagicLink: requestMagicLinkMock,
+  }
+})
 
 vi.mock('./utils/subscription', () => ({
   getMembershipTier: getMembershipTierMock,
 }))
 
-vi.mock('./utils/emailCapture', () => ({
-  isValidEmail: isValidEmailMock,
-  requestMagicLink: requestMagicLinkMock,
+vi.mock('./components/TurnstileWidget', () => ({
+  TurnstileWidget: (props: { resetSignal?: number }) => {
+    turnstilePropsSpy(props)
+    return <div data-testid="turnstile" data-reset-signal={props.resetSignal} />
+  },
 }))
-
-vi.mock('./components', async () => {
-  const actual = await vi.importActual<typeof import('./components')>('./components')
-  return {
-    ...actual,
-    TURNSTILE_SITE_KEY: '',
-    TurnstileWidget: (props: { onToken: (t: string | null) => void; resetSignal?: number; className?: string }) => {
-      turnstileWidgetPropsSpy(props)
-      return null
-    },
-  }
-})
 
 describe('Subscribe page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     getMembershipTierMock.mockResolvedValue('none')
-    requestMagicLinkMock.mockResolvedValue({ ok: true })
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
+    requestMagicLinkMock.mockResolvedValue({ ok: true, status: 201 })
   })
 
   it('renders the email form for a logged-out visitor', async () => {
     render(<Subscribe />)
-
     await waitFor(() => expect(getMembershipTierMock).toHaveBeenCalled())
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /subscribe/i })).toBeInTheDocument()
@@ -70,17 +56,31 @@ describe('Subscribe page', () => {
     expect(button).not.toBeDisabled()
   })
 
-  it('submits with the typed email and source, then shows success and hides the form', async () => {
+  it('submits through the shared magic-link helper and shows the success state', async () => {
     render(<Subscribe />)
     await waitFor(() => expect(getMembershipTierMock).toHaveBeenCalled())
 
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'fan@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: /subscribe/i }))
 
-    await waitFor(() => expect(requestMagicLinkMock).toHaveBeenCalledWith('fan@example.com', null, 'subscribe_page'))
+    await waitFor(() => expect(requestMagicLinkMock).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'fan@example.com', emailType: 'signup' }),
+    ))
 
     expect(await screen.findByRole('status')).toBeInTheDocument()
     expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument()
+  })
+
+  it('labels the request so subscribe-page signups can be told apart in Ghost', async () => {
+    render(<Subscribe />)
+    await waitFor(() => expect(getMembershipTierMock).toHaveBeenCalled())
+
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'fan@example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: /subscribe/i }))
+
+    await waitFor(() => expect(requestMagicLinkMock).toHaveBeenCalledWith(
+      expect.objectContaining({ labels: ['subscribe-page'] }),
+    ))
   })
 
   it('states in the success copy that they must click the emailed link to finish', async () => {
@@ -95,36 +95,33 @@ describe('Subscribe page', () => {
     expect(success.textContent).toMatch(/not subscribed/i)
   })
 
-  it('shows the server error on a failed submit and leaves the form usable', async () => {
-    requestMagicLinkMock.mockResolvedValue({ ok: false, error: 'too many requests. try later.' })
+  it('shows the server message on a failed submit and leaves the form usable', async () => {
+    requestMagicLinkMock.mockResolvedValue({ ok: false, status: 429, message: 'Too many requests.' })
     render(<Subscribe />)
     await waitFor(() => expect(getMembershipTierMock).toHaveBeenCalled())
 
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'fan@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: /subscribe/i }))
 
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('too many requests. try later.'))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('too many requests.'))
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /subscribe/i })).not.toBeDisabled()
   })
 
   it('bumps the turnstile reset signal on a failed submit', async () => {
-    requestMagicLinkMock.mockResolvedValue({ ok: false, error: 'nope' })
+    requestMagicLinkMock.mockResolvedValue({ ok: false, status: 403, message: 'Verification failed.' })
     render(<Subscribe />)
     await waitFor(() => expect(getMembershipTierMock).toHaveBeenCalled())
 
-    const initialResetSignal = turnstileWidgetPropsSpy.mock.calls.at(-1)?.[0]?.resetSignal
-
+    const before = screen.getByTestId('turnstile').getAttribute('data-reset-signal')
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'fan@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: /subscribe/i }))
 
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('nope'))
-
-    const finalResetSignal = turnstileWidgetPropsSpy.mock.calls.at(-1)?.[0]?.resetSignal
-    expect(finalResetSignal).toBeGreaterThan(initialResetSignal)
+    await waitFor(() => {
+      expect(screen.getByTestId('turnstile').getAttribute('data-reset-signal')).not.toBe(before)
+    })
   })
 
-  it('shows the already-subscribed state and no email input for a logged-in visitor', async () => {
+  it('shows the already-subscribed state to an existing member', async () => {
     getMembershipTierMock.mockResolvedValue('free')
     render(<Subscribe />)
 
@@ -132,21 +129,16 @@ describe('Subscribe page', () => {
     expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument()
   })
 
-  it('renders the form if getMembershipTier rejects', async () => {
-    getMembershipTierMock.mockRejectedValue(new Error('network error'))
+  it('still renders the form when the membership check rejects', async () => {
+    getMembershipTierMock.mockRejectedValue(new Error('offline'))
     render(<Subscribe />)
 
     await waitFor(() => expect(screen.getByLabelText(/email/i)).toBeInTheDocument())
   })
 
-  it('only fires one requestMagicLink call on a double-click submit', async () => {
-    let resolveRequest: (value: { ok: boolean }) => void = () => {}
-    requestMagicLinkMock.mockReturnValue(
-      new Promise((resolve) => {
-        resolveRequest = resolve
-      }),
-    )
-
+  it('only fires one request on a double-click submit', async () => {
+    let resolveRequest: (v: unknown) => void = () => {}
+    requestMagicLinkMock.mockImplementation(() => new Promise((r) => { resolveRequest = r }))
     render(<Subscribe />)
     await waitFor(() => expect(getMembershipTierMock).toHaveBeenCalled())
 
@@ -155,9 +147,8 @@ describe('Subscribe page', () => {
     fireEvent.click(button)
     fireEvent.click(button)
 
-    resolveRequest({ ok: true })
+    resolveRequest({ ok: true, status: 201 })
     await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
-
     expect(requestMagicLinkMock).toHaveBeenCalledTimes(1)
   })
 })

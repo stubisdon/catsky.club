@@ -72,7 +72,8 @@ test.describe('PostHog analytics', () => {
     await page.goto('/')
     await waitForAnalyticsEvent(page, '$pageview', '/')
 
-    await page.getByRole('link', { name: 'listen' }).click()
+    // Scope to app-container to get page content link, not nav link
+    await page.locator('.app-container a[href="/listen"]').first().click()
     await waitForAnalyticsEvent(page, '$pageview', '/listen')
 
     const events = await analyticsEvents(page)

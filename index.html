@@ -5,10 +5,68 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Catsky Club</title>
-    <!-- Critical: black first paint so no white flash before CSS loads -->
+    <meta name="theme-color" content="#F5F0E6" />
+    <!--
+      Typography: display serif (Instrument Serif) for headings, old-style serif (EB Garamond)
+      for prose, Courier Prime for eyebrows/labels/metadata. Self-hosted from /fonts (latin
+      subsets, 128 KB total) rather than loaded from the Google Fonts CDN: it removes a
+      third-party request from every page load, keeps visitor IPs off Google, and means the
+      site's typography does not depend on a CDN we do not control. @font-face lives in
+      src/index.css; only the two hero faces are preloaded.
+    -->
+    <link
+      rel="preload"
+      href="/fonts/instrument-serif-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="preload" href="/fonts/eb-garamond-var.woff2" as="font" type="font/woff2" crossorigin />
+    <!--
+      Pre-paint theme, in the same precedence order as src/utils/theme.ts: stored preference
+      ('catsky_theme' = light | dark) > OS prefers-color-scheme > cached automatic resolution
+      ('catsky_theme_auto', while still inside its validity window) > light. A stored 'system' or
+      a missing key both mean "match system". The solar math is deliberately NOT inlined here - it
+      runs in src/utils/theme.ts and leaves its result in the cache for the next visit, so this
+      render-blocking script stays tiny.
+    -->
+    <script>
+      (function () {
+        var theme = null;
+        try {
+          var stored = localStorage.getItem('catsky_theme');
+          if (stored === 'dark' || stored === 'light') theme = stored;
+        } catch (e) {}
+        if (!theme) {
+          try {
+            if (window.matchMedia) {
+              if (window.matchMedia('(prefers-color-scheme: dark)').matches) theme = 'dark';
+              else if (window.matchMedia('(prefers-color-scheme: light)').matches) theme = 'light';
+            }
+          } catch (e) {}
+        }
+        if (!theme) {
+          try {
+            var raw = localStorage.getItem('catsky_theme_auto');
+            if (raw) {
+              var cached = JSON.parse(raw);
+              if (cached && (cached.theme === 'dark' || cached.theme === 'light') &&
+                  typeof cached.validUntil === 'number' && cached.validUntil > Date.now()) {
+                theme = cached.theme;
+              }
+            }
+          } catch (e) {}
+        }
+        document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+      })();
+    </script>
+    <!-- Critical: themed first paint so no flash before CSS loads -->
     <style>
-      html, body { background: #000; color: #fff; margin: 0; }
+      html, body { background: #F5F0E6; color: #241A14; margin: 0; }
+      html[data-theme="dark"], html[data-theme="dark"] body { background: #000; color: #fff; }
       #ghost-portal-triggers { display: none !important; }
+      #ghost-portal-root iframe[data-testid="portal-notification-frame"],
+      #ghost-portal-root iframe.gh-portal-notification-iframe { display: none !important; }
     </style>
     <!-- Workaround for Portal bugs (undefined firstpromoter_account, site.url) - MUST load before Portal -->
     <script>
@@ -258,10 +316,13 @@
       (function() {
         var params = new URLSearchParams(window.location.search);
         var action = params.get('action');
-        if ((action === 'signup' || action === 'signin') && params.get('success') === 'true') {
-          window.__catskyAuthCallback = { action: action, success: true };
+        var success = params.get('success');
+        if ((action === 'signup' || action === 'signin') && (success === 'true' || success === 'false')) {
+          var errorCode = params.get('errorCode');
+          window.__catskyAuthCallback = { action: action, success: success === 'true', errorCode: errorCode || undefined };
           params.delete('action');
           params.delete('success');
+          params.delete('errorCode');
           var query = params.toString();
           history.replaceState({}, '', location.pathname + (query ? '?' + query : '') + location.hash);
         }
@@ -332,6 +393,42 @@
       <button id="ghost-portal-trigger-signout" data-members-signout type="button" style="display:none">sign out</button>
     </div>
     <div id="root"></div>
+    <script data-app-shell-recovery>
+      // A stale HTML shell can reference a bundle removed by a later deploy. Refresh it once
+      // with a unique URL; if that also cannot boot, leave a useful in-brand fallback behind.
+      (function() {
+        var recoveryKey = 'catsky_app_shell_recovery_attempted';
+        var recovered = false;
+        function rootHasContent() {
+          var root = document.getElementById('root');
+          return !!(root && (root.children.length || root.textContent.trim()));
+        }
+        function showFallback() {
+          var root = document.getElementById('root');
+          if (root && !rootHasContent()) {
+            root.innerHTML = '<main style="padding:24px;font:16px/1.5 sans-serif">we could not load Catsky Club. <a href="/listen" style="color:#fff">→ listen</a> / <a href="/" style="color:#fff">→ home</a></main>';
+          }
+        }
+        function recover() {
+          if (recovered || rootHasContent()) return;
+          recovered = true;
+          try {
+            if (sessionStorage.getItem(recoveryKey)) return showFallback();
+            sessionStorage.setItem(recoveryKey, 'true');
+            var url = new URL(window.location.href);
+            url.searchParams.set('__catsky_reload', String(Date.now()));
+            window.location.replace(url.toString());
+          } catch (_) {
+            showFallback();
+          }
+        }
+        window.addEventListener('error', function(event) {
+          var target = event.target;
+          if (target instanceof HTMLScriptElement && target.type === 'module') recover();
+        }, true);
+        window.setTimeout(recover, 5000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

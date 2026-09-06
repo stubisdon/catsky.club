@@ -1,10 +1,18 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
-import { Link, PageTitle, TurnstileWidget, TURNSTILE_SITE_KEY } from './components'
+import { Link, PageTitle } from './components'
+import { TurnstileWidget } from './components/TurnstileWidget'
 import { getMembershipTier } from './utils/subscription'
-import { isValidEmail, requestMagicLink } from './utils/emailCapture'
+import { isValidEmail, requestMagicLink, TURNSTILE_SITE_KEY } from './utils/magicLink'
 
 type SubmitStatus = 'idle' | 'submitting' | 'success' | 'error'
 
+/**
+ * Standalone, shareable email-capture landing page (catsky.club/subscribe).
+ *
+ * Deliberately uses the same `requestMagicLink` helper as /connect and SubscribeDialog, so
+ * this entry point gets the server's Turnstile verification instead of becoming a second,
+ * weaker signup path. Signup is only completed on /welcome, where the name form runs.
+ */
 export default function Subscribe() {
   const [alreadySubscribed, setAlreadySubscribed] = useState(false)
   const [email, setEmail] = useState('')
@@ -18,11 +26,10 @@ export default function Subscribe() {
     let cancelled = false
     getMembershipTier()
       .then((tier) => {
-        if (cancelled) return
-        setAlreadySubscribed(tier !== 'none')
+        if (!cancelled) setAlreadySubscribed(tier !== 'none')
       })
       .catch(() => {
-        // fall back to showing the form
+        // Fall back to showing the form; a network blip must not hide the CTA.
       })
     return () => {
       cancelled = true
@@ -33,7 +40,6 @@ export default function Subscribe() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-
     if (submittingRef.current) return
 
     if (!isValidEmail(email)) {
@@ -41,7 +47,6 @@ export default function Subscribe() {
       setStatus('error')
       return
     }
-
     if (TURNSTILE_SITE_KEY && !turnstileToken) {
       setError('please complete the verification below.')
       setStatus('error')
@@ -52,11 +57,17 @@ export default function Subscribe() {
     setError('')
     setStatus('submitting')
 
-    const result = await requestMagicLink(email.trim(), turnstileToken, 'subscribe_page')
+    const result = await requestMagicLink({
+      email,
+      turnstileToken: turnstileToken ?? undefined,
+      emailType: 'signup',
+      labels: ['subscribe-page'],
+    })
 
     if (!result.ok) {
-      setError(result.error || 'something went wrong. please try again.')
+      setError(result.message.toLowerCase())
       setStatus('error')
+      // Turnstile tokens are single-use; a retry needs a fresh challenge.
       setTurnstileToken(null)
       setResetSignal((n) => n + 1)
       submittingRef.current = false
@@ -69,31 +80,31 @@ export default function Subscribe() {
 
   return (
     <div className="app-container">
-      <div className="subscribe-page">
+      <div className="connect-content">
         <PageTitle>subscribe</PageTitle>
 
         {alreadySubscribed ? (
           <>
-            <p className="subscribe-message">you&apos;re already on the list.</p>
-            <div className="subscribe-actions">
+            <p className="subscribe-body">you&apos;re already on the list.</p>
+            <div className="connect-auth-actions">
               <Link href="/listen" variant="button">
                 continue →
               </Link>
             </div>
           </>
         ) : status === 'success' ? (
-          <p className="subscribe-success" role="status" aria-live="polite">
+          <p className="subscribe-confirmation" role="status" aria-live="polite">
             check your email and click the link to finish signing up. you&apos;re not subscribed yet
             until you do.
           </p>
         ) : (
           <>
-            <p className="subscribe-message">
+            <p className="subscribe-body">
               new music first — unreleased tracks and updates, straight to your inbox.
             </p>
 
-            <form className="subscribe-form" onSubmit={handleSubmit} noValidate>
-              <label htmlFor="subscribe-email" className="subscribe-message">
+            <form className="connect-auth-form" onSubmit={handleSubmit} noValidate>
+              <label htmlFor="subscribe-email" className="connect-auth-message">
                 email
               </label>
               <input
@@ -103,17 +114,17 @@ export default function Subscribe() {
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={status === 'submitting'}
                 autoComplete="email"
-                className="subscribe-input"
+                className="connect-auth-input"
                 required
               />
 
               <TurnstileWidget
                 onToken={setTurnstileToken}
                 resetSignal={resetSignal}
-                className="catsky-turnstile"
+                className="subscribe-turnstile"
               />
 
-              <div className="subscribe-actions">
+              <div className="connect-auth-actions">
                 <button
                   type="submit"
                   className="connect-portal-btn"
@@ -124,7 +135,7 @@ export default function Subscribe() {
               </div>
 
               {status === 'error' && error && (
-                <p className="subscribe-error" role="alert">
+                <p className="connect-auth-error" role="alert">
                   {error}
                 </p>
               )}

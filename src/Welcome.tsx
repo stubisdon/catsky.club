@@ -1,5 +1,7 @@
 import { CSSProperties, FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, PageTitle, TurnstileWidget, TURNSTILE_SITE_KEY } from './components'
+import { Link, PageTitle } from './components'
+import { TurnstileWidget } from './components/TurnstileWidget'
+import { TURNSTILE_SITE_KEY } from './utils/magicLink'
 import { navigateTo } from './router/navigation'
 import { getCurrentMember } from './utils'
 import { identifyMember, trackEvent } from './utils/analytics'
@@ -244,8 +246,8 @@ export default function Welcome() {
           )}
         </form>
 
-        <Link href="/" variant="subtle" style={{ position: 'fixed', bottom: '1rem', left: '1rem' }}>
-          ← home
+        <Link href="/listen" variant="subtle" style={{ position: 'fixed', bottom: '1rem', right: '1rem' }}>
+          skip for now →
         </Link>
       </div>
     </div>

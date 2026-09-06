@@ -5,7 +5,7 @@ This is a React application built with Vite, featuring an interactive audio-sync
 ## Features
 
 ### Core Experience
-- **Play Button Stage**: Black screen with a centered play button
+- **Play Button Stage**: Warm beige screen with a centered play button
 - **Intro Stage**: Audio plays with text appearing synced to timecode
 - **Name Input**: User enters their first name
 - **Conversational Interaction**: System confirms name ingestion and becomes conversational
@@ -130,7 +130,7 @@ const TEXT_CUES: TextCue[] = [
 ```
 
 ### Styling
-All styles are in `src/index.css`. The app uses a monospace font and black/white color scheme.
+All styles are in `src/index.css`. The app uses a monospace font with a warm beige/very dark brown color scheme.
 
 ## API Endpoint
 

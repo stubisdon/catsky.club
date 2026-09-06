@@ -116,6 +116,17 @@ export function loadYouTubeApi(): Promise<YouTubeApi | null> {
   return youTubeApiPromise
 }
 
+/**
+ * The extra query params the IFrame API needs, as a suffix to append to an embed URL that
+ * already has a query string. Lets callers that build their own URL (different host, extra
+ * params) opt into progress tracking without giving up control of the rest of the URL.
+ */
+export function youTubeJsApiParams(): string {
+  const base = '&enablejsapi=1'
+  if (typeof window === 'undefined' || !window.location?.origin) return base
+  return `${base}&origin=${encodeURIComponent(window.location.origin)}`
+}
+
 /** Builds an embed URL with the params the IFrame API needs to talk to the player. */
 export function buildYouTubeEmbedSrc(videoId: string): string {
   const base = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`

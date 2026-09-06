@@ -7,9 +7,10 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 // decided by TURNSTILE_SECRET_KEY at process startup (module-level const), so it cannot be
 // toggled between tests without restarting the process.
 //
-// Ports used here (must not collide with other *.test.ts files, which use 3052/4555/4556):
-//   Config A (fail open): app 3053, mock Ghost 4557
-//   Config B (fail closed): app 3054, mock Ghost 4558, mock siteverify 4559
+// Ports used here. Vitest runs test files in parallel, so these must not collide with the
+// other server specs (3051 unsubscribe, 3052 member-profile, 3053 cache-control, 4555/4556):
+//   Config A (fail open): app 3061, mock Ghost 4561
+//   Config B (fail closed): app 3062, mock Ghost 4562, mock siteverify 4563
 
 const GHOST_ADMIN_API_KEY = '1234567890abcdef:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
 
@@ -176,8 +177,8 @@ async function spawnApp(env: Record<string, string>, port: number): Promise<Chil
 // Config A: TURNSTILE_SECRET_KEY unset -> fail OPEN
 // ---------------------------------------------------------------------------------------------
 describe('Turnstile gate: TURNSTILE_SECRET_KEY unset (fail open)', () => {
-  const appPort = 3053
-  const ghostPort = 4557
+  const appPort = 3061
+  const ghostPort = 4561
   const appBaseUrl = `http://127.0.0.1:${appPort}`
 
   let mockGhost: MockGhost
@@ -232,9 +233,9 @@ describe('Turnstile gate: TURNSTILE_SECRET_KEY unset (fail open)', () => {
 // Config B: TURNSTILE_SECRET_KEY set, TURNSTILE_VERIFY_URL pointed at a local mock siteverify
 // ---------------------------------------------------------------------------------------------
 describe('Turnstile gate: TURNSTILE_SECRET_KEY set (fail closed)', () => {
-  const appPort = 3054
-  const ghostPort = 4558
-  const siteverifyPort = 4559
+  const appPort = 3062
+  const ghostPort = 4562
+  const siteverifyPort = 4563
   const appBaseUrl = `http://127.0.0.1:${appPort}`
 
   let mockGhost: MockGhost

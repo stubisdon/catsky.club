@@ -11,11 +11,20 @@ describe('auth callback handoff', () => {
     clearAuthCallback()
   })
 
-  it('parses only an explicit callback from getAuthCallback', () => {
+  it.each([
+    ['signup', 'true', undefined, { action: 'signup', success: true }],
+    ['signin', 'true', undefined, { action: 'signin', success: true }],
+    ['signup', 'false', 'INVALID_TOKEN', { action: 'signup', success: false, errorCode: 'INVALID_TOKEN' }],
+    ['signin', 'false', 'EXPIRED', { action: 'signin', success: false, errorCode: 'EXPIRED' }],
+  ] as const)('parses %s callbacks with success=%s', (action, success, errorCode, expected) => {
     window.__catskyAuthCallback = { action: 'signin', success: true }
+    const errorParam = errorCode ? `&errorCode=${errorCode}` : ''
+    expect(getAuthCallback(`?action=${action}&success=${success}${errorParam}`)).toEqual(expected)
+  })
 
-    expect(getAuthCallback('?action=signup&success=true')).toEqual({ action: 'signup', success: true })
-    expect(getAuthCallback('?action=signup&success=false')).toBeNull()
+  it('rejects incomplete or unrelated callbacks', () => {
+    expect(getAuthCallback('?action=signup')).toBeNull()
+    expect(getAuthCallback('?action=other&success=true')).toBeNull()
     expect(getAuthCallback('')).toBeNull()
   })
 
@@ -31,7 +40,7 @@ describe('auth callback handoff', () => {
   })
 
   it('removes only auth callback params', () => {
-    expect(stripAuthCallbackParams('/welcome', '?stripe=success&action=signup&success=true&source=email')).toBe(
+    expect(stripAuthCallbackParams('/welcome', '?stripe=success&action=signup&success=true&errorCode=INVALID_TOKEN&source=email')).toBe(
       '/welcome?stripe=success&source=email',
     )
   })
