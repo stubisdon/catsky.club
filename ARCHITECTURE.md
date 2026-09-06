@@ -220,6 +220,20 @@ response for up to 7 days, and a column with no posts renders a follow link rath
 error — an unconfigured integration is the site owner's problem, not something a listener can
 act on. YouTube needs no credentials at all, falling back to the channel's public Atom feed.
 
+### 4.6.1 Pinned posts (current landing page source)
+
+The live feed above is retained but dormant: the landing page's social section is now driven
+by hand-picked posts in `src/config/socialPins.ts` instead, so the owner controls exactly what
+shows and it stays up until the file is edited again. Each pin supplies its own caption and,
+unless it sets an explicit `thumbnailUrl` override, has its thumbnail resolved at request time
+by `GET /api/social-oembed` (`server.js` route → `server/socialOembed.mjs`, typed by
+`server/socialOembed.d.mts`), which checks the URL against an allowlist of real social hosts
+before fetching anything and caches a successful lookup per URL for 24 hours, serving a stale
+thumbnail indefinitely rather than dropping it if a later refresh fails. Instagram has no
+public oEmbed endpoint without a Facebook app token, so Instagram pins must always set
+`thumbnailUrl` by hand. `/api/social-posts` and `server/socialFeeds.mjs` keep working exactly
+as before and can be wired back into the landing page later; they just no longer feed it.
+
 ## 4.5) Analytics
 
 Browser analytics are isolated in `src/utils/analytics.ts` and use `posthog-js`.

@@ -53,3 +53,6 @@ export {
   storeTheme,
   storeMode,
 } from './theme'
+
+// Pinned social post utilities
+export { fetchPinnedThumbnail } from './socialPins'

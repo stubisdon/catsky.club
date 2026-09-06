@@ -11,6 +11,7 @@ import fs from 'fs'
 import http from 'http'
 import https from 'https'
 import { createSocialPostsCache, loadSocialPosts } from './server/socialFeeds.mjs'
+import { createOembedCache, isAllowedOembedUrl, resolveOembed } from './server/socialOembed.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -68,6 +69,7 @@ const SOCIAL_FEED_CONFIG = {
   youtubeChannelId: process.env.YOUTUBE_CHANNEL_ID || 'UCaDbdaRYUr6-5aExHdnwa7Q',
 }
 const socialPostsCache = createSocialPostsCache()
+const oembedCache = createOembedCache()
 
 app.use(cors())
 app.use(express.json())
@@ -674,6 +676,31 @@ app.get('/api/social-posts', async (req, res) => {
       errors: { all: 'Social feed is temporarily unavailable.' },
       fetchedAt: new Date().toISOString(),
     })
+  }
+})
+
+/**
+ * Thumbnail lookup for hand-pinned posts (src/config/socialPins.ts).
+ *
+ * The URL comes from the request, so it is checked against an allowlist of real social hosts
+ * before anything is fetched — this endpoint only ever has legitimate reason to reach our own
+ * pinned config, so anything else is rejected outright (see server/socialOembed.mjs). Lookups
+ * are cached per URL for a day: a pinned post's thumbnail does not change once the owner has
+ * picked it, so there is nothing to revalidate sooner than that.
+ */
+app.get('/api/social-oembed', async (req, res) => {
+  const url = typeof req.query.url === 'string' ? req.query.url : ''
+  if (!isAllowedOembedUrl(url)) {
+    return res.status(400).json({ error: 'url is missing or is not an allowed social post URL.' })
+  }
+
+  try {
+    const payload = await resolveOembed(url, { cache: oembedCache })
+    res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800')
+    return res.json(payload)
+  } catch (error) {
+    console.error('[Social oembed fetch failed]', String(error?.message || error))
+    return res.json({ url, thumbnailUrl: '', title: '' })
   }
 })
 
