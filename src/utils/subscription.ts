@@ -7,6 +7,8 @@
  * Note: This is separate from auth/portal/payment work being done in another tab.
  */
 
+import { getGhostContentApiKey } from './ghostApi'
+
 export type SubscriptionStatus = 'unknown' | 'not_subscriber' | 'free_subscriber' | 'paid_subscriber'
 export type MembershipTier = 'none' | 'free' | 'paid_5' | 'paid_20'
 type DevMembershipTier = 'free' | 'paid_5' | 'paid_20'
@@ -148,13 +150,6 @@ function readPortalCachedTiers(): GhostTier[] {
     // ignore
   }
   return []
-}
-
-function getGhostContentApiKey(): string {
-  const el = document.getElementById('ghost-portal-config')
-  if (!el) return ''
-  const key = el.getAttribute('data-key')
-  return typeof key === 'string' ? key.trim() : ''
 }
 
 async function fetchGhostTiers(): Promise<GhostTier[]> {

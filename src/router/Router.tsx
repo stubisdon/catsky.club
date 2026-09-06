@@ -6,6 +6,8 @@ import Mission from '../Mission'
 import Listen from '../Listen'
 import Welcome from '../Welcome'
 import Video from '../Video'
+import News from '../News'
+import NewsPost from '../NewsPost'
 import { TopNav } from '../components'
 import { trackPageView } from '../utils/analytics'
 import { clearAuthCallback, readAuthCallback, type AuthCallback } from '../utils/authCallback'
@@ -20,11 +22,12 @@ export default function Router() {
     initialCallbackRef.current = readAuthCallback(window.location.search)
   }
   const initialCallback = initialCallbackRef.current
-  const [view, setView] = useState<View | null>(() =>
+  const initialResolved =
     initialCallback?.action === 'signup' && initialCallback.success
       ? null
-      : resolveView(window.location.pathname, window.location.search, initialCallback).view,
-  )
+      : resolveView(window.location.pathname, window.location.search, initialCallback)
+  const [view, setView] = useState<View | null>(() => initialResolved?.view ?? null)
+  const [slug, setSlug] = useState<string | undefined>(() => initialResolved?.slug)
   const [failedAuthCallback, setFailedAuthCallback] = useState<AuthCallback | null>(() =>
     initialCallback?.success === false ? initialCallback : null,
   )
@@ -32,7 +35,12 @@ export default function Router() {
 
   useEffect(() => {
     let cancelled = false
-    const applyResolvedView = (nextView: View, normalizedPath: string | undefined, callback: AuthCallback | null) => {
+    const applyResolvedView = (
+      nextView: View,
+      normalizedPath: string | undefined,
+      callback: AuthCallback | null,
+      nextSlug?: string,
+    ) => {
       if (cancelled) return
       let normalized = false
       if (normalizedPath) {
@@ -47,6 +55,7 @@ export default function Router() {
       }
       setFailedAuthCallback(callback?.success === false ? callback : null)
       setView(nextView)
+      setSlug(nextSlug)
 
       const path = window.location.pathname
       const search = window.location.search
@@ -73,23 +82,23 @@ export default function Router() {
         setView(null)
         const memberName = awaitMemberNameForSignup()
         void memberName.then((name) => {
-          const { view: nextView, normalizedPath } = resolveView(
+          const { view: nextView, normalizedPath, slug: nextSlug } = resolveView(
             window.location.pathname,
             window.location.search,
             callback,
             name,
           )
-          applyResolvedView(nextView, normalizedPath, callback)
+          applyResolvedView(nextView, normalizedPath, callback, nextSlug)
         })
         return
       }
 
-      const { view: nextView, normalizedPath } = resolveView(
+      const { view: nextView, normalizedPath, slug: nextSlug } = resolveView(
         window.location.pathname,
         window.location.search,
         callback,
       )
-      applyResolvedView(nextView, normalizedPath, callback)
+      applyResolvedView(nextView, normalizedPath, callback, nextSlug)
     }
     
     window.addEventListener('popstate', handleLocationChange)
@@ -126,6 +135,12 @@ export default function Router() {
         break
       case 'welcome':
         page = <Welcome />
+        break
+      case 'news':
+        page = <News />
+        break
+      case 'newsPost':
+        page = slug ? <NewsPost slug={slug} /> : <News />
         break
       default:
         page = <App />

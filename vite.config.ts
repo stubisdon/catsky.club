@@ -65,6 +65,18 @@ export default defineConfig(({ mode }) => {
             })
           },
         },
+        /*
+          Ghost image URLs. The Portal patch in index.html rewrites
+          https://catsky.club → the current origin in every API response, so in dev a
+          post's feature_image arrives as /content/images/… and has to be proxied the
+          same way nginx (prod) and server.js (fallback) already do it. Read-only assets,
+          so no cookie or redirect rewriting is needed.
+        */
+        '/content': {
+          target: ghostProxyTarget,
+          changeOrigin: true,
+          secure: true,
+        },
         '/members': {
           target: ghostProxyTarget,
           changeOrigin: true,

@@ -142,6 +142,7 @@ Execution requirements:
 
 - Prefer browser automation so screenshots are reproducible.
 - Use `npm run screenshots:journey` as the default reproducible screenshot command in this repo. It starts Vite on `127.0.0.1:3000`, waits for app-shell readiness, and exports a 3-step journey into `artifacts/ui-journey/`.
+- For the `/news` section specifically, use `npm run screenshots:news`, the equivalent for that flow (home → feed → article → locked article → mobile feed, into `artifacts/news-journey/`); it runs entirely against mocked Ghost responses (`page.route`, same fixtures as `e2e/news.spec.ts`), so it works regardless of Content API availability.
 - If Playwright browser binaries or OS deps are missing, run `npm run test:e2e:setup` first and retry screenshot capture before declaring an environment blocker.
 - Include screenshots in the final task summary with clear labels in journey order.
 - If capture is blocked by environment/tooling, explicitly state what was attempted and why evidence could not be collected.
@@ -166,3 +167,7 @@ Two things that are easy to get wrong:
 - Claude resolves `--scope local` to the **git root**, not the current directory. One registration under the main checkout covers every worktree; re-running it from a worktree reports "already exists" and is a no-op.
 
 Ask the repo owner for the key. Never commit it, and never write it into `.mcp.json`.
+
+## 11) News section depends on a valid Ghost Content API key
+
+The `/news` blog section (`src/News.tsx`, `src/NewsPost.tsx`, `src/utils/ghostContent.ts`) calls Ghost's **Content API**, which requires the key from an active Ghost integration (`src/utils/ghostApi.ts`, `getGhostContentApiKey()`). If that integration is disabled/deleted or the key is wrong, Ghost does not just 401 — it also brute-force-blocks the key with a `429 TooManyRequestsError` on repeated bad requests. Both cases must render the news section's error + retry state rather than retrying in a loop or showing a blank page. See `docs/NEWS_SECTION.md` for the full data flow and gating matrix.
