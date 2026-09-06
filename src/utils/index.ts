@@ -53,3 +53,16 @@ export {
   openPortalAccountPlans,
   triggerPortalSignOut,
 } from './memberSession'
+
+export {
+  type Theme,
+  type ThemeMode,
+  DEFAULT_THEME,
+  DEFAULT_MODE,
+  getStoredTheme,
+  getStoredMode,
+  resolveInitialTheme,
+  applyTheme,
+  storeTheme,
+  storeMode,
+} from './theme'

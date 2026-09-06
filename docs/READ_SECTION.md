@@ -3,18 +3,44 @@
 ## Overview
 
 The Read section is Catsky's blog: Ghost posts rendered inside the Catsky SPA
-shell instead of on the Ghost theme. It reuses the site's native aesthetic
-(black background, `var(--font-mono)`, white text, lowercase chrome) — no web
-fonts, no new colors, no light theme. A future typography pass is scoped at
-the bottom of this document but is **not implemented in v1**.
+shell instead of on the Ghost theme. It is styled entirely from the site's
+engraved-plate design system — no colors, fonts or spacing of its own:
+
+- **Type.** Card titles, the article `<h1>` and in-article headings use
+  `--font-display` (Instrument Serif). The article body and card excerpts use
+  `--font-body` (EB Garamond), sized up to ~1.2rem because Garamond runs small,
+  at line-height 1.7 and a 34em (~68 character) measure. Dates, reading time,
+  the lock badge, figure captions, code and the locked CTA use `--font-mono`
+  (Courier Prime) at the shared `--text-eyebrow` / `.t-meta` sizes.
+- **Ink.** Every rule, border and dimmed line is `--rule-color`,
+  `--rule-color-strong`, `--ink-faint`, `--ink-quiet` or
+  `rgba(var(--color-text-rgb), α)`. There are no hardcoded colors, so the whole
+  section reads correctly in both the light and dark themes.
+- **Structure.** The feed is ruled like the album tracklist (a hairline opens
+  the list, one closes each row) and hovers to `--tint-selected`. Feature images
+  keep `aspect-ratio: 16 / 9; object-fit: cover` so an arbitrary Ghost upload
+  can't break the feed's rhythm, and are desaturated like every other
+  photograph on the site. Page padding is `--page-gutter`, matching the landing
+  page.
+- **Rhythm.** In-article headings keep the "generous space above, tight space
+  below" asymmetry, via heading margins in the heading's own `em` plus the
+  `h2 + *, h3 + *, h4 + *, hr + * { margin-top: 0 }` reset.
+
+Post titles and article bodies keep their authored case; the site-wide
+lowercase styling belongs to chrome only. All of the above lives in the
+`/* Read section */` block near the end of `src/index.css`.
+
+A further typography pass is scoped at the bottom of this document but is
+**not implemented**.
 
 Routes:
 
 - `/read` — feed of posts, newest first.
 - `/read/<slug>` — a single article.
 
-Nav: a `read` link sits between `watch` and `connect` on the landing page
-(`src/App.tsx`).
+Nav: a `read` link sits after `watch` in the top navigation
+(`src/components/TopNav.tsx`), in both the desktop bar and the mobile overlay.
+The landing page itself no longer carries nav buttons.
 
 ## Data flow
 
@@ -89,10 +115,19 @@ paid) and a `Link` to `/connect`.
 
 ## Future: Perplexity-derived reading typography
 
-**Not implemented in v1.** The read section currently uses the site's native
-mono aesthetic (see "Overview" above) — no web fonts, no color, per the
-locked v1 product decision. The spec below is captured for a later pass and
-should not be treated as current behavior.
+**Not implemented.** The spec below is captured for a later pass and should not
+be treated as current behavior.
+
+Note that the premise has shifted since this was written. The site now ships
+three self-hosted webfonts of its own — Instrument Serif for display, **EB
+Garamond for running prose**, Courier Prime for metadata — and the read section
+already sets its body in that serif at a long-form size and measure. So this
+future pass is no longer about choosing a reading face; the font question is
+settled. What is left from the notes below is the *rhythm and measure* work:
+the exact heading margin ratios, the list and blockquote spacing, the inline
+code treatment, and whether the current 34em measure is the right one for EB
+Garamond specifically. The font-substitution tables are kept for reference
+only — do not swap in Inter or Literata; that would undo the design system.
 
 Perplexity's answer body now uses their proprietary PPLX Serif VF (sans
 option: PPLX Sans VF); FK Grotesk Neue and Berkeley Mono are legacy and no

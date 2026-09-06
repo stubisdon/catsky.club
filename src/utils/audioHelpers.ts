@@ -38,11 +38,19 @@ export function getSoundCloudStreamUrl(trackId: string, secretToken?: string): s
  * Supports both individual tracks and sets/playlists
  * Can use trackId, trackUrl (full URL), or setId
  */
+export interface SoundCloudEmbedOptions {
+  /** Start playing as soon as the widget mounts. Used where a click already implied "play". */
+  autoPlay?: boolean
+  /** Widget accent, as a hex string. Defaults to the brand accent. */
+  color?: string
+}
+
 export function getSoundCloudEmbedUrl(
   trackId?: string,
   trackUrl?: string,
-  setId?: string, 
-  secretToken?: string
+  setId?: string,
+  secretToken?: string,
+  options?: SoundCloudEmbedOptions
 ): string {
   let resourceUrl: string
   
@@ -97,14 +105,14 @@ export function getSoundCloudEmbedUrl(
     throw new Error('Either trackId, trackUrl, or setId must be provided')
   }
   
-  // Use brand accent color from branding.md (Inspired Path #8A55A5)
-  // This color is used for interactive elements and highlights per brand guidelines
-  const brandAccentColor = '#8A55A5'
-  
+  // Use brand accent color from branding.md (Inspired Path #8A55A5) unless the caller passes
+  // one — the engraved album view supplies the page's ink colour so the widget matches it.
+  const brandAccentColor = options?.color || '#8A55A5'
+
   const params = new URLSearchParams({
     url: resourceUrl,
-    color: brandAccentColor, // Brand accent color - Inspired Path (#8A55A5)
-    auto_play: 'false',
+    color: brandAccentColor,
+    auto_play: options?.autoPlay ? 'true' : 'false',
     show_comments: 'false',
     show_user: 'false',
     show_reposts: 'false',

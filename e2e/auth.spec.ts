@@ -241,8 +241,8 @@ test.describe('Connect Page - Basic Elements', () => {
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    // Should see home link
-    const homeLink = page.getByRole('link', { name: /home/i })
+    // Should see home link (top nav wordmark)
+    const homeLink = page.getByTestId('top-nav-wordmark')
     await expect(homeLink).toBeVisible()
   })
 
@@ -738,8 +738,8 @@ test.describe('Navigation from Connect', () => {
     await page.goto('/connect')
     await page.waitForLoadState('networkidle')
 
-    // Click home link
-    const homeLink = page.getByRole('link', { name: /home/i })
+    // Click home link (top nav wordmark)
+    const homeLink = page.getByTestId('top-nav-wordmark')
     await homeLink.click()
 
     // Should be on home page

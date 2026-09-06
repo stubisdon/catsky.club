@@ -100,24 +100,48 @@ const POSTS = [
 // Detail html per slug — mirrors Ghost's real behavior of returning a
 // free-preview fragment for gated posts (or an empty string) and the
 // full body for accessible posts.
+// The unlocked post's body deliberately exercises every element the article
+// stylesheet has an opinion about — headings, lists, a blockquote, inline and
+// block code, a rule, a link and a figure — so the screenshot is usable
+// evidence for the reading surface rather than a single paragraph.
 const DETAIL_HTML = {
-  'sugar-daddy-sample-pack': '<p>Full public post body about the sample pack.</p>',
+  'sugar-daddy-sample-pack': [
+    '<p>Full public post body about the sample pack. It started, as most of these things do, with a folder of half-labelled WAVs and no memory of where any of them came from.</p>',
+    '<h2>Where the sounds came from</h2>',
+    '<p>Some of it was recorded in the room. Some of it was pulled off tape that had been sitting in a cupboard for a decade, and a fair amount of it is honestly unidentifiable — which is <strong>part of the point</strong>, and also why the pack ships with <a href="/read">its own notes</a>.</p>',
+    '<blockquote><p>If you can tell exactly what a sound is, you have probably not done enough to it yet.</p></blockquote>',
+    '<h3>What is in the folder</h3>',
+    '<ul><li>Twelve one-shots, mostly percussive.</li><li>Four tape loops, unquantised on purpose.</li><li>One extremely long room recording nobody asked for.</li></ul>',
+    '<p>Naming follows the same scheme throughout, so <code>SD_kick_04.wav</code> is the fourth kick and nothing else.</p>',
+    '<pre><code>sd_kick_01.wav\nsd_kick_02.wav\nsd_tape_loop_a.wav\nsd_room_long.wav</code></pre>',
+    '<hr />',
+    '<h4>A note on licensing</h4>',
+    '<p>Use it for whatever you like. Credit is welcome, not required.</p>',
+    '<figure><img src="/content/images/2026/02/studio-session.jpg" alt="Mixing console in a dim studio" /><figcaption>The console the whole thing was bounced through.</figcaption></figure>',
+  ].join(''),
   'studio-session-notes': '<p>Free preview: the first week was chaos.</p>',
   'track-breakdown-motherless-child': '',
   'inside-the-demo-vault': '',
   'why-catsky-exists': '<p>Full body text about the Catsky mission.</p>',
 }
 
-// A 1x1 transparent PNG. Feature images must be served locally: a real
-// outbound image request never settles in this environment.
-const PIXEL_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-  'base64',
-)
+/**
+ * Stand-in for a Ghost feature image. Feature images must be served locally: a
+ * real outbound image request never settles in this environment. An SVG rather
+ * than the 1x1 PNG this script used before, because it carries real intrinsic
+ * dimensions — a 1x1 source renders as a 1px dot inside an unconstrained
+ * `<figure>`, which makes the article screenshot look broken rather than
+ * showing what a real inline image does to the page.
+ */
+const PLACEHOLDER_IMAGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect width="1600" height="900" fill="#8f8577"/>
+  <rect x="1" y="1" width="1598" height="898" fill="none" stroke="#efe9dd" stroke-width="2"/>
+  <path d="M0 900 L1600 0 M0 0 L1600 900" stroke="#a89c8b" stroke-width="2" fill="none"/>
+</svg>`
 
 function mockGhostImages(page) {
   return page.route('**/content/images/**', (route) => {
-    route.fulfill({ status: 200, contentType: 'image/png', body: PIXEL_PNG })
+    route.fulfill({ status: 200, contentType: 'image/svg+xml', body: PLACEHOLDER_IMAGE_SVG })
   })
 }
 
@@ -378,6 +402,35 @@ async function run() {
     console.log('[read-screenshots] Captured Read feed (mobile, 390x844): 05-read-feed-mobile.png')
 
     await mobileContext.close()
+
+    // --- 06/07: dark theme ---
+    //
+    // The theme is resolved before React mounts by the inline script in
+    // index.html, which reads the `catsky_theme` preference from
+    // localStorage (see src/utils/theme.ts — that key is only ever written
+    // by a click on the toggle). Seeding it in an init script is therefore
+    // the same thing a returning visitor who chose dark would experience,
+    // and it avoids having to drive the toggle before every capture.
+    const darkContext = await browser.newContext({ viewport: desktopViewport, colorScheme: 'dark' })
+    await darkContext.addInitScript(() => {
+      window.localStorage.setItem('catsky_theme', 'dark')
+    })
+    const darkPage = await darkContext.newPage()
+    await darkPage.emulateMedia({ reducedMotion: 'reduce' })
+    await mockGuestMember(darkPage)
+    await mockGhostContent(darkPage)
+
+    await darkPage.goto(`${BASE_URL}/read`, { waitUntil: 'domcontentloaded' })
+    await waitForTestId(darkPage, 'read-feed', 'read feed (dark)')
+    await captureContentScreenshot(darkPage, path.join(OUTPUT_DIR, '06-read-feed-dark.png'), desktopViewport)
+    console.log('[read-screenshots] Captured Read feed (dark theme): 06-read-feed-dark.png')
+
+    await darkPage.goto(`${BASE_URL}/read/${unlockedSlug}`, { waitUntil: 'domcontentloaded' })
+    await waitForTestId(darkPage, 'read-article', 'unlocked article (dark)')
+    await captureContentScreenshot(darkPage, path.join(OUTPUT_DIR, '07-read-article-dark.png'), desktopViewport)
+    console.log(`[read-screenshots] Captured unlocked article (${unlockedSlug}, dark theme): 07-read-article-dark.png`)
+
+    await darkContext.close()
     await browser.close()
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

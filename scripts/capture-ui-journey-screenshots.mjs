@@ -29,6 +29,32 @@ const JOURNEY_STEPS = [
   },
 ]
 
+/**
+ * The theme preference is three-state. The OS is emulated as dark throughout this leg so the
+ * screenshots show each mode doing something distinguishable: 'system' follows the dark OS, and
+ * the two explicit modes visibly override it.
+ */
+const THEME_STEPS = [
+  {
+    file: '04-theme-system.png',
+    label: 'Theme mode: system (default, following a dark OS)',
+    button: 'theme: system — switch to light',
+    expected: 'dark',
+  },
+  {
+    file: '05-theme-light.png',
+    label: 'Theme mode: light (pinned, overriding the dark OS)',
+    button: 'theme: light — switch to dark',
+    expected: 'light',
+  },
+  {
+    file: '06-theme-dark.png',
+    label: 'Theme mode: dark (pinned)',
+    button: 'theme: dark — switch to system',
+    expected: 'dark',
+  },
+]
+
 function requestOnce(url) {
   return new Promise((resolve, reject) => {
     const req = http.get(url, (res) => {
@@ -118,7 +144,11 @@ async function run() {
     await page.emulateMedia({ reducedMotion: 'reduce' })
 
     for (const step of JOURNEY_STEPS) {
-      await page.goto(`${BASE_URL}${step.path}`, { waitUntil: 'networkidle' })
+      // Not `networkidle`: Ghost's Content API answers 429 once its hourly budget is spent, and
+      // those responses are never drained, so the requests stay in flight and the network never
+      // goes idle. The globally mounted TopBar is a reliable app-shell readiness signal instead.
+      await page.goto(`${BASE_URL}${step.path}`, { waitUntil: 'domcontentloaded' })
+      await page.locator('.theme-toggle').waitFor({ state: 'visible' })
       const targetFile = path.join(OUTPUT_DIR, step.file)
       await page.screenshot({
         path: targetFile,
@@ -127,6 +157,32 @@ async function run() {
         caret: 'hide',
       })
       console.log(`[ui-screenshots] Captured ${step.label}: ${targetFile}`)
+    }
+
+    await page.emulateMedia({ reducedMotion: 'reduce', colorScheme: 'dark' })
+    await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' })
+    await page.evaluate(() => localStorage.removeItem('catsky_theme'))
+    await page.reload({ waitUntil: 'domcontentloaded' })
+
+    for (const step of THEME_STEPS) {
+      const toggle = page.getByRole('button', { name: step.button })
+      await toggle.waitFor()
+
+      const resolved = await page.evaluate(() => document.documentElement.dataset.theme)
+      if (resolved !== step.expected) {
+        throw new Error(`${step.label}: expected data-theme="${step.expected}", got "${resolved}"`)
+      }
+
+      const targetFile = path.join(OUTPUT_DIR, step.file)
+      await page.screenshot({
+        path: targetFile,
+        fullPage: true,
+        animations: 'disabled',
+        caret: 'hide',
+      })
+      console.log(`[ui-screenshots] Captured ${step.label}: ${targetFile}`)
+
+      await toggle.click()
     }
 
     await browser.close()

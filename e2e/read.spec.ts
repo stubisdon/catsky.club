@@ -235,12 +235,13 @@ test.describe('Read section', () => {
     expect(await firstTitle.innerText()).toBe('Sugar Daddy Sample Pack 📦')
   })
 
-  test('landing page shows the read link and navigating to it does not reload the page', async ({ page }) => {
+  test('top nav shows the read link and navigating to it does not reload the page', async ({ page }) => {
     await mockGuestMember(page)
     await mockGhostContent(page)
 
     await page.goto('/')
-    const readLink = page.getByRole('link', { name: 'read' })
+    // Navigation lives in the top bar; the landing page itself has no nav buttons.
+    const readLink = page.getByTestId('top-nav-link-read')
     await expect(readLink).toBeVisible()
 
     // Mark the current document instance so we can prove SPA navigation

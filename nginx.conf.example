@@ -121,6 +121,14 @@ server {
     # Ghost Members (subscriptions, sign-in, etc.)
     location /members/ {
         proxy_pass http://127.0.0.1:2368/members/;
+        # Magic-link verification 302s to "/?action=...". The root URL was once served with
+        # a 1-year Cache-Control (see server.js), so returning browsers still hold a broken
+        # HTML shell for exactly that URL and the server can never reach them. Send the
+        # callback to /auth instead: a path no browser has ever cached, served fresh by the
+        # SPA fallback. The router reads callback params regardless of pathname, so routing
+        # is unaffected. Remove only once no poisoned caches can plausibly remain.
+        proxy_redirect ~^/\\?(action=(?:signup|signin)&.*)$ https://$host/auth?$1;
+        proxy_redirect ~^https?://[^/]+/\\?(action=(?:signup|signin)&.*)$ https://$host/auth?$1;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

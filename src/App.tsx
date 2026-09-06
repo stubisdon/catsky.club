@@ -1,80 +1,83 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from './components'
-import { getMembershipTier, type MembershipTier } from './utils'
+import { AlbumShelf, Link, SectionRule, SocialFeed, VideoFeature } from './components'
+import { LISTEN_PROFILES } from './config/socials'
+import { PlatformGlyph } from './components/graphics'
+import { trackEvent } from './utils/analytics'
 
+const POEM = ['in the world of data', 'scattered everywhere', 'here to find a meaning', 'for the ones who care']
+
+/**
+ * Landing page.
+ *
+ * Reads top to bottom as one printed sheet: masthead, the release shelf, the music video, then
+ * where to follow. The shelf leads because both calls to action live there — the released
+ * cover opens the music, the upcoming cover asks for an email.
+ */
 export default function App() {
-  const [membershipTier, setMembershipTier] = useState<MembershipTier | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    getMembershipTier()
-      .then((tier) => {
-        if (!cancelled) setMembershipTier(tier)
-      })
-      .catch(() => {
-        if (!cancelled) setMembershipTier('none')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const isPaid = useMemo(
-    () => membershipTier === 'paid_5' || membershipTier === 'paid_20',
-    [membershipTier]
-  )
-
   return (
-    <div className="app-container">
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '900px',
-          padding: '2rem',
-          textAlign: 'left',
-          letterSpacing: '0.05em',
-          lineHeight: 1.8,
-          maxHeight: '100vh',
-          overflowY: 'auto',
-          userSelect: 'text',
-          WebkitUserSelect: 'text',
-        }}
-      >
-        <div style={{ marginBottom: '2.5rem' }}>
-          <h1
-            style={{
-              fontSize: 'clamp(2rem, 5vw, 4rem)',
-              marginBottom: '1rem',
-              letterSpacing: '0.1em',
-              textTransform: 'lowercase',
-            }}
-          >
-            catsky.club
-          </h1>
-          <div style={{ opacity: 0.9, fontSize: 'clamp(1rem, 2vw, 1.25rem)', lineHeight: '1.8' }}>
-            <div>in the world of data</div>
-            <div>scattered everywhere</div>
-            <div>here to find a meaning</div>
-            <div>for the ones who care</div>
-          </div>
-        </div>
+    <div className="app-container home-shell">
+      <div className="home-scroll">
+        <main className="home-page">
+          <header className="home-masthead">
+            <h1 className="t-display home-wordmark">catsky.club</h1>
+            <div className="home-poem">
+              {POEM.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+            </div>
+          </header>
 
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '1rem',
-            alignItems: 'center',
-          }}
-        >
-          <Link href="/listen" variant="button">listen</Link>
-          <Link href="/watch" variant="button">watch</Link>
-          <Link href="/read" variant="button">read</Link>
-          <Link href="/connect" variant="button">connect</Link>
-          {isPaid && <Link href="/video" variant="button">secrets</Link>}
-        </div>
+          <section className="home-section" aria-labelledby="releases-heading">
+            <SectionRule label="releases" />
+            <h2 id="releases-heading" className="visually-hidden">
+              releases
+            </h2>
+            <AlbumShelf />
+          </section>
+
+          <section className="home-section" aria-labelledby="video-heading">
+            <SectionRule label="music video" />
+            <h2 id="video-heading" className="visually-hidden">
+              music video
+            </h2>
+            <VideoFeature />
+          </section>
+
+          <section className="home-section" aria-labelledby="follow-heading">
+            <SectionRule label="latest" />
+            <h2 id="follow-heading" className="visually-hidden">
+              latest posts
+            </h2>
+            <SocialFeed />
+          </section>
+
+          <footer className="home-footer">
+            <SectionRule label="listen everywhere" />
+            <div className="listen-row">
+              {LISTEN_PROFILES.map((profile) => (
+                <a
+                  key={profile.label}
+                  className="listen-link"
+                  href={profile.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackEvent('listen_profile_clicked', { destination: profile.label })}
+                >
+                  <PlatformGlyph platform={profile.glyph} size={19} />
+                  <span>{profile.label}</span>
+                </a>
+              ))}
+            </div>
+
+            <div className="home-footer-links">
+              <Link href="/listen" variant="subtle">
+                the full catalogue
+              </Link>
+              <Link href="/connect" variant="subtle">
+                connect
+              </Link>
+            </div>
+          </footer>
+        </main>
       </div>
     </div>
   )

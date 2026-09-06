@@ -2,7 +2,8 @@ export type AuthCallbackAction = 'signup' | 'signin'
 
 export interface AuthCallback {
   action: AuthCallbackAction
-  success: true
+  success: boolean
+  errorCode?: string
 }
 
 declare global {
@@ -16,7 +17,7 @@ function isAuthCallback(value: unknown): value is AuthCallback {
     value &&
     typeof value === 'object' &&
     ((value as AuthCallback).action === 'signup' || (value as AuthCallback).action === 'signin') &&
-    (value as AuthCallback).success === true,
+    typeof (value as AuthCallback).success === 'boolean',
   )
 }
 
@@ -24,8 +25,10 @@ export function parseAuthCallback(search: string): AuthCallback | null {
   const params = new URLSearchParams(search)
   const action = params.get('action')
 
-  if ((action === 'signup' || action === 'signin') && params.get('success') === 'true') {
-    return { action, success: true }
+  const success = params.get('success')
+  if ((action === 'signup' || action === 'signin') && (success === 'true' || success === 'false')) {
+    const errorCode = params.get('errorCode') || undefined
+    return { action, success: success === 'true', ...(errorCode ? { errorCode } : {}) }
   }
 
   return null
@@ -53,6 +56,7 @@ export function stripAuthCallbackParams(pathname: string, search: string): strin
   const params = new URLSearchParams(search)
   params.delete('action')
   params.delete('success')
+  params.delete('errorCode')
   const remaining = params.toString()
   return `${pathname}${remaining ? `?${remaining}` : ''}`
 }

@@ -16,13 +16,13 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 ### Frontend app shell
 
 - Entry: `index.html` bootstraps the app and Ghost Portal integration.
-- React mount: `src/main.tsx` renders `Router` inside `React.StrictMode`.
+- React mount: `src/main.tsx` renders `Router` inside `React.StrictMode`, with a small in-brand error boundary so a rendering failure still offers `/listen` and `/` rather than an empty app root.
 - Router: `src/router/Router.tsx` maps pathname to views and normalizes trailing slashes.
 - Navigation: `src/router/navigation.ts` uses History API and dispatches `popstate`.
 
 ### Route map
 
-- `/` → `src/App.tsx` (landing page)
+- `/` → `src/App.tsx` (landing page: masthead, release shelf, music video, social feed)
 - `/listen` → `src/Listen.tsx` (tier-gated tracks; V1 paid-demo catalog currently unlocks at `$5` with `$20` parity)
 - `/watch` → `src/Watch.tsx` (public teaser + plan/perk upgrade prompt for free/guest users + unreleased-video entrypoint for paid tiers)
 - `/video` → `src/Video.tsx` (embedded unreleased music video gated to `paid_5` / `paid_20`; locked guests/free users route to `/connect`)
@@ -35,10 +35,69 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 
 ### Styling model
 
-- Global theme/layout tokens in `src/index.css`.
+- Global theme/layout tokens in `src/index.css`; `src/utils/theme.ts` resolves the active theme and applies it to `<html data-theme>` (see 2.1).
 - Shared reusable style objects in `src/styles/common.ts`.
 - Route components mostly use inline style objects for local presentation.
-- Reusable primitives in `src/components/` (`Link`, `PageContainer`, `PageTitle`).
+- Reusable primitives in `src/components/` (`Link`, `PageContainer`, `PageTitle`, `Dialog`, plus route-independent `TopBar` and `ThemeToggle`).
+
+### 2.2 Engraved-plate design system
+
+The visual language is a single ink on paper: one text colour at varying alpha, never a second
+hue. It is expressed entirely through tokens in `src/index.css`, so both themes get it for free.
+
+- **Type roles.** Three self-hosted families, each with one job:
+  `--font-display` (Instrument Serif) for headings and the wordmark, `--font-body`
+  (EB Garamond) for prose, `--font-mono` (Courier Prime) for eyebrows, labels, metadata, nav
+  and buttons. The `.t-display` / `.t-eyebrow` / `.t-meta` classes are the intended way to
+  apply them; components should not restate font stacks inline.
+- **Fonts are self-hosted** from `public/fonts` (latin subsets, ~128 KB total) and declared
+  with `@font-face` at the top of `src/index.css`. They are deliberately *not* loaded from the
+  Google Fonts CDN: that removes a third-party request from every page load, keeps visitor IPs
+  off Google, and — because an external stylesheet that never settles makes Playwright's
+  `networkidle` unreachable — keeps the e2e suite deterministic.
+- **Ink and rule tokens.** `--rule-color`, `--rule-color-strong`, `--ink-faint`, `--ink-quiet`
+  are all derived from `--color-text-rgb`. New components should use these rather than
+  introducing fresh `rgba()` literals.
+- **Paper surface.** `.paper-surface` (rendered once by `Router`) is a fixed, `pointer-events:
+  none` overlay carrying two things: a tiled fractal-noise grain, and the hairline plate frame.
+  It sits at `z-index: 2` — above `#root` (0) so it prints over content, below `.top-nav`
+  (1000), and far below `#ghost-portal-root` (999999).
+- **Graphics are procedural, not bitmaps.** `src/components/graphics/` draws engraved line art
+  in SVG from seeded maths (`engraving.ts`): concentric burin rings with sinusoidally swelling
+  stroke weight, stipple halftone crescents, and hatch fields. Because it draws in
+  `currentColor` it recolours itself per theme, stays crisp at any size, and needs no asset
+  pipeline. `AlbumArtPlate` uses this to generate placeholder cover art per album seed —
+  replacing it with real artwork means swapping in an `<img>` and nothing else.
+
+### 2.1 Theme resolution
+
+The visitor's preference is **three-state** and lives in `localStorage.catsky_theme`:
+
+| mode | meaning |
+| --- | --- |
+| `light` | pinned light |
+| `dark` | pinned dark |
+| `system` | **default** — match the OS, then the sun |
+
+Values written before the mode existed (`'light'` / `'dark'`) are already valid modes, so there is no migration.
+
+`resolveAutoTheme()` in `src/utils/theme.ts` walks this chain, highest first:
+
+1. **stored preference** — mode `light` / `dark` (`source: 'preference'`),
+2. **OS `prefers-color-scheme`** — `getSystemTheme()` (`source: 'system'`),
+3. **sun position** — `getSolarTheme()` (`source: 'solar'`, carries `nextTransition`),
+4. **`DEFAULT_THEME` = `light`** (`source: 'default'`).
+
+Notes that matter when editing this:
+
+- `getSystemTheme()` queries **both** `(prefers-color-scheme: dark)` and `(prefers-color-scheme: light)` and returns `null` only when neither matches. Assuming `light` on a miss would make step 3 unreachable.
+- `no-preference` was dropped from the CSS spec, so real browsers essentially always answer light or dark. Step 3 is therefore a genuine fallback, not the common path; `e2e/theme.spec.ts` has to stub `matchMedia` to reach it.
+- Solar input is `src/utils/solar.ts` (NOAA sunrise/sunset) fed by `src/utils/timezoneCoords.ts` (IANA zone → coordinates). `navigator.geolocation` is deliberately never used — no permission prompt on an immersive landing page.
+- `src/components/ThemeToggle.tsx` is a single button cycling `light → dark → system → light`. The icon names the **current** mode (`SunIcon` / `MoonIcon` / `SystemIcon` from `ThemeIcons.tsx`); the label reads `theme: <current> — switch to <next>`.
+- `storeMode()` is the only writer of `catsky_theme` and is only ever reached from the click handler. Writing it from a mount effect pins a theme the visitor never chose (regression covered in `ThemeToggle.test.tsx`).
+- While the mode is `system` the toggle follows the world: a solar timer clamped to ≤ 6h per tick, plus `matchMedia` `change`, `visibilitychange`, and `focus`. All of it is torn down on unmount and whenever the mode leaves `system`.
+- Automatic results are cached under the separate key `catsky_theme_auto` (`{ theme, validUntil }`, max age 6h) so the pre-paint script can reuse them without running solar math. Only `system` and `solar` sources are cached; a preference never is.
+- The pre-paint inline script in `index.html` mirrors this order — preference, `matchMedia` dark, `matchMedia` light, valid `catsky_theme_auto`, then `light` — so there is no flash before React mounts.
 
 ## 3) Ghost integration
 
@@ -66,10 +125,10 @@ Current behavior in `src/Connect.tsx`:
 - Signup/login buttons open an inline email form (not Portal signup UI).
 - Form posts to `/members/api/send-magic-link/`.
 - Callback robustness:
-  - detects `?action=signin|signup&success=true` on any app route; signup normalizes to `/welcome` while signin stays on its current view
-  - captures and removes those callback params in `index.html` before Ghost Portal loads, preventing Portal’s generic subscription toast while handing the callback to React through `window.__catskyAuthCallback`
+  - detects successful and failed `?action=signin|signup` callbacks on any app route; successful signins normalize to `/listen`, successful signups route to `/welcome` only when the member has no saved name (otherwise `/listen`), and failed callbacks normalize to `/connect` with Catsky-owned retry copy
+  - captures and removes callback params (including `errorCode`) in `index.html` before Ghost Portal loads, preventing every Portal notification while handing the callback to React through `window.__catskyAuthCallback`; `Router` is the sole consumer of that one-shot handoff and passes failed-callback state explicitly to `/connect`
   - retries member refresh with backoff
-  - on successful `action=signup`, routes to `/welcome` before app entry and persists the resolved Ghost member identity in `sessionStorage` for the onboarding handoff when the callback flows through `Connect`
+  - on successful `action=signup`, `Router` waits up to 2.5 seconds for the current member name, then routes to `/welcome` only when it is absent (otherwise `/listen`)
   - `/welcome` also hydrates the current Ghost member identity itself on mount so router-level signup callback normalization still carries the real Ghost Members payload into `POST /api/member-profile`; in production this payload is typically `uuid` + `email` rather than an Admin API `id`, so the Express bridge must translate that identity back to the canonical Ghost Admin member record before updating `name`/`note`
   - the page normalizes the signup callback straight into `/welcome` (so `/connect` does not flash first), navigates straight into the app, and leaves the Ghost profile update to the Express server so the user does not wait on client-side hydration.
   - the `/welcome` form keeps required/optional indicators visually secondary (`*` and `(optional)` render as note-style helper text) so the onboarding step stays calm and readable while still conveying field requirements.
@@ -120,6 +179,22 @@ everywhere else in §3.1–3.3):
 
 ## 4) Listen page and media model
 
+### 4.0 Landing page release shelf
+
+`src/config/albums.ts` defines the covers on `/`. Each album references track ids from
+`src/config/tracks.ts`, so the tracklist and the catalogue cannot drift apart.
+
+The two covers carry the page's two calls to action, and the visual difference is what
+explains them:
+
+- the **released** plate opens `AlbumDialog` — the five released tracks, each expanding to a
+  SoundCloud player plus Spotify / Apple Music / "more platforms" links from
+  `Track.listenLinks`. Only one track is expanded at a time, so only one player is ever
+  mounted and two tracks cannot play over each other.
+- the **upcoming** plate is rendered held back in tone and opens `SubscribeDialog`, which
+  requests a Ghost magic link through the shared `src/utils/magicLink.ts` helper — the same
+  path `/connect` uses, so this entry point gets the same server-side Turnstile verification.
+
 ### 4.1 Track source of truth
 
 - Track catalog lives in `src/config/tracks.ts`.
@@ -147,6 +222,21 @@ Helpers:
 - `src/utils/audioHelpers.ts` generates SoundCloud embed URLs and supports direct URLs.
 - `src/utils/soundcloudTracks.ts` offers parsing utilities for SoundCloud share links.
 
+## 4.6) Social feed
+
+The landing page's "latest" section shows three recent posts per platform, fetched server-side.
+
+- Client: `src/components/SocialFeed.tsx` → `src/utils/socialPosts.ts` → `GET /api/social-posts`.
+- Server: `server.js` route → `server/socialFeeds.mjs` (typed by `server/socialFeeds.d.mts`).
+- Profiles and handles: `src/config/socials.ts`.
+- Setup and credentials: `docs/SOCIAL_FEED_SETUP.md`.
+
+Credentials stay server-side; the browser only receives normalised posts. The design point is
+graceful degradation: platforms fail independently, a failed refresh serves the last good
+response for up to 7 days, and a column with no posts renders a follow link rather than an
+error — an unconfigured integration is the site owner's problem, not something a listener can
+act on. YouTube needs no credentials at all, falling back to the channel's public Atom feed.
+
 ## 4.5) Analytics
 
 Browser analytics are isolated in `src/utils/analytics.ts` and use `posthog-js`.
@@ -167,6 +257,14 @@ The Node server is intentionally small:
 - Serves static files from:
   - `dist/` first,
   - `public/` second.
+- Hashed bundles under `dist/assets/` are cached for one year (`immutable`), while every
+  HTML entry document is `no-cache, must-revalidate`; this prevents a cached SPA shell
+  from referencing bundles removed by a later deployment. The inline shell also retries
+  once with a cache-busting URL if its module bundle fails to load, then shows links to
+  `/listen` and `/` rather than leaving an empty root. `deploy.sh` retains previous
+  hashed bundles in `.deploy-cache/assets/` for 90 days and restores them after each
+  build without overwriting new output, so browsers already holding a stale shell can
+  still boot it; after a successful app mount, the recovery URL marker is removed.
 - Provides API routes:
   - `POST /api/submit`:
     - validates `{ name, contact }`
@@ -234,6 +332,8 @@ Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redir
   - exports `VITE_GHOST_*` values,
   - installs deps,
   - builds,
+  - retains old hashed assets for 90 days before Vite clears `dist/`, then restores them
+    without replacing the current build's bundles,
   - restarts PM2 app.
 
 ### Diagnostics
@@ -255,7 +355,10 @@ Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redir
 ## 8) Repository structure (practical map)
 
 - `src/`: app code (routes, components, router, utils, config, styles, tests)
+- `src/components/graphics/`: procedural engraved SVG art (album plates, platform glyphs, rules)
 - `public/`: static assets
+- `public/fonts/`: self-hosted webfont subsets
+- `server/`: server-side modules imported by `server.js` (currently the social feed)
 - `e2e/`: Playwright tests + test planning docs
 - `server.js`: Express runtime server
 - `vite.config.ts`: frontend tooling + proxy logic
@@ -270,3 +373,13 @@ Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redir
 - Membership gating in Listen is client-side UX gating; authoritative member state still comes from Ghost session/cookies.
 - Ghost Portal behavior depends heavily on the `index.html` patch script; accidental refactors there can break auth/signup UX.
 - `POST /api/submit` remains available for server-side member creation flows even though Connect currently uses client-side magic links.
+- The social feed cache is in-process, so it is per-instance and cleared on restart. That is
+  fine for a single-server deployment; a second instance would need a shared cache.
+- `src/config/tracks.ts` gating has drifted from reality: **Sugar Daddy** is `paid_5` with a
+  `lockedLabel` of "coming May 8, 2026" despite having been publicly released (Spotify, Apple
+  Music, and an official YouTube video). **Motherless Child** is `free_member` and is likewise
+  public. The landing page album treats both as released; `/listen` still gates them. Whether
+  to open the tiers is a monetisation decision, not a bug fix, so it is left as-is and flagged
+  here.
+- `/video` ("secrets") gates YouTube video `xRxUcF_wFSQ` as the unreleased music video, but
+  that video is now public on the channel and is the one featured on the landing page.

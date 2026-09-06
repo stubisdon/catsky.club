@@ -35,7 +35,7 @@ export default function Video() {
           width: '100%',
           maxWidth: '800px',
           aspectRatio: '16 / 9',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
+          border: '1px solid rgba(var(--color-text-rgb), 0.2)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
