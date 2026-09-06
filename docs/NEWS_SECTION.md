@@ -1,15 +1,15 @@
-# Read Section Documentation (V1.0)
+# News Section Documentation (V1.0)
 
 ## Overview
 
-The Read section is Catsky's blog: Ghost posts rendered inside the Catsky SPA
+The News section is Catsky's blog: Ghost posts rendered inside the Catsky SPA
 shell instead of on the Ghost theme. It is styled entirely from the site's
 engraved-plate design system — no colors, fonts or spacing of its own:
 
 - **Type.** Card titles, the article `<h1>` and in-article headings use
   `--font-display` (Instrument Serif). The article body and card excerpts use
-  `--font-body` (EB Garamond), sized up to ~1.2rem because Garamond runs small,
-  at line-height 1.7 and a 34em (~68 character) measure. Dates, reading time,
+  `--font-body` (EB Garamond), sized up to ~1.35-1.5rem because Garamond runs
+  small, at line-height 1.7 and a 34em (~68 character) measure. Dates, reading time,
   the lock badge, figure captions, code and the locked CTA use `--font-mono`
   (Courier Prime) at the shared `--text-eyebrow` / `.t-meta` sizes.
 - **Ink.** Every rule, border and dimmed line is `--rule-color`,
@@ -28,17 +28,17 @@ engraved-plate design system — no colors, fonts or spacing of its own:
 
 Post titles and article bodies keep their authored case; the site-wide
 lowercase styling belongs to chrome only. All of the above lives in the
-`/* Read section */` block near the end of `src/index.css`.
+`/* News section */` block near the end of `src/index.css`.
 
 A further typography pass is scoped at the bottom of this document but is
 **not implemented**.
 
 Routes:
 
-- `/read` — feed of posts, newest first.
-- `/read/<slug>` — a single article.
+- `/news` — feed of posts, newest first.
+- `/news/<slug>` — a single article.
 
-Nav: a `read` link sits after `watch` in the top navigation
+Nav: a `news` link sits after `watch` in the top navigation
 (`src/components/TopNav.tsx`), in both the desktop bar and the mobile overlay.
 The landing page itself no longer carries nav buttons.
 
@@ -51,7 +51,7 @@ whatever proxies `/ghost` (Vite in dev, nginx in prod — see `ARCHITECTURE.md`
 - `src/utils/ghostApi.ts` — `getGhostContentApiKey()`, the Content API key
   read from `#ghost-portal-config[data-key]`. This was moved out of
   `src/utils/subscription.ts` (which now imports it) so the key isn't
-  duplicated between the member-tier flow and the read flow.
+  duplicated between the member-tier flow and the news flow.
 - `src/utils/ghostContent.ts` — `fetchPosts()` and `fetchPostBySlug(slug)`.
 
 Both requests use `credentials: 'include'` and `cache: 'no-store'`. The
@@ -63,7 +63,7 @@ preview or an empty body, regardless of what the frontend asks for.
 - Article: `GET /ghost/api/content/posts/slug/<slug>/?key=<key>` (full object, including `html`)
 
 A missing/unconfigured key makes both functions return `[]` / `null` rather
-than throwing — the read section degrades to an empty feed instead of an
+than throwing — the news section degrades to an empty feed instead of an
 error banner when Ghost isn't wired up. Any other failure (non-2xx, network
 error, malformed JSON) throws, except a 404 on the detail endpoint, which
 resolves to `null` (used for the not-found state). See `AGENTS.md` for what
@@ -91,7 +91,7 @@ regardless of the body's gating. Only the article body is withheld.
 
 On the article page, a locked post (`access === false`) renders whatever
 `html` Ghost returned (a free-preview fragment, or nothing) followed by a
-`data-testid="read-locked-cta"` block naming the tier required (members /
+`data-testid="news-locked-cta"` block naming the tier required (members /
 paid) and a `Link` to `/connect`.
 
 ## Known v1 limitations
@@ -100,10 +100,10 @@ paid) and a `Link` to `/connect`.
   rendered in a single feed. Fine at this volume; will need real pagination
   or infinite scroll before the catalog grows much further.
 - **No SEO / SSR.** The SPA fetches and renders posts entirely client-side,
-  so `/read/<slug>` pages are not crawlable or link-preview-able as
+  so `/news/<slug>` pages are not crawlable or link-preview-able as
   authored. Search engines and social scrapers see the empty app shell.
 - **Slugs containing a dot would break.** Ghost slugs seen in production are
-  all extension-free, so `/read/<slug>` correctly falls through to the SPA
+  all extension-free, so `/news/<slug>` correctly falls through to the SPA
   in `server.js`'s static/SPA-fallback routing (`server.js:836`). A slug
   containing a literal `.` (e.g. `v2.0-notes`) would instead be treated as a
   static-file request, 404 before ever reaching the React router. Ghost
@@ -120,7 +120,7 @@ be treated as current behavior.
 
 Note that the premise has shifted since this was written. The site now ships
 three self-hosted webfonts of its own — Instrument Serif for display, **EB
-Garamond for running prose**, Courier Prime for metadata — and the read section
+Garamond for running prose**, Courier Prime for metadata — and the news section
 already sets its body in that serif at a long-form size and measure. So this
 future pass is no longer about choosing a reading face; the font question is
 settled. What is left from the notes below is the *rhythm and measure* work:

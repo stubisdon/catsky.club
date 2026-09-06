@@ -26,8 +26,8 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 - `/listen` → `src/Listen.tsx` (tier-gated tracks; V1 paid-demo catalog currently unlocks at `$5` with `$20` parity)
 - `/watch` → `src/Watch.tsx` (public teaser + plan/perk upgrade prompt for free/guest users + unreleased-video entrypoint for paid tiers)
 - `/video` → `src/Video.tsx` (embedded unreleased music video gated to `paid_5` / `paid_20`; locked guests/free users route to `/connect`)
-- `/read` → `src/Read.tsx` (blog feed, Ghost Content API posts, gated per-post via the post's own `access` field)
-- `/read/<slug>` → `src/ReadPost.tsx` (single article; locked posts show a free preview + CTA to `/connect`)
+- `/news` → `src/News.tsx` (blog feed, Ghost Content API posts, gated per-post via the post's own `access` field)
+- `/news/<slug>` → `src/NewsPost.tsx` (single article; locked posts show a free preview + CTA to `/connect`)
 - `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + Ghost-tier-name/perk upgrade messaging + account/logout actions)
 - `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name)
 - `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
@@ -153,9 +153,9 @@ Current behavior in `src/Connect.tsx`:
 
 Important: script order is intentional; this patch script runs before Portal load.
 
-### 3.4 Read section and the Content API
+### 3.4 News section and the Content API
 
-`src/Read.tsx` (feed) and `src/ReadPost.tsx` (article) are the only frontend
+`src/News.tsx` (feed) and `src/NewsPost.tsx` (article) are the only frontend
 consumers of Ghost's **Content API** (as opposed to the Members API used
 everywhere else in §3.1–3.3):
 
@@ -171,9 +171,9 @@ everywhere else in §3.1–3.3):
   `html` and `access` it receives and never re-derives gating from client-side
   tier state. Locked posts stay visible in the feed; only the article body is
   withheld (Ghost returns a free-preview fragment or an empty string).
-  See `docs/READ_SECTION.md` for the full gating matrix.
+  See `docs/NEWS_SECTION.md` for the full gating matrix.
 - A missing/unconfigured key degrades to an empty feed (`[]` / `null`)
-  instead of an error. Any other failure throws, surfacing the read section's
+  instead of an error. Any other failure throws, surfacing the news section's
   error + retry state — including Ghost's 429 brute-force response to a bad
   key (see `AGENTS.md`).
 

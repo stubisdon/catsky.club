@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import ReadPost from './ReadPost'
+import NewsPost from './NewsPost'
 import type { GhostPostDetail } from './utils/ghostContent'
 
 const ghost = vi.hoisted(() => ({
@@ -38,25 +38,25 @@ function makePost(overrides: Partial<GhostPostDetail> = {}): GhostPostDetail {
   }
 }
 
-describe('ReadPost', () => {
+describe('NewsPost', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    window.history.replaceState({}, '', '/read/first-post')
+    window.history.replaceState({}, '', '/news/first-post')
   })
 
   it('shows the loading state and then the article body', async () => {
     ghost.fetchPostBySlug.mockResolvedValue(makePost())
 
-    render(<ReadPost slug="first-post" />)
+    render(<NewsPost slug="first-post" />)
 
-    expect(screen.getByTestId('read-loading')).toBeInTheDocument()
+    expect(screen.getByTestId('news-loading')).toBeInTheDocument()
 
-    const article = await screen.findByTestId('read-article')
+    const article = await screen.findByTestId('news-article')
     expect(article).toContainHTML('<p>the full body</p>')
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Sugar Daddy Sample Pack 📦')
     expect(screen.getByText('Feb 26, 2026')).toBeInTheDocument()
     expect(screen.getByText('· 4 min read')).toBeInTheDocument()
-    expect(screen.queryByTestId('read-locked-cta')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('news-locked-cta')).not.toBeInTheDocument()
     expect(ghost.fetchPostBySlug).toHaveBeenCalledWith('first-post')
   })
 
@@ -65,20 +65,20 @@ describe('ReadPost', () => {
       makePost({ access: false, visibility: 'members', html: '<p>free preview</p>' })
     )
 
-    render(<ReadPost slug="first-post" />)
+    render(<NewsPost slug="first-post" />)
 
-    const cta = await screen.findByTestId('read-locked-cta')
+    const cta = await screen.findByTestId('news-locked-cta')
     expect(cta).toHaveTextContent('the rest of this post is for members.')
-    expect(screen.getByTestId('read-article')).toContainHTML('<p>free preview</p>')
+    expect(screen.getByTestId('news-article')).toContainHTML('<p>free preview</p>')
     expect(screen.getByRole('link', { name: 'connect' })).toHaveAttribute('href', '/connect')
   })
 
   it('names the paid level for paid and tiers visibility, with no preview', async () => {
     ghost.fetchPostBySlug.mockResolvedValue(makePost({ access: false, visibility: 'paid', html: '' }))
 
-    render(<ReadPost slug="first-post" />)
+    render(<NewsPost slug="first-post" />)
 
-    expect(await screen.findByTestId('read-locked-cta')).toHaveTextContent(
+    expect(await screen.findByTestId('news-locked-cta')).toHaveTextContent(
       'this post is for paid members.'
     )
   })
@@ -86,9 +86,9 @@ describe('ReadPost', () => {
   it('uses "this post is for" copy when html is empty (no preview)', async () => {
     ghost.fetchPostBySlug.mockResolvedValue(makePost({ access: false, visibility: 'members', html: '' }))
 
-    render(<ReadPost slug="first-post" />)
+    render(<NewsPost slug="first-post" />)
 
-    expect(await screen.findByTestId('read-locked-cta')).toHaveTextContent(
+    expect(await screen.findByTestId('news-locked-cta')).toHaveTextContent(
       'this post is for members.'
     )
   })
@@ -96,9 +96,9 @@ describe('ReadPost', () => {
   it('uses "this post is for" copy when html is only whitespace', async () => {
     ghost.fetchPostBySlug.mockResolvedValue(makePost({ access: false, visibility: 'members', html: '   \n  ' }))
 
-    render(<ReadPost slug="first-post" />)
+    render(<NewsPost slug="first-post" />)
 
-    expect(await screen.findByTestId('read-locked-cta')).toHaveTextContent(
+    expect(await screen.findByTestId('news-locked-cta')).toHaveTextContent(
       'this post is for members.'
     )
   })
@@ -106,9 +106,9 @@ describe('ReadPost', () => {
   it('does not render reading time when it is 0', async () => {
     ghost.fetchPostBySlug.mockResolvedValue(makePost({ readingTime: 0 }))
 
-    render(<ReadPost slug="first-post" />)
+    render(<NewsPost slug="first-post" />)
 
-    await screen.findByTestId('read-article')
+    await screen.findByTestId('news-article')
     expect(screen.queryByText(/min read/)).not.toBeInTheDocument()
   })
 
@@ -116,9 +116,9 @@ describe('ReadPost', () => {
     const originalTitle = document.title
     ghost.fetchPostBySlug.mockResolvedValue(makePost({ title: 'Sugar Daddy Sample Pack 📦' }))
 
-    const { unmount } = render(<ReadPost slug="first-post" />)
+    const { unmount } = render(<NewsPost slug="first-post" />)
 
-    await screen.findByTestId('read-article')
+    await screen.findByTestId('news-article')
     expect(document.title).toBe('Sugar Daddy Sample Pack 📦 — catsky.club')
 
     unmount()
@@ -128,53 +128,53 @@ describe('ReadPost', () => {
   it('shows the not-found state with a link back to the feed', async () => {
     ghost.fetchPostBySlug.mockResolvedValue(null)
 
-    render(<ReadPost slug="missing" />)
+    render(<NewsPost slug="missing" />)
 
-    expect(await screen.findByTestId('read-not-found')).toBeInTheDocument()
-    expect(screen.queryByTestId('read-article')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'back to read' })).toHaveAttribute('href', '/read')
+    expect(await screen.findByTestId('news-not-found')).toBeInTheDocument()
+    expect(screen.queryByTestId('news-article')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'back to news' })).toHaveAttribute('href', '/news')
   })
 
   it('shows the error state and refetches on retry', async () => {
     ghost.fetchPostBySlug.mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(makePost())
     const user = userEvent.setup()
 
-    render(<ReadPost slug="first-post" />)
+    render(<NewsPost slug="first-post" />)
 
-    expect(await screen.findByTestId('read-error')).toBeInTheDocument()
+    expect(await screen.findByTestId('news-error')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'retry' }))
 
     await waitFor(() => {
-      expect(screen.getByTestId('read-article')).toBeInTheDocument()
+      expect(screen.getByTestId('news-article')).toBeInTheDocument()
     })
     expect(ghost.fetchPostBySlug).toHaveBeenCalledTimes(2)
   })
 
-  it('tracks read_post_opened once per post, without titles or bodies', async () => {
+  it('tracks news_post_opened once per post, without titles or bodies', async () => {
     ghost.fetchPostBySlug.mockResolvedValue(makePost({ access: false, visibility: 'members' }))
 
-    const { rerender } = render(<ReadPost slug="first-post" />)
+    const { rerender } = render(<NewsPost slug="first-post" />)
 
-    await screen.findByTestId('read-article')
+    await screen.findByTestId('news-article')
 
     expect(analytics.trackEvent).toHaveBeenCalledTimes(1)
-    expect(analytics.trackEvent).toHaveBeenCalledWith('read_post_opened', {
+    expect(analytics.trackEvent).toHaveBeenCalledWith('news_post_opened', {
       slug: 'first-post',
       visibility: 'members',
       locked: true,
     })
 
-    rerender(<ReadPost slug="first-post" />)
+    rerender(<NewsPost slug="first-post" />)
     expect(analytics.trackEvent).toHaveBeenCalledTimes(1)
   })
 
   it('does not track anything when the post is missing', async () => {
     ghost.fetchPostBySlug.mockResolvedValue(null)
 
-    render(<ReadPost slug="missing" />)
+    render(<NewsPost slug="missing" />)
 
-    await screen.findByTestId('read-not-found')
+    await screen.findByTestId('news-not-found')
     expect(analytics.trackEvent).not.toHaveBeenCalled()
   })
 })

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import Read from './Read'
+import News from './News'
 import type { GhostPostSummary } from './utils/ghostContent'
 
 const ghost = vi.hoisted(() => ({
@@ -29,26 +29,26 @@ function makePost(overrides: Partial<GhostPostSummary> = {}): GhostPostSummary {
   }
 }
 
-describe('Read', () => {
+describe('News', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    window.history.replaceState({}, '', '/read')
+    window.history.replaceState({}, '', '/news')
   })
 
   it('shows the loading state and then the feed', async () => {
     ghost.fetchPosts.mockResolvedValue([makePost(), makePost({ id: 'post-2', slug: 'second', title: 'Second Post' })])
 
-    render(<Read />)
+    render(<News />)
 
-    expect(screen.getByTestId('read-loading')).toBeInTheDocument()
+    expect(screen.getByTestId('news-loading')).toBeInTheDocument()
 
-    expect(await screen.findByTestId('read-feed')).toBeInTheDocument()
-    const cards = screen.getAllByTestId('read-post-card')
+    expect(await screen.findByTestId('news-feed')).toBeInTheDocument()
+    const cards = screen.getAllByTestId('news-post-card')
     expect(cards).toHaveLength(2)
-    expect(cards[0]).toHaveAttribute('href', '/read/first-post')
-    expect(cards[1]).toHaveAttribute('href', '/read/second')
+    expect(cards[0]).toHaveAttribute('href', '/news/first-post')
+    expect(cards[1]).toHaveAttribute('href', '/news/second')
 
-    const titles = screen.getAllByTestId('read-post-title')
+    const titles = screen.getAllByTestId('news-post-title')
     expect(titles[0]).toHaveTextContent('Sugar Daddy Sample Pack 📦')
     expect(screen.getAllByText('Feb 26, 2026')).toHaveLength(2)
   })
@@ -56,9 +56,9 @@ describe('Read', () => {
   it('marks gated posts and still lists them', async () => {
     ghost.fetchPosts.mockResolvedValue([makePost({ access: false, visibility: 'members' })])
 
-    render(<Read />)
+    render(<News />)
 
-    expect(await screen.findByTestId('read-feed')).toBeInTheDocument()
+    expect(await screen.findByTestId('news-feed')).toBeInTheDocument()
     expect(screen.getByText('members only')).toBeInTheDocument()
   })
 
@@ -68,9 +68,9 @@ describe('Read', () => {
       makePost({ id: 'post-paid', slug: 'paid-post', access: false, visibility: 'paid' }),
     ])
 
-    render(<Read />)
+    render(<News />)
 
-    expect(await screen.findByTestId('read-feed')).toBeInTheDocument()
+    expect(await screen.findByTestId('news-feed')).toBeInTheDocument()
     expect(screen.getAllByText('paid members only')).toHaveLength(2)
   })
 
@@ -80,9 +80,9 @@ describe('Read', () => {
       makePost({ id: 'post-2', slug: 'no-image' }),
     ])
 
-    render(<Read />)
+    render(<News />)
 
-    await screen.findByTestId('read-feed')
+    await screen.findByTestId('news-feed')
     const images = screen.getAllByRole('img')
     expect(images).toHaveLength(1)
     expect(images[0]).toHaveAttribute('src', 'https://catsky.club/cover.jpg')
@@ -91,36 +91,36 @@ describe('Read', () => {
   it('shows the empty state when Ghost has no posts', async () => {
     ghost.fetchPosts.mockResolvedValue([])
 
-    render(<Read />)
+    render(<News />)
 
-    expect(await screen.findByTestId('read-empty')).toBeInTheDocument()
-    expect(screen.queryByTestId('read-feed')).not.toBeInTheDocument()
+    expect(await screen.findByTestId('news-empty')).toBeInTheDocument()
+    expect(screen.queryByTestId('news-feed')).not.toBeInTheDocument()
   })
 
   it('shows the error state and reloads the feed on retry', async () => {
     ghost.fetchPosts.mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce([makePost()])
     const user = userEvent.setup()
 
-    render(<Read />)
+    render(<News />)
 
-    expect(await screen.findByTestId('read-error')).toBeInTheDocument()
+    expect(await screen.findByTestId('news-error')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'retry' }))
 
     await waitFor(() => {
-      expect(screen.getByTestId('read-feed')).toBeInTheDocument()
+      expect(screen.getByTestId('news-feed')).toBeInTheDocument()
     })
     expect(ghost.fetchPosts).toHaveBeenCalledTimes(2)
-    expect(screen.queryByTestId('read-error')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('news-error')).not.toBeInTheDocument()
   })
 
   it('does not lowercase post titles', async () => {
     ghost.fetchPosts.mockResolvedValue([makePost()])
 
-    render(<Read />)
+    render(<News />)
 
-    const title = await screen.findByTestId('read-post-title')
-    expect(title).toHaveClass('read-card-title')
+    const title = await screen.findByTestId('news-post-title')
+    expect(title).toHaveClass('news-card-title')
     expect(title.textContent).toBe('Sugar Daddy Sample Pack 📦')
   })
 })

@@ -1,6 +1,6 @@
 import { getAuthCallback, stripAuthCallbackParams, type AuthCallback } from '../utils/authCallback'
 
-export type View = 'home' | 'listen' | 'watch' | 'video' | 'connect' | 'welcome' | 'mission' | 'read' | 'readPost'
+export type View = 'home' | 'listen' | 'watch' | 'video' | 'connect' | 'welcome' | 'mission' | 'news' | 'newsPost'
 
 export interface ResolvedView {
   view: View
@@ -8,7 +8,7 @@ export interface ResolvedView {
   slug?: string
 }
 
-const READ_PREFIX = '/read/'
+const NEWS_PREFIX = '/news/'
 
 function normalizePathname(pathname: string): string {
   if (pathname.length > 1) return pathname.replace(/\/+$/, '')
@@ -55,16 +55,16 @@ export function resolveView(
   if (pathname === '/listen') return { view: 'listen', normalizedPath }
   if (pathname === '/mission') return { view: 'mission', normalizedPath }
   if (pathname === '/welcome') return { view: 'welcome', normalizedPath }
-  if (pathname === '/read') return { view: 'read', normalizedPath }
+  if (pathname === '/news') return { view: 'news', normalizedPath }
 
-  if (pathname.startsWith(READ_PREFIX)) {
-    const segments = pathname.slice(READ_PREFIX.length).split('/').filter(Boolean)
+  if (pathname.startsWith(NEWS_PREFIX)) {
+    const segments = pathname.slice(NEWS_PREFIX.length).split('/').filter(Boolean)
     if (segments.length === 1) {
       const slug = decodeSlug(segments[0])
-      if (slug) return { view: 'readPost', slug, normalizedPath }
+      if (slug) return { view: 'newsPost', slug, normalizedPath }
     }
-    // Nested or unreadable slugs collapse back to the feed; the read section has no nesting.
-    return { view: 'read', normalizedPath: '/read' }
+    // Nested or unreadable slugs collapse back to the feed; the news section has no nesting.
+    return { view: 'news', normalizedPath: '/news' }
   }
 
   return { view: 'home', normalizedPath: '/' }

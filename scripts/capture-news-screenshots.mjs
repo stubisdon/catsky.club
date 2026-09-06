@@ -6,7 +6,7 @@ import path from 'node:path'
 import { chromium } from 'playwright'
 
 /**
- * Reproducible UX screenshot evidence for the /read (blog) section.
+ * Reproducible UX screenshot evidence for the /news (blog) section.
  *
  * Modelled on capture-ui-journey-screenshots.mjs: same dev-server bootstrap,
  * same readiness-wait logic, same logging style. The one deliberate
@@ -14,24 +14,24 @@ import { chromium } from 'playwright'
  * — the dev server proxies Ghost Portal's settings call to the live site,
  * so the page never reaches network idle here and every such wait times
  * out. We wait on the actual data-testid elements instead, exactly as
- * e2e/read.spec.ts does.
+ * e2e/news.spec.ts does.
  *
  * The live Ghost Content API cannot be used for this either: our IP is
  * currently inside Ghost's brute-force block and returns HTTP 429 for
  * every content request. So every Ghost request is intercepted with
  * page.route and fulfilled with fixtures that mirror the real production
- * response shape, reusing the same fixtures as e2e/read.spec.ts.
+ * response shape, reusing the same fixtures as e2e/news.spec.ts.
  */
 
 const HOST = process.env.PLAYWRIGHT_WEB_HOST || '127.0.0.1'
 const PORT = Number(process.env.PLAYWRIGHT_WEB_PORT || 3000)
 const BASE_URL = `http://${HOST}:${PORT}`
-const OUTPUT_DIR = process.env.READ_SCREENSHOT_OUTPUT_DIR || 'artifacts/read-journey'
-const SERVER_READY_TIMEOUT_MS = Number(process.env.READ_SCREENSHOT_READY_TIMEOUT_MS || 120000)
-const ELEMENT_READY_TIMEOUT_MS = Number(process.env.READ_SCREENSHOT_ELEMENT_TIMEOUT_MS || 15000)
+const OUTPUT_DIR = process.env.NEWS_SCREENSHOT_OUTPUT_DIR || 'artifacts/news-journey'
+const SERVER_READY_TIMEOUT_MS = Number(process.env.NEWS_SCREENSHOT_READY_TIMEOUT_MS || 120000)
+const ELEMENT_READY_TIMEOUT_MS = Number(process.env.NEWS_SCREENSHOT_ELEMENT_TIMEOUT_MS || 15000)
 
 // Ordered newest-first, matching the real feed's `order=published_at desc`.
-// Fixtures reuse the same shape and content as e2e/read.spec.ts: id, slug,
+// Fixtures reuse the same shape and content as e2e/news.spec.ts: id, slug,
 // title, excerpt, feature_image, feature_image_alt, published_at,
 // visibility, access (plus html on the single-post response).
 const POSTS = [
@@ -108,7 +108,7 @@ const DETAIL_HTML = {
   'sugar-daddy-sample-pack': [
     '<p>Full public post body about the sample pack. It started, as most of these things do, with a folder of half-labelled WAVs and no memory of where any of them came from.</p>',
     '<h2>Where the sounds came from</h2>',
-    '<p>Some of it was recorded in the room. Some of it was pulled off tape that had been sitting in a cupboard for a decade, and a fair amount of it is honestly unidentifiable — which is <strong>part of the point</strong>, and also why the pack ships with <a href="/read">its own notes</a>.</p>',
+    '<p>Some of it was recorded in the room. Some of it was pulled off tape that had been sitting in a cupboard for a decade, and a fair amount of it is honestly unidentifiable — which is <strong>part of the point</strong>, and also why the pack ships with <a href="/news">its own notes</a>.</p>',
     '<blockquote><p>If you can tell exactly what a sound is, you have probably not done enough to it yet.</p></blockquote>',
     '<h3>What is in the folder</h3>',
     '<ul><li>Twelve one-shots, mostly percussive.</li><li>Four tape loops, unquantised on purpose.</li><li>One extremely long room recording nobody asked for.</li></ul>',
@@ -334,7 +334,7 @@ async function run() {
 
   if (await isServerAlreadyRunning(`${BASE_URL}/`)) {
     reusedServer = true
-    console.log(`[read-screenshots] Reusing existing dev server at ${BASE_URL}`)
+    console.log(`[news-screenshots] Reusing existing dev server at ${BASE_URL}`)
   } else {
     server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', HOST, '--port', String(PORT), '--strictPort'], {
       stdio: ['ignore', 'inherit', 'inherit'],
@@ -353,7 +353,7 @@ async function run() {
 
     const browser = await chromium.launch({ headless: true })
 
-    // --- 01: home page, showing the new `read` nav button (desktop) ---
+    // --- 01: home page, showing the new `news` nav button (desktop) ---
     const desktopViewport = { width: 1440, height: 900 }
     const desktopContext = await browser.newContext({ viewport: desktopViewport })
     const desktopPage = await desktopContext.newPage()
@@ -362,33 +362,33 @@ async function run() {
     await mockGhostContent(desktopPage)
 
     await desktopPage.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' })
-    await desktopPage.waitForSelector('a:has-text("read")', { timeout: ELEMENT_READY_TIMEOUT_MS, state: 'visible' })
-    await captureContentScreenshot(desktopPage, path.join(OUTPUT_DIR, '01-home-with-read-link.png'), desktopViewport)
-    console.log('[read-screenshots] Captured Home page entry state (read nav link visible): 01-home-with-read-link.png')
+    await desktopPage.waitForSelector('a:has-text("news")', { timeout: ELEMENT_READY_TIMEOUT_MS, state: 'visible' })
+    await captureContentScreenshot(desktopPage, path.join(OUTPUT_DIR, '01-home-with-news-link.png'), desktopViewport)
+    console.log('[news-screenshots] Captured Home page entry state (news nav link visible): 01-home-with-news-link.png')
 
-    // --- 02: /read feed, desktop ---
-    await desktopPage.goto(`${BASE_URL}/read`, { waitUntil: 'domcontentloaded' })
-    await waitForTestId(desktopPage, 'read-feed', 'read feed')
-    await captureContentScreenshot(desktopPage, path.join(OUTPUT_DIR, '02-read-feed.png'), desktopViewport)
-    console.log('[read-screenshots] Captured Read feed (desktop): 02-read-feed.png')
+    // --- 02: /news feed, desktop ---
+    await desktopPage.goto(`${BASE_URL}/news`, { waitUntil: 'domcontentloaded' })
+    await waitForTestId(desktopPage, 'news-feed', 'news feed')
+    await captureContentScreenshot(desktopPage, path.join(OUTPUT_DIR, '02-news-feed.png'), desktopViewport)
+    console.log('[news-screenshots] Captured News feed (desktop): 02-news-feed.png')
 
-    // --- 03: /read/<slug> unlocked article ---
+    // --- 03: /news/<slug> unlocked article ---
     const unlockedSlug = POSTS[0].slug
-    await desktopPage.goto(`${BASE_URL}/read/${unlockedSlug}`, { waitUntil: 'domcontentloaded' })
-    await waitForTestId(desktopPage, 'read-article', 'unlocked article')
-    await captureContentScreenshot(desktopPage, path.join(OUTPUT_DIR, '03-read-article.png'), desktopViewport)
-    console.log(`[read-screenshots] Captured unlocked article (${unlockedSlug}): 03-read-article.png`)
+    await desktopPage.goto(`${BASE_URL}/news/${unlockedSlug}`, { waitUntil: 'domcontentloaded' })
+    await waitForTestId(desktopPage, 'news-article', 'unlocked article')
+    await captureContentScreenshot(desktopPage, path.join(OUTPUT_DIR, '03-news-article.png'), desktopViewport)
+    console.log(`[news-screenshots] Captured unlocked article (${unlockedSlug}): 03-news-article.png`)
 
-    // --- 04: /read/<slug> locked article, showing the locked CTA ---
+    // --- 04: /news/<slug> locked article, showing the locked CTA ---
     const lockedSlug = POSTS[1].slug
-    await desktopPage.goto(`${BASE_URL}/read/${lockedSlug}`, { waitUntil: 'domcontentloaded' })
-    await waitForTestId(desktopPage, 'read-locked-cta', 'locked CTA')
-    await captureContentScreenshot(desktopPage, path.join(OUTPUT_DIR, '04-read-article-locked.png'), desktopViewport)
-    console.log(`[read-screenshots] Captured locked article (${lockedSlug}): 04-read-article-locked.png`)
+    await desktopPage.goto(`${BASE_URL}/news/${lockedSlug}`, { waitUntil: 'domcontentloaded' })
+    await waitForTestId(desktopPage, 'news-locked-cta', 'locked CTA')
+    await captureContentScreenshot(desktopPage, path.join(OUTPUT_DIR, '04-news-article-locked.png'), desktopViewport)
+    console.log(`[news-screenshots] Captured locked article (${lockedSlug}): 04-news-article-locked.png`)
 
     await desktopContext.close()
 
-    // --- 05: /read feed, mobile viewport ---
+    // --- 05: /news feed, mobile viewport ---
     const mobileViewport = { width: 390, height: 844 }
     const mobileContext = await browser.newContext({ viewport: mobileViewport })
     const mobilePage = await mobileContext.newPage()
@@ -396,10 +396,10 @@ async function run() {
     await mockGuestMember(mobilePage)
     await mockGhostContent(mobilePage)
 
-    await mobilePage.goto(`${BASE_URL}/read`, { waitUntil: 'domcontentloaded' })
-    await waitForTestId(mobilePage, 'read-feed', 'read feed (mobile)')
-    await captureContentScreenshot(mobilePage, path.join(OUTPUT_DIR, '05-read-feed-mobile.png'), mobileViewport)
-    console.log('[read-screenshots] Captured Read feed (mobile, 390x844): 05-read-feed-mobile.png')
+    await mobilePage.goto(`${BASE_URL}/news`, { waitUntil: 'domcontentloaded' })
+    await waitForTestId(mobilePage, 'news-feed', 'news feed (mobile)')
+    await captureContentScreenshot(mobilePage, path.join(OUTPUT_DIR, '05-news-feed-mobile.png'), mobileViewport)
+    console.log('[news-screenshots] Captured News feed (mobile, 390x844): 05-news-feed-mobile.png')
 
     await mobileContext.close()
 
@@ -420,21 +420,21 @@ async function run() {
     await mockGuestMember(darkPage)
     await mockGhostContent(darkPage)
 
-    await darkPage.goto(`${BASE_URL}/read`, { waitUntil: 'domcontentloaded' })
-    await waitForTestId(darkPage, 'read-feed', 'read feed (dark)')
-    await captureContentScreenshot(darkPage, path.join(OUTPUT_DIR, '06-read-feed-dark.png'), desktopViewport)
-    console.log('[read-screenshots] Captured Read feed (dark theme): 06-read-feed-dark.png')
+    await darkPage.goto(`${BASE_URL}/news`, { waitUntil: 'domcontentloaded' })
+    await waitForTestId(darkPage, 'news-feed', 'news feed (dark)')
+    await captureContentScreenshot(darkPage, path.join(OUTPUT_DIR, '06-news-feed-dark.png'), desktopViewport)
+    console.log('[news-screenshots] Captured News feed (dark theme): 06-news-feed-dark.png')
 
-    await darkPage.goto(`${BASE_URL}/read/${unlockedSlug}`, { waitUntil: 'domcontentloaded' })
-    await waitForTestId(darkPage, 'read-article', 'unlocked article (dark)')
-    await captureContentScreenshot(darkPage, path.join(OUTPUT_DIR, '07-read-article-dark.png'), desktopViewport)
-    console.log(`[read-screenshots] Captured unlocked article (${unlockedSlug}, dark theme): 07-read-article-dark.png`)
+    await darkPage.goto(`${BASE_URL}/news/${unlockedSlug}`, { waitUntil: 'domcontentloaded' })
+    await waitForTestId(darkPage, 'news-article', 'unlocked article (dark)')
+    await captureContentScreenshot(darkPage, path.join(OUTPUT_DIR, '07-news-article-dark.png'), desktopViewport)
+    console.log(`[news-screenshots] Captured unlocked article (${unlockedSlug}, dark theme): 07-news-article-dark.png`)
 
     await darkContext.close()
     await browser.close()
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    console.error(`[read-screenshots] Failed to capture read section screenshots: ${message}`)
+    console.error(`[news-screenshots] Failed to capture news section screenshots: ${message}`)
     process.exitCode = 1
   } finally {
     if (!reusedServer) {

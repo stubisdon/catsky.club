@@ -1,10 +1,10 @@
 import { test, expect, type Page, type Route } from '@playwright/test'
 
 /**
- * Read (blog) section tests
+ * News (blog) section tests
  *
- * Covers the /read feed and /read/<slug> article views described in
- * .context/read-section-plan.md. All Ghost Content API posts traffic is
+ * Covers the /news feed and /news/<slug> article views described in
+ * .context/news-section-plan.md. All Ghost Content API posts traffic is
  * intercepted with page.route — these tests must never reach the live
  * Ghost API. Fixtures mirror the real production response shape captured
  * from Ghost: id, slug, title, excerpt, feature_image, feature_image_alt,
@@ -206,19 +206,19 @@ function mockGhostContent(page: Page, options: MockGhostContentOptions = {}) {
   })
 }
 
-test.describe('Read section', () => {
-  test('/read renders the feed with mocked posts in published order', async ({ page }) => {
+test.describe('News section', () => {
+  test('/news renders the feed with mocked posts in published order', async ({ page }) => {
     await mockGuestMember(page)
     await mockGhostContent(page)
 
-    await page.goto('/read')
-    const feed = page.getByTestId('read-feed')
+    await page.goto('/news')
+    const feed = page.getByTestId('news-feed')
     await expect(feed).toBeVisible()
 
-    const cards = page.getByTestId('read-post-card')
+    const cards = page.getByTestId('news-post-card')
     await expect(cards).toHaveCount(POSTS.length)
 
-    const titles = await page.getByTestId('read-post-title').allInnerTexts()
+    const titles = await page.getByTestId('news-post-title').allInnerTexts()
     expect(titles).toEqual(POSTS.map((p) => p.title))
   })
 
@@ -226,8 +226,8 @@ test.describe('Read section', () => {
     await mockGuestMember(page)
     await mockGhostContent(page)
 
-    await page.goto('/read')
-    const firstTitle = page.getByTestId('read-post-title').first()
+    await page.goto('/news')
+    const firstTitle = page.getByTestId('news-post-title').first()
     await expect(firstTitle).toHaveText('Sugar Daddy Sample Pack 📦')
     // innerText (unlike textContent) is transform-aware, so this also
     // guards against a `text-transform: lowercase` CSS rule leaking onto
@@ -235,14 +235,14 @@ test.describe('Read section', () => {
     expect(await firstTitle.innerText()).toBe('Sugar Daddy Sample Pack 📦')
   })
 
-  test('top nav shows the read link and navigating to it does not reload the page', async ({ page }) => {
+  test('top nav shows the news link and navigating to it does not reload the page', async ({ page }) => {
     await mockGuestMember(page)
     await mockGhostContent(page)
 
     await page.goto('/')
     // Navigation lives in the top bar; the landing page itself has no nav buttons.
-    const readLink = page.getByTestId('top-nav-link-read')
-    await expect(readLink).toBeVisible()
+    const newsLink = page.getByTestId('top-nav-link-news')
+    await expect(newsLink).toBeVisible()
 
     // Mark the current document instance so we can prove SPA navigation
     // (no full reload) happened, matching the convention described in
@@ -251,9 +251,9 @@ test.describe('Read section', () => {
       Object.assign(window, { __e2eNoReloadMarker: true })
     })
 
-    await readLink.click()
-    await expect(page).toHaveURL(/\/read$/)
-    await expect(page.getByTestId('read-feed')).toBeVisible()
+    await newsLink.click()
+    await expect(page).toHaveURL(/\/news$/)
+    await expect(page.getByTestId('news-feed')).toBeVisible()
 
     const markerSurvived = await page.evaluate(
       () => (window as unknown as { __e2eNoReloadMarker?: boolean }).__e2eNoReloadMarker === true
@@ -261,17 +261,17 @@ test.describe('Read section', () => {
     expect(markerSurvived).toBe(true)
   })
 
-  test('clicking a card navigates to /read/<slug> and renders the article body', async ({ page }) => {
+  test('clicking a card navigates to /news/<slug> and renders the article body', async ({ page }) => {
     await mockGuestMember(page)
     await mockGhostContent(page)
 
-    await page.goto('/read')
+    await page.goto('/news')
     const publicPost = POSTS[0]
-    await page.getByTestId('read-post-card').filter({ hasText: publicPost.title }).click()
+    await page.getByTestId('news-post-card').filter({ hasText: publicPost.title }).click()
 
-    await expect(page).toHaveURL(new RegExp(`/read/${publicPost.slug}$`))
+    await expect(page).toHaveURL(new RegExp(`/news/${publicPost.slug}$`))
 
-    const article = page.getByTestId('read-article')
+    const article = page.getByTestId('news-article')
     await expect(article).toBeVisible()
     await expect(article).toContainText('Full public post body about the sample pack.')
 
@@ -284,12 +284,12 @@ test.describe('Read section', () => {
     await mockGuestMember(page)
     await mockGhostContent(page)
 
-    await page.goto(`/read/${POSTS[1].slug}`)
-    const article = page.getByTestId('read-article')
+    await page.goto(`/news/${POSTS[1].slug}`)
+    const article = page.getByTestId('news-article')
     await expect(article).toBeVisible()
     await expect(article).toContainText('Free preview: the first week was chaos.')
 
-    const cta = page.getByTestId('read-locked-cta')
+    const cta = page.getByTestId('news-locked-cta')
     await expect(cta).toBeVisible()
     await expect(cta.getByRole('link', { name: /connect/i })).toHaveAttribute('href', '/connect')
   })
@@ -298,49 +298,49 @@ test.describe('Read section', () => {
     await mockGuestMember(page)
     await mockGhostContent(page)
 
-    await page.goto('/read/this-slug-does-not-exist')
-    const notFound = page.getByTestId('read-not-found')
+    await page.goto('/news/this-slug-does-not-exist')
+    const notFound = page.getByTestId('news-not-found')
     await expect(notFound).toBeVisible()
-    await expect(notFound.getByRole('link', { name: /read/i })).toHaveAttribute('href', '/read')
+    await expect(notFound.getByRole('link', { name: /news/i })).toHaveAttribute('href', '/news')
   })
 
   test('browser back from an article returns to the feed', async ({ page }) => {
     await mockGuestMember(page)
     await mockGhostContent(page)
 
-    await page.goto('/read')
-    await page.getByTestId('read-post-card').first().click()
-    await expect(page).toHaveURL(new RegExp(`/read/${POSTS[0].slug}$`))
+    await page.goto('/news')
+    await page.getByTestId('news-post-card').first().click()
+    await expect(page).toHaveURL(new RegExp(`/news/${POSTS[0].slug}$`))
 
     await page.goBack()
 
-    await expect(page).toHaveURL(/\/read$/)
-    await expect(page.getByTestId('read-feed')).toBeVisible()
+    await expect(page).toHaveURL(/\/news$/)
+    await expect(page.getByTestId('news-feed')).toBeVisible()
   })
 
   test('feed API failure (500) shows the error state, not a blank screen', async ({ page }) => {
     await mockGuestMember(page)
     await mockGhostContent(page, { feedStatus: 500 })
 
-    await page.goto('/read')
-    await expect(page.getByTestId('read-error')).toBeVisible()
-    await expect(page.getByTestId('read-feed')).toHaveCount(0)
+    await page.goto('/news')
+    await expect(page.getByTestId('news-error')).toBeVisible()
+    await expect(page.getByTestId('news-feed')).toHaveCount(0)
   })
 
   test('feed API failure (429, brute-force block) shows the error state, not a blank screen', async ({ page }) => {
     await mockGuestMember(page)
     await mockGhostContent(page, { feedStatus: 429 })
 
-    await page.goto('/read')
-    await expect(page.getByTestId('read-error')).toBeVisible()
-    await expect(page.getByTestId('read-feed')).toHaveCount(0)
+    await page.goto('/news')
+    await expect(page.getByTestId('news-error')).toBeVisible()
+    await expect(page.getByTestId('news-feed')).toHaveCount(0)
   })
 
   test('empty feed shows the empty state', async ({ page }) => {
     await mockGuestMember(page)
     await mockGhostContent(page, { posts: [] })
 
-    await page.goto('/read')
-    await expect(page.getByTestId('read-empty')).toBeVisible()
+    await page.goto('/news')
+    await expect(page.getByTestId('news-empty')).toBeVisible()
   })
 })

@@ -23,9 +23,9 @@ vi.mock('../Connect', () => ({
 vi.mock('../Mission', () => ({ default: () => <div>mission view</div> }))
 vi.mock('../Listen', () => ({ default: () => <div>listen view</div> }))
 vi.mock('../Welcome', () => ({ default: () => <div>welcome view</div> }))
-vi.mock('../Read', () => ({ default: () => <div>read view</div> }))
-vi.mock('../ReadPost', () => ({
-  default: ({ slug }: { slug: string }) => <div>read post view: {slug}</div>,
+vi.mock('../News', () => ({ default: () => <div>news view</div> }))
+vi.mock('../NewsPost', () => ({
+  default: ({ slug }: { slug: string }) => <div>news post view: {slug}</div>,
 }))
 vi.mock('../utils/analytics', () => ({
   trackPageView: analytics.trackPageView,
@@ -278,110 +278,110 @@ describe('Router signup callback normalization', () => {
   })
 })
 
-describe('resolveView read routes', () => {
+describe('resolveView news routes', () => {
   it('resolves the feed, with and without a trailing slash', () => {
-    expect(resolveView('/read')).toEqual({ view: 'read', normalizedPath: undefined })
-    expect(resolveView('/read/')).toEqual({ view: 'read', normalizedPath: undefined })
+    expect(resolveView('/news')).toEqual({ view: 'news', normalizedPath: undefined })
+    expect(resolveView('/news/')).toEqual({ view: 'news', normalizedPath: undefined })
   })
 
   it('resolves a post slug, with and without a trailing slash', () => {
-    expect(resolveView('/read/sugar-daddy-sample-pack')).toEqual({
-      view: 'readPost',
+    expect(resolveView('/news/sugar-daddy-sample-pack')).toEqual({
+      view: 'newsPost',
       slug: 'sugar-daddy-sample-pack',
       normalizedPath: undefined,
     })
-    expect(resolveView('/read/sugar-daddy-sample-pack/')).toMatchObject({
-      view: 'readPost',
+    expect(resolveView('/news/sugar-daddy-sample-pack/')).toMatchObject({
+      view: 'newsPost',
       slug: 'sugar-daddy-sample-pack',
     })
   })
 
   it('decodes percent-encoded slugs', () => {
-    expect(resolveView('/read/hello%20world')).toMatchObject({
-      view: 'readPost',
+    expect(resolveView('/news/hello%20world')).toMatchObject({
+      view: 'newsPost',
       slug: 'hello world',
     })
   })
 
   it('falls back to the feed for malformed slugs instead of throwing', () => {
-    expect(resolveView('/read/%E0%A4%A')).toEqual({ view: 'read', normalizedPath: '/read' })
+    expect(resolveView('/news/%E0%A4%A')).toEqual({ view: 'news', normalizedPath: '/news' })
   })
 
-  it('collapses nested read paths back to the feed', () => {
-    expect(resolveView('/read/some-post/extra')).toEqual({ view: 'read', normalizedPath: '/read' })
-    expect(resolveView('/read/some-post/extra/deeper')).toEqual({
-      view: 'read',
-      normalizedPath: '/read',
+  it('collapses nested news paths back to the feed', () => {
+    expect(resolveView('/news/some-post/extra')).toEqual({ view: 'news', normalizedPath: '/news' })
+    expect(resolveView('/news/some-post/extra/deeper')).toEqual({
+      view: 'news',
+      normalizedPath: '/news',
     })
   })
 
-  it('keeps signup callback precedence over read routes', () => {
-    expect(resolveView('/read', '?action=signup&success=true')).toEqual({
+  it('keeps signup callback precedence over news routes', () => {
+    expect(resolveView('/news', '?action=signup&success=true')).toEqual({
       view: 'welcome',
       normalizedPath: '/welcome',
     })
-    expect(resolveView('/read/some-post', '?action=signup&success=true')).toEqual({
+    expect(resolveView('/news/some-post', '?action=signup&success=true')).toEqual({
       view: 'welcome',
       normalizedPath: '/welcome',
     })
   })
 
-  it('lets a signin callback win over a read route, like every other route', () => {
+  it('lets a signin callback win over a news route, like every other route', () => {
     // Since the magic-link rework, a successful signin always lands on /listen,
     // whatever path the callback came back on.
-    expect(resolveView('/read', '?action=signin&success=true')).toEqual({
+    expect(resolveView('/news', '?action=signin&success=true')).toEqual({
       view: 'listen',
       normalizedPath: '/listen',
     })
-    expect(resolveView('/read/some-post', '?action=signin&success=true')).toEqual({
+    expect(resolveView('/news/some-post', '?action=signin&success=true')).toEqual({
       view: 'listen',
       normalizedPath: '/listen',
     })
   })
 })
 
-describe('Router read views', () => {
+describe('Router news views', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     delete window.__catskyAuthCallback
   })
 
-  it('renders the feed for /read', () => {
-    window.history.replaceState({}, '', '/read')
+  it('renders the feed for /news', () => {
+    window.history.replaceState({}, '', '/news')
 
     render(<Router />)
 
-    expect(screen.getByText('read view')).toBeInTheDocument()
+    expect(screen.getByText('news view')).toBeInTheDocument()
   })
 
-  it('renders the article for /read/<slug> and passes the slug through', () => {
-    window.history.replaceState({}, '', '/read/sugar-daddy-sample-pack')
+  it('renders the article for /news/<slug> and passes the slug through', () => {
+    window.history.replaceState({}, '', '/news/sugar-daddy-sample-pack')
 
     render(<Router />)
 
-    expect(screen.getByText('read post view: sugar-daddy-sample-pack')).toBeInTheDocument()
+    expect(screen.getByText('news post view: sugar-daddy-sample-pack')).toBeInTheDocument()
   })
 
   it('switches between feed and article on popstate navigation', async () => {
-    window.history.replaceState({}, '', '/read')
+    window.history.replaceState({}, '', '/news')
 
     render(<Router />)
 
-    expect(screen.getByText('read view')).toBeInTheDocument()
+    expect(screen.getByText('news view')).toBeInTheDocument()
 
-    window.history.pushState({}, '', '/read/second-post')
+    window.history.pushState({}, '', '/news/second-post')
     act(() => {
       window.dispatchEvent(new PopStateEvent('popstate'))
     })
 
     await waitFor(() => {
-      expect(screen.getByText('read post view: second-post')).toBeInTheDocument()
+      expect(screen.getByText('news post view: second-post')).toBeInTheDocument()
     })
     expect(analytics.trackPageView).toHaveBeenLastCalledWith({
-      path: '/read/second-post',
+      path: '/news/second-post',
       search_present: false,
       hash_present: false,
-      view: 'readPost',
+      view: 'newsPost',
       normalized: false,
     })
   })

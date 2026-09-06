@@ -8,13 +8,13 @@ import {
 } from './utils/ghostContent'
 import { trackEvent } from './utils/analytics'
 
-interface ReadPostProps {
+interface NewsPostProps {
   slug: string
 }
 
 type PostStatus = 'loading' | 'ready' | 'notFound' | 'error'
 
-export default function ReadPost({ slug }: ReadPostProps) {
+export default function NewsPost({ slug }: NewsPostProps) {
   const [post, setPost] = useState<GhostPostDetail | null>(null)
   const [status, setStatus] = useState<PostStatus>('loading')
   const [reloadToken, setReloadToken] = useState(0)
@@ -48,7 +48,7 @@ export default function ReadPost({ slug }: ReadPostProps) {
     if (status !== 'ready' || !post) return
     if (trackedSlug.current === slug) return
     trackedSlug.current = slug
-    trackEvent('read_post_opened', {
+    trackEvent('news_post_opened', {
       slug,
       visibility: post.visibility,
       locked: !post.access,
@@ -71,19 +71,19 @@ export default function ReadPost({ slug }: ReadPostProps) {
   const publishedDate = post ? formatPublishedDate(post.publishedAt) : ''
 
   return (
-    <PageContainer maxWidth="900px" className="read-page">
+    <PageContainer maxWidth="900px" className="news-page">
       <div style={{ marginBottom: '2rem' }}>
-        <Link href="/read" variant="subtle">← read</Link>
+        <Link href="/news" variant="subtle">← news</Link>
       </div>
 
       {status === 'loading' && (
-        <div className="read-state" data-testid="read-loading">
+        <div className="news-state" data-testid="news-loading">
           loading post…
         </div>
       )}
 
       {status === 'error' && (
-        <div className="read-state" data-testid="read-error">
+        <div className="news-state" data-testid="news-error">
           <p style={{ marginBottom: '1.5rem' }}>could not load this post right now.</p>
           <button type="button" className="connect-portal-btn" onClick={retry}>
             retry
@@ -92,17 +92,17 @@ export default function ReadPost({ slug }: ReadPostProps) {
       )}
 
       {status === 'notFound' && (
-        <div className="read-state" data-testid="read-not-found">
+        <div className="news-state" data-testid="news-not-found">
           <p style={{ marginBottom: '1.5rem' }}>this post does not exist.</p>
-          <Link href="/read" variant="button">back to read</Link>
+          <Link href="/news" variant="button">back to news</Link>
         </div>
       )}
 
       {status === 'ready' && post && (
         <>
-          <h1 className="read-article-title">{post.title}</h1>
+          <h1 className="news-article-title">{post.title}</h1>
 
-          <div className="read-article-meta">
+          <div className="news-article-meta">
             {publishedDate && <span>{publishedDate}</span>}
             {typeof post.readingTime === 'number' && post.readingTime >= 1 && (
               <span>· {post.readingTime} min read</span>
@@ -116,13 +116,13 @@ export default function ReadPost({ slug }: ReadPostProps) {
             (galleries, iframes, bookmark cards), so the body is injected as-is.
           */}
           <div
-            className="read-article"
-            data-testid="read-article"
+            className="news-article"
+            data-testid="news-article"
             dangerouslySetInnerHTML={{ __html: post.html }}
           />
 
           {!post.access && (
-            <div className="read-locked-cta" data-testid="read-locked-cta">
+            <div className="news-locked-cta" data-testid="news-locked-cta">
               <p style={{ marginBottom: '1.5rem' }}>
                 {post.html.trim()
                   ? `the rest of this post is for ${requiredLevelLabel(post.visibility)}.`

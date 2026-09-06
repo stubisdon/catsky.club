@@ -22,14 +22,14 @@ This document defines the **authoritative V1.0 user experience scope**. If any o
 | Listen to unfinished demos | ❌ | ❌ | ✅ | ✅ |
 | Watch unreleased music video | ❌ | ❌ | ✅ | ✅ |
 
-\* The **feed** at `/read` is public to every role. Whether an individual
+\* The **feed** at `/news` is public to every role. Whether an individual
 **post's body** unlocks depends on that post's own Ghost `visibility`
 (`public` / `members` / `tiers` / `paid`), not on the four V1.0 columns
 above — a `members`-visibility post unlocks for any registered free member
 regardless of tier, a `paid`-visibility post unlocks for $5/$20 alike (v1
 has no `tiers`-post-to-specific-tier mapping in the UI). Locked posts still
 show their title/excerpt/date in the feed; only the article body is
-withheld. See `docs/READ_SECTION.md` for the full gating matrix.
+withheld. See `docs/NEWS_SECTION.md` for the full gating matrix.
 
 ## Use Cases by Audience
 
@@ -65,7 +65,7 @@ withheld. See `docs/READ_SECTION.md` for the full gating matrix.
 - `/listen` lets registered free users play songs with announced release dates while keeping in-progress/no-date demos locked to paid tiers.
 - `$5` and `$20` both unlock current V1 paid listen demos and the unreleased video entry point; higher-tier differentiation remains deferred.
 - V1 analytics tracks page visits, first-party CTA/button clicks, locked-content attempts, track selection/votes/feedback submission metadata, and Ghost Portal entry/open/close transitions without sending emails, names, raw form inputs, or feedback text.
-- `/read` lists all posts (locked and unlocked) newest first; `/read/<slug>` renders the article, or a free preview + `/connect` CTA when the post's own `access` field says the current visitor isn't entitled to the full body. No pagination, tag filtering, comments, search, or RSS in v1.
+- `/news` lists all posts (locked and unlocked) newest first; `/news/<slug>` renders the article, or a free preview + `/connect` CTA when the post's own `access` field says the current visitor isn't entitled to the full body. No pagination, tag filtering, comments, search, or RSS in v1.
 
 ## Priority Rules
 - **P0 (must ship):** all use cases 1–8, 10–12.
@@ -81,7 +81,7 @@ withheld. See `docs/READ_SECTION.md` for the full gating matrix.
 ## Information Architecture (recommended)
 - `/listen` → released + gated tracks based on role
 - `/watch` → trailer public, unreleased video gated by paid tier
-- `/read` → blog feed + article view, gated per-post via Ghost (see below)
+- `/news` → blog feed + article view, gated per-post via Ghost (see below)
 - `/connect` → auth, free signup, tier upgrade/downgrade, unsubscribe
 - `/account` (or section under `/connect`) → membership + newsletter preferences
 

@@ -6,8 +6,8 @@ import Mission from '../Mission'
 import Listen from '../Listen'
 import Welcome from '../Welcome'
 import Video from '../Video'
-import Read from '../Read'
-import ReadPost from '../ReadPost'
+import News from '../News'
+import NewsPost from '../NewsPost'
 import { TopNav } from '../components'
 import { trackPageView } from '../utils/analytics'
 import { clearAuthCallback, readAuthCallback, type AuthCallback } from '../utils/authCallback'
@@ -136,11 +136,11 @@ export default function Router() {
       case 'welcome':
         page = <Welcome />
         break
-      case 'read':
-        page = <Read />
+      case 'news':
+        page = <News />
         break
-      case 'readPost':
-        page = slug ? <ReadPost slug={slug} /> : <Read />
+      case 'newsPost':
+        page = slug ? <NewsPost slug={slug} /> : <News />
         break
       default:
         page = <App />

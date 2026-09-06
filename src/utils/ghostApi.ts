@@ -3,7 +3,7 @@
  *
  * The Content API key is injected into `index.html` as
  * `#ghost-portal-config[data-key]` so Ghost Portal and this SPA read the same
- * value. Shared here because both the subscription layer and the read section
+ * value. Shared here because both the subscription layer and the news section
  * need it.
  */
 export function getGhostContentApiKey(): string {

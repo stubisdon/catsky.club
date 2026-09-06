@@ -1187,7 +1187,7 @@ textarea.form-input {
 }
 
 /* ==========================================================================
-   Read section
+   News section
    The blog surface, drawn in the same engraved-plate idiom as the rest of the
    site: hairline rules instead of boxes, display serif for titles, mono for
    metadata, and a single ink at varying alpha rather than new hues. Post
@@ -1198,7 +1198,7 @@ textarea.form-input {
 /* PageContainer sets its padding inline, so matching the landing page's gutter
    has to win over it. --page-gutter already clamps down on phones, which is why
    there is no separate mobile padding override. */
-.read-page {
+.news-page {
   padding: 0 var(--page-gutter) var(--page-gutter) !important;
   /*
     PageContainer scrolls its own centred column, so its scrollbar lands inside
@@ -1210,12 +1210,12 @@ textarea.form-input {
   -ms-overflow-style: none;
 }
 
-.read-page::-webkit-scrollbar {
+.news-page::-webkit-scrollbar {
   display: none;
 }
 
 /* Loading / error / empty / not-found. Chrome, not prose: mono, quiet ink. */
-.read-state {
+.news-state {
   font-family: var(--font-mono);
   font-size: 1.05rem;
   letter-spacing: 0.06em;
@@ -1230,32 +1230,32 @@ textarea.form-input {
   block of date, title and excerpt, and the gap between blocks is larger than
   anything inside them, so the grouping reads without a drawn line.
 */
-.read-feed {
+.news-feed {
   display: flex;
   flex-direction: column;
 }
 
-.read-card {
+.news-card {
   display: block;
   padding: clamp(2.25rem, 5vw, 3.25rem) 0.5rem;
   color: var(--color-text);
 }
 
-.read-card:first-child {
+.news-card:first-child {
   padding-top: clamp(1rem, 2vw, 1.5rem);
 }
 
-.read-card:hover,
-.read-card:focus-visible {
+.news-card:hover,
+.news-card:focus-visible {
   background: var(--tint-selected);
 }
 
-.read-card:focus-visible {
+.news-card:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
-.read-card-image {
+.news-card-image {
   display: block;
   width: 100%;
   /* Ghost feature images are arbitrary sizes; pin the card's image box so a
@@ -1270,20 +1270,20 @@ textarea.form-input {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .read-card-image {
+  .news-card-image {
     transition: filter 0.45s ease;
   }
 }
 
-.read-card:hover .read-card-image,
-.read-card:focus-visible .read-card-image {
+.news-card:hover .news-card-image,
+.news-card:focus-visible .news-card-image {
   filter: grayscale(0.2) contrast(1);
 }
 
 /* Date + lock badge. Same values as .t-eyebrow, restated because these spans
    are rendered without a class hook of their own. */
-.read-card-meta,
-.read-article-meta {
+.news-card-meta,
+.news-article-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1295,18 +1295,18 @@ textarea.form-input {
   line-height: 1.4;
 }
 
-.read-card-meta {
+.news-card-meta {
   gap: 0.5rem 1rem;
   margin-bottom: 0.75rem;
 }
 
-.read-card-lock {
+.news-card-lock {
   border: var(--rule-hairline) solid var(--rule-color-strong);
   padding: 0.2rem 0.45rem;
   color: var(--ink-quiet);
 }
 
-.read-card-title {
+.news-card-title {
   font-family: var(--font-display);
   font-weight: 400;
   text-transform: none;
@@ -1317,7 +1317,7 @@ textarea.form-input {
   color: var(--color-text);
 }
 
-.read-card-excerpt {
+.news-card-excerpt {
   margin-top: 0.7rem;
   /* Excerpts are prose, so they get the prose face and a short measure. */
   font-family: var(--font-body);
@@ -1334,7 +1334,7 @@ textarea.form-input {
 
 /* --- Article ------------------------------------------------------------- */
 
-.read-article-title {
+.news-article-title {
   font-family: var(--font-display);
   font-weight: 400;
   text-transform: none;
@@ -1346,7 +1346,7 @@ textarea.form-input {
 }
 
 /* A hairline closes the article's head, the way a section rule opens one. */
-.read-article-meta {
+.news-article-meta {
   gap: 0.4rem 0.75rem;
   padding-bottom: clamp(1.15rem, 3vw, 1.6rem);
   border-bottom: var(--rule-hairline) solid var(--rule-color);
@@ -1359,7 +1359,7 @@ textarea.form-input {
   Garamond is drawn small, hence ~1.2rem rather than the usual 1rem; the 34em
   measure lands at roughly 68 characters a line at that size.
 */
-.read-article {
+.news-article {
   font-family: var(--font-body);
   font-size: clamp(1.35rem, 1.7vw, 1.5rem);
   line-height: 1.7;
@@ -1369,20 +1369,20 @@ textarea.form-input {
   max-width: 34em;
 }
 
-.read-article > *:first-child {
+.news-article > *:first-child {
   margin-top: 0;
 }
 
-.read-article p {
+.news-article p {
   margin: 0 0 1.2em;
 }
 
 /* Headings are display serif, in the article's own em scale. */
-.read-article h2,
-.read-article h3,
-.read-article h4,
-.read-article h5,
-.read-article h6 {
+.news-article h2,
+.news-article h3,
+.news-article h4,
+.news-article h5,
+.news-article h6 {
   font-family: var(--font-display);
   font-weight: 400;
   line-height: 1.15;
@@ -1395,54 +1395,54 @@ textarea.form-input {
   so an h2 at 1.8em opens with ~2.4 body lines above it and ~0.5 below. The
   `+ *` reset underneath is what keeps that asymmetry from collapsing.
 */
-.read-article h2 {
+.news-article h2 {
   font-size: 1.8em;
   margin: 1.35em 0 0.3em;
 }
 
-.read-article h3 {
+.news-article h3 {
   font-size: 1.4em;
   margin: 1.55em 0 0.32em;
 }
 
-.read-article h4 {
+.news-article h4 {
   font-size: 1.15em;
   margin: 1.75em 0 0.35em;
 }
 
-.read-article h5,
-.read-article h6 {
+.news-article h5,
+.news-article h6 {
   font-size: 1em;
   margin: 2em 0 0.4em;
 }
 
-.read-article h2 + *,
-.read-article h3 + *,
-.read-article h4 + *,
-.read-article h5 + *,
-.read-article h6 + *,
-.read-article hr + * {
+.news-article h2 + *,
+.news-article h3 + *,
+.news-article h4 + *,
+.news-article h5 + *,
+.news-article h6 + *,
+.news-article hr + * {
   margin-top: 0;
 }
 
 /* EB Garamond's variable face tops out at 600; 700 would be synthesized. */
-.read-article strong,
-.read-article b {
+.news-article strong,
+.news-article b {
   font-weight: 600;
 }
 
-.read-article ul,
-.read-article ol {
+.news-article ul,
+.news-article ol {
   margin: 0 0 1.2em;
   padding-left: 1.5em;
 }
 
-.read-article li {
+.news-article li {
   margin: 0.35em 0;
   padding-left: 0.25em;
 }
 
-.read-article blockquote {
+.news-article blockquote {
   margin: 1.8em 0;
   padding-left: 1.1em;
   border-left: 2px solid var(--rule-color-strong);
@@ -1450,27 +1450,27 @@ textarea.form-input {
   font-style: italic;
 }
 
-.read-article blockquote > *:last-child {
+.news-article blockquote > *:last-child {
   margin-bottom: 0;
 }
 
-.read-article img,
-.read-article video,
-.read-article iframe {
+.news-article img,
+.news-article video,
+.news-article iframe {
   display: block;
   max-width: 100%;
   height: auto;
 }
 
-.read-article figure {
+.news-article figure {
   margin: 2em 0;
 }
 
-.read-article figure img {
+.news-article figure img {
   border: var(--rule-hairline) solid var(--rule-color);
 }
 
-.read-article figcaption {
+.news-article figcaption {
   margin-top: 0.6rem;
   font-family: var(--font-mono);
   font-size: 1rem;
@@ -1481,21 +1481,21 @@ textarea.form-input {
 
 /* Code sits on the sunken tint inside a hairline — square, like every other
    plate on the page. No border-radius anywhere in this design. */
-.read-article pre,
-.read-article code,
-.read-article kbd,
-.read-article samp {
+.news-article pre,
+.news-article code,
+.news-article kbd,
+.news-article samp {
   font-family: var(--font-mono);
 }
 
-.read-article code {
+.news-article code {
   font-size: 0.85em;
   background: var(--tint-selected);
   border: var(--rule-hairline) solid var(--rule-color);
   padding: 0.05em 0.3em;
 }
 
-.read-article pre {
+.news-article pre {
   margin: 1.6em 0;
   padding: 1rem 1.15rem;
   background: var(--tint-selected);
@@ -1505,7 +1505,7 @@ textarea.form-input {
   overflow-x: auto;
 }
 
-.read-article pre code {
+.news-article pre code {
   background: transparent;
   border: 0;
   padding: 0;
@@ -1513,39 +1513,39 @@ textarea.form-input {
 }
 
 /* Prose links carry the same drawn underline as the nav and listen links. */
-.read-article a {
+.news-article a {
   color: var(--color-text);
   text-decoration: none;
   border-bottom: var(--rule-hairline) solid var(--rule-color-strong);
 }
 
-.read-article a:hover,
-.read-article a:focus-visible {
+.news-article a:hover,
+.news-article a:focus-visible {
   border-bottom-color: var(--color-text);
 }
 
-.read-article hr {
+.news-article hr {
   border: 0;
   border-top: var(--rule-hairline) solid var(--rule-color);
   margin: 2.5em 0;
 }
 
-.read-article table {
+.news-article table {
   width: 100%;
   border-collapse: collapse;
   margin: 1.8em 0;
   font-size: 0.95em;
 }
 
-.read-article th,
-.read-article td {
+.news-article th,
+.news-article td {
   border-bottom: var(--rule-hairline) solid var(--rule-color);
   padding: 0.5em 0.65em 0.5em 0;
   text-align: left;
   vertical-align: top;
 }
 
-.read-article th {
+.news-article th {
   font-family: var(--font-mono);
   font-size: calc(var(--text-eyebrow) * 1.3);
   letter-spacing: var(--tracking-eyebrow);
@@ -1556,7 +1556,7 @@ textarea.form-input {
 
 /* --- Locked CTA ---------------------------------------------------------- */
 
-.read-locked-cta {
+.news-locked-cta {
   max-width: 34em;
   margin-top: clamp(2rem, 5vw, 3rem);
   padding-top: clamp(1.5rem, 3.5vw, 2rem);
@@ -1571,7 +1571,7 @@ textarea.form-input {
 @media (max-width: 640px) {
   /* The card's own clamp already tightens; only the bleed of the hover tint
      needs pulling in so it does not sit under the plate edge. */
-  .read-card {
+  .news-card {
     padding-left: 0.25rem;
     padding-right: 0.25rem;
   }
