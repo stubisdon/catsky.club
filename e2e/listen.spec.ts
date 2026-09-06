@@ -31,9 +31,9 @@ test.describe('Listen page - Access Control', () => {
     // Should see first track (Vision) - accessible
     await expect(page.getByText('Vision')).toBeVisible()
     
-    // Should see locked tracks with release status text
-    await expect(page.getByText('coming Apr 10, 2026')).toBeVisible()
-    await expect(page.getByText('coming May 8, 2026')).toBeVisible()
+    // The unreleased demos are still locked. The five released tracks are public now, so
+    // there are no dated "coming ..." labels left in the catalog.
+    await expect(page.getByText('in progress').first()).toBeVisible()
   })
 
   test('free subscriber sees first 2 tracks accessible', async ({ page }) => {
@@ -108,7 +108,7 @@ test.describe('Listen page - Access Control', () => {
     
     // No locked status text should be visible (all tracks unlocked for paid)
     const tracksArea = page.locator('.app-container')
-    const lockedStatus = tracksArea.locator('div:visible').filter({ hasText: /^.*(coming Apr 10, 2026|coming May 8, 2026|in progress)$/i })
+    const lockedStatus = tracksArea.locator('div:visible').filter({ hasText: /^.*in progress$/i })
     await expect(lockedStatus).toHaveCount(0)
     
     // Should see voting buttons on tracks (paid subscribers get voting)

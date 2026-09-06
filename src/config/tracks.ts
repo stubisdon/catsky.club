@@ -85,7 +85,10 @@ export const TRACKS: Track[] = [
   {
     id: '4',
     title: 'Motherless Child',
-    accessTier: 'free_member',
+    // Released and publicly streamable (Spotify, Apple Music), so gating it here only hid it
+    // from visitors who could hear it one click away. availableFrom/announcedReleaseDate are
+    // kept as the release record; they no longer gate anything now the tier is public.
+    accessTier: 'public',
     availableFrom: '2026-04-10',
     announcedReleaseDate: '2026-04-10',
     audioSource: {
@@ -101,8 +104,9 @@ export const TRACKS: Track[] = [
   {
     id: '5',
     title: 'Sugar Daddy',
-    accessTier: 'paid_5',
-    lockedLabel: 'coming May 8, 2026',
+    // Released, with an official music video on the channel. The old paid_5 tier and
+    // "coming May 8, 2026" label both outlived the release date.
+    accessTier: 'public',
     announcedReleaseDate: '2026-05-08',
     audioSource: {
       type: 'soundcloud',
