@@ -26,6 +26,8 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 - `/listen` → `src/Listen.tsx` (tier-gated tracks; V1 paid-demo catalog currently unlocks at `$5` with `$20` parity)
 - `/watch` → `src/Watch.tsx` (public teaser + plan/perk upgrade prompt for free/guest users + unreleased-video entrypoint for paid tiers)
 - `/video` → `src/Video.tsx` (embedded unreleased music video gated to `paid_5` / `paid_20`; locked guests/free users route to `/connect`)
+- `/news` → `src/News.tsx` (blog feed, Ghost Content API posts, gated per-post via the post's own `access` field)
+- `/news/<slug>` → `src/NewsPost.tsx` (single article; locked posts show a free preview + CTA to `/connect`)
 - `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + Ghost-tier-name/perk upgrade messaging + account/logout actions)
 - `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name, Turnstile-gated)
 - `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
@@ -205,6 +207,29 @@ Semantics (identical for both):
 These thresholds are exported constants from `src/utils/engagement.ts`. Engagement state (accumulated active time, songs/videos seen, triggers already fired) persists in `localStorage` under `catsky_engagement`. Once shown, the modal suppresses itself via two more `localStorage` keys: `catsky_email_capture_dismissed_at` (7-day snooze after a dismiss) and `catsky_email_capture_done` (permanent, set after a successful submit or if the visitor turns out to already be a member). Firing a trigger emits an `engagement_trigger_fired` analytics event; showing/dismissing the modal emits `email_capture_shown` / `email_capture_dismissed`.
 
 Playback instrumentation makes triggers (a) and (c) possible. `src/utils/playerApis.ts` loads the YouTube IFrame API and the SoundCloud Widget API; both loaders are fail-safe (resolve `null` instead of rejecting, 10s timeout, no-op teardown) so a blocked or slow third-party script never breaks playback itself. `src/Video.tsx` and `src/Watch.tsx` YouTube iframes now carry `enablejsapi=1`, an `origin` param, and a stable element id so `observeYouTubeProgress` can attach; `src/Listen.tsx` binds the SoundCloud widget's `PLAY_PROGRESS`/`FINISH` events. Before this, the site emitted no playback progress events at all.
+### 3.6 News section and the Content API
+
+`src/News.tsx` (feed) and `src/NewsPost.tsx` (article) are the only frontend
+consumers of Ghost's **Content API** (as opposed to the Members API used
+everywhere else in §3.1–3.3):
+
+- `src/utils/ghostApi.ts` exposes `getGhostContentApiKey()` (the Content API
+  key read from `#ghost-portal-config[data-key]`), shared with
+  `src/utils/subscription.ts`'s tier-fetch path so the key lives in one place.
+- `src/utils/ghostContent.ts` exposes `fetchPosts()` / `fetchPostBySlug(slug)`,
+  which call same-origin `/ghost/api/content/posts/...` with
+  `credentials: 'include'` and `cache: 'no-store'` — same proxy path as the
+  Members API (Vite in dev, nginx in prod; see §6).
+- Gating is server-decided: every post carries an `access: boolean` computed
+  by Ghost from the request's member cookie. The frontend renders whatever
+  `html` and `access` it receives and never re-derives gating from client-side
+  tier state. Locked posts stay visible in the feed; only the article body is
+  withheld (Ghost returns a free-preview fragment or an empty string).
+  See `docs/NEWS_SECTION.md` for the full gating matrix.
+- A missing/unconfigured key degrades to an empty feed (`[]` / `null`)
+  instead of an error. Any other failure throws, surfacing the news section's
+  error + retry state — including Ghost's 429 brute-force response to a bad
+  key (see `AGENTS.md`).
 
 ## 4) Listen page and media model
 

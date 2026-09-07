@@ -41,7 +41,13 @@ describe('TopNav', () => {
     await renderAndWait(<TopNav currentView="home" />)
     expect(screen.getByTestId('top-nav-link-listen')).toBeInTheDocument()
     expect(screen.getByTestId('top-nav-link-watch')).toBeInTheDocument()
+    expect(screen.getByTestId('top-nav-link-news')).toBeInTheDocument()
     expect(screen.getByTestId('top-nav-link-connect')).toBeInTheDocument()
+  })
+
+  it('marks the news view as active', async () => {
+    await renderAndWait(<TopNav currentView="news" />)
+    expect(screen.getByTestId('top-nav-link-news')).toHaveClass('active')
   })
 
   it('hides wordmark on home page', async () => {
@@ -150,6 +156,23 @@ describe('TopNav', () => {
     await waitFor(() => {
       expect(screen.getByTestId('top-nav-overlay-link-home')).toBeInTheDocument()
       expect(screen.getByText('home')).toBeInTheDocument()
+    })
+  })
+
+  it('includes the center links, news among them, in the mobile menu', async () => {
+    const user = userEvent.setup()
+    getMembershipTierMock.mockResolvedValue('none')
+
+    render(<TopNav currentView="listen" />)
+
+    const toggle = screen.getByTestId('top-nav-toggle')
+    await user.click(toggle)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('top-nav-overlay-link-listen')).toBeInTheDocument()
+      expect(screen.getByTestId('top-nav-overlay-link-watch')).toBeInTheDocument()
+      expect(screen.getByTestId('top-nav-overlay-link-news')).toBeInTheDocument()
+      expect(screen.getByTestId('top-nav-overlay-link-connect')).toBeInTheDocument()
     })
   })
 

@@ -27,6 +27,10 @@ vi.mock('../Subscribe', () => ({ default: () => <div>subscribe view</div> }))
 vi.mock('../components/EngagementSubscribePrompt', () => ({
   default: () => <div>engagement subscribe prompt</div>,
 }))
+vi.mock('../News', () => ({ default: () => <div>news view</div> }))
+vi.mock('../NewsPost', () => ({
+  default: ({ slug }: { slug: string }) => <div>news post view: {slug}</div>,
+}))
 vi.mock('../utils/analytics', () => ({
   trackPageView: analytics.trackPageView,
 }))
@@ -278,11 +282,121 @@ describe('Router signup callback normalization', () => {
   })
 })
 
-describe('Router /subscribe route and email capture mount', () => {
+describe('resolveView news routes', () => {
+  it('resolves the feed, with and without a trailing slash', () => {
+    expect(resolveView('/news')).toEqual({ view: 'news', normalizedPath: undefined })
+    expect(resolveView('/news/')).toEqual({ view: 'news', normalizedPath: undefined })
+  })
+
+  it('resolves a post slug, with and without a trailing slash', () => {
+    expect(resolveView('/news/sugar-daddy-sample-pack')).toEqual({
+      view: 'newsPost',
+      slug: 'sugar-daddy-sample-pack',
+      normalizedPath: undefined,
+    })
+    expect(resolveView('/news/sugar-daddy-sample-pack/')).toMatchObject({
+      view: 'newsPost',
+      slug: 'sugar-daddy-sample-pack',
+    })
+  })
+
+  it('decodes percent-encoded slugs', () => {
+    expect(resolveView('/news/hello%20world')).toMatchObject({
+      view: 'newsPost',
+      slug: 'hello world',
+    })
+  })
+
+  it('falls back to the feed for malformed slugs instead of throwing', () => {
+    expect(resolveView('/news/%E0%A4%A')).toEqual({ view: 'news', normalizedPath: '/news' })
+  })
+
+  it('collapses nested news paths back to the feed', () => {
+    expect(resolveView('/news/some-post/extra')).toEqual({ view: 'news', normalizedPath: '/news' })
+    expect(resolveView('/news/some-post/extra/deeper')).toEqual({
+      view: 'news',
+      normalizedPath: '/news',
+    })
+  })
+
+  it('keeps signup callback precedence over news routes', () => {
+    expect(resolveView('/news', '?action=signup&success=true')).toEqual({
+      view: 'welcome',
+      normalizedPath: '/welcome',
+    })
+    expect(resolveView('/news/some-post', '?action=signup&success=true')).toEqual({
+      view: 'welcome',
+      normalizedPath: '/welcome',
+    })
+  })
+
+  it('lets a signin callback win over a news route, like every other route', () => {
+    // Since the magic-link rework, a successful signin always lands on /listen,
+    // whatever path the callback came back on.
+    expect(resolveView('/news', '?action=signin&success=true')).toEqual({
+      view: 'listen',
+      normalizedPath: '/listen',
+    })
+    expect(resolveView('/news/some-post', '?action=signin&success=true')).toEqual({
+      view: 'listen',
+      normalizedPath: '/listen',
+    })
+  })
+})
+
+describe('Router news views', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     delete window.__catskyAuthCallback
   })
+
+  it('renders the feed for /news', () => {
+    window.history.replaceState({}, '', '/news')
+
+    render(<Router />)
+
+    expect(screen.getByText('news view')).toBeInTheDocument()
+  })
+
+  it('renders the article for /news/<slug> and passes the slug through', () => {
+    window.history.replaceState({}, '', '/news/sugar-daddy-sample-pack')
+
+    render(<Router />)
+
+    expect(screen.getByText('news post view: sugar-daddy-sample-pack')).toBeInTheDocument()
+  })
+
+  it('switches between feed and article on popstate navigation', async () => {
+    window.history.replaceState({}, '', '/news')
+
+    render(<Router />)
+
+    expect(screen.getByText('news view')).toBeInTheDocument()
+
+    window.history.pushState({}, '', '/news/second-post')
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('news post view: second-post')).toBeInTheDocument()
+    })
+    expect(analytics.trackPageView).toHaveBeenLastCalledWith({
+      path: '/news/second-post',
+      search_present: false,
+      hash_present: false,
+      view: 'newsPost',
+      normalized: false,
+    })
+  })
+})
+
+describe('Router /subscribe route and engagement prompt mount', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    delete window.__catskyAuthCallback
+  })
+
 
   it.each(['/subscribe', '/subscribe/'])('resolves %s to the subscribe view', (pathname) => {
     expect(resolveView(pathname, '')).toMatchObject({ view: 'subscribe' })

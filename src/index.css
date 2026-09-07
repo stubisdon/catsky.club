@@ -1205,6 +1205,397 @@ textarea.form-input {
   }
 }
 
+/* ==========================================================================
+   News section
+   The blog surface, drawn in the same engraved-plate idiom as the rest of the
+   site: hairline rules instead of boxes, display serif for titles, mono for
+   metadata, and a single ink at varying alpha rather than new hues. Post
+   titles and article bodies keep their authored case — the site-wide
+   lowercase styling belongs to chrome only.
+   ========================================================================== */
+
+/* PageContainer sets its padding inline, so matching the landing page's gutter
+   has to win over it. --page-gutter already clamps down on phones, which is why
+   there is no separate mobile padding override. */
+.news-page {
+  padding: 0 var(--page-gutter) var(--page-gutter) !important;
+  /*
+    PageContainer scrolls its own centred column, so its scrollbar lands inside
+    the plate rather than at the window edge, which reads as a stray vertical
+    line down the middle of the page. Hide it; wheel, trackpad, keyboard and
+    touch scrolling are unaffected.
+  */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.news-page::-webkit-scrollbar {
+  display: none;
+}
+
+/* Loading / error / empty / not-found. Chrome, not prose: mono, quiet ink. */
+.news-state {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  color: var(--ink-quiet);
+}
+
+/* --- Feed ---------------------------------------------------------------- */
+
+/*
+  No rules between entries: white space does the separating. Each post is one
+  block of date, title and excerpt, and the gap between blocks is larger than
+  anything inside them, so the grouping reads without a drawn line.
+*/
+.news-feed {
+  display: flex;
+  flex-direction: column;
+}
+
+.news-card {
+  display: block;
+  padding: clamp(2.25rem, 5vw, 3.25rem) 0.5rem;
+  color: var(--color-text);
+}
+
+.news-card:first-child {
+  padding-top: clamp(1rem, 2vw, 1.5rem);
+}
+
+.news-card:hover,
+.news-card:focus-visible {
+  background: var(--tint-selected);
+}
+
+.news-card:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.news-card-image {
+  display: block;
+  width: 100%;
+  /* Ghost feature images are arbitrary sizes; pin the card's image box so a
+     square or portrait upload can't swallow the feed's vertical rhythm. */
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  margin-bottom: 1.25rem;
+  border: var(--rule-hairline) solid var(--rule-color);
+  /* Desaturated like every other photograph on the site, so a full-colour
+     upload does not fight the single-ink page. Restored on hover. */
+  filter: grayscale(1) contrast(1.05);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .news-card-image {
+    transition: filter 0.45s ease;
+  }
+}
+
+.news-card:hover .news-card-image,
+.news-card:focus-visible .news-card-image {
+  filter: grayscale(0.2) contrast(1);
+}
+
+/* Date + lock badge. Same values as .t-eyebrow, restated because these spans
+   are rendered without a class hook of their own. */
+.news-card-meta,
+.news-article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: calc(var(--text-eyebrow) * 1.3);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  line-height: 1.4;
+}
+
+.news-card-meta {
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.news-card-lock {
+  border: var(--rule-hairline) solid var(--rule-color-strong);
+  padding: 0.2rem 0.45rem;
+  color: var(--ink-quiet);
+}
+
+.news-card-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: none;
+  font-size: clamp(1.95rem, 3.9vw, 2.6rem);
+  line-height: 1.15;
+  /* No tracking hack: at display sizes the serif's own proportions do that work. */
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.news-card-excerpt {
+  margin-top: 0.7rem;
+  /* Excerpts are prose, so they get the prose face and a short measure. */
+  font-family: var(--font-body);
+  font-size: 1.32rem;
+  line-height: 1.55;
+  letter-spacing: normal;
+  color: var(--ink-quiet);
+  max-width: 32em;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --- Article ------------------------------------------------------------- */
+
+.news-article-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: none;
+  /* Sits just under PageTitle's scale: this is the plate title for its page. */
+  font-size: clamp(2.5rem, 5.5vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.8rem;
+}
+
+/* A hairline closes the article's head, the way a section rule opens one. */
+.news-article-meta {
+  gap: 0.4rem 0.75rem;
+  padding-bottom: clamp(1.15rem, 3vw, 1.6rem);
+  border-bottom: var(--rule-hairline) solid var(--rule-color);
+  margin-bottom: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+/*
+  The long-form reading surface. The global body clamp runs to 1.4rem, which is
+  a headline size for running text, so the article sets its own scale. EB
+  Garamond is drawn small, hence ~1.2rem rather than the usual 1rem; the 34em
+  measure lands at roughly 68 characters a line at that size.
+*/
+.news-article {
+  font-family: var(--font-body);
+  font-size: clamp(1.35rem, 1.7vw, 1.5rem);
+  line-height: 1.7;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--color-text);
+  max-width: 34em;
+}
+
+.news-article > *:first-child {
+  margin-top: 0;
+}
+
+.news-article p {
+  margin: 0 0 1.2em;
+}
+
+/* Headings are display serif, in the article's own em scale. */
+.news-article h2,
+.news-article h3,
+.news-article h4,
+.news-article h5,
+.news-article h6 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+/*
+  Generous space above, tight space below — margins are in the heading's own em,
+  so an h2 at 1.8em opens with ~2.4 body lines above it and ~0.5 below. The
+  `+ *` reset underneath is what keeps that asymmetry from collapsing.
+*/
+.news-article h2 {
+  font-size: 1.8em;
+  margin: 1.35em 0 0.3em;
+}
+
+.news-article h3 {
+  font-size: 1.4em;
+  margin: 1.55em 0 0.32em;
+}
+
+.news-article h4 {
+  font-size: 1.15em;
+  margin: 1.75em 0 0.35em;
+}
+
+.news-article h5,
+.news-article h6 {
+  font-size: 1em;
+  margin: 2em 0 0.4em;
+}
+
+.news-article h2 + *,
+.news-article h3 + *,
+.news-article h4 + *,
+.news-article h5 + *,
+.news-article h6 + *,
+.news-article hr + * {
+  margin-top: 0;
+}
+
+/* EB Garamond's variable face tops out at 600; 700 would be synthesized. */
+.news-article strong,
+.news-article b {
+  font-weight: 600;
+}
+
+.news-article ul,
+.news-article ol {
+  margin: 0 0 1.2em;
+  padding-left: 1.5em;
+}
+
+.news-article li {
+  margin: 0.35em 0;
+  padding-left: 0.25em;
+}
+
+.news-article blockquote {
+  margin: 1.8em 0;
+  padding-left: 1.1em;
+  border-left: 2px solid var(--rule-color-strong);
+  color: var(--ink-quiet);
+  font-style: italic;
+}
+
+.news-article blockquote > *:last-child {
+  margin-bottom: 0;
+}
+
+.news-article img,
+.news-article video,
+.news-article iframe {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.news-article figure {
+  margin: 2em 0;
+}
+
+.news-article figure img {
+  border: var(--rule-hairline) solid var(--rule-color);
+}
+
+.news-article figcaption {
+  margin-top: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+/* Code sits on the sunken tint inside a hairline — square, like every other
+   plate on the page. No border-radius anywhere in this design. */
+.news-article pre,
+.news-article code,
+.news-article kbd,
+.news-article samp {
+  font-family: var(--font-mono);
+}
+
+.news-article code {
+  font-size: 0.85em;
+  background: var(--tint-selected);
+  border: var(--rule-hairline) solid var(--rule-color);
+  padding: 0.05em 0.3em;
+}
+
+.news-article pre {
+  margin: 1.6em 0;
+  padding: 1rem 1.15rem;
+  background: var(--tint-selected);
+  border: var(--rule-hairline) solid var(--rule-color);
+  font-size: 0.85em;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.news-article pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* Prose links carry the same drawn underline as the nav and listen links. */
+.news-article a {
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: var(--rule-hairline) solid var(--rule-color-strong);
+}
+
+.news-article a:hover,
+.news-article a:focus-visible {
+  border-bottom-color: var(--color-text);
+}
+
+.news-article hr {
+  border: 0;
+  border-top: var(--rule-hairline) solid var(--rule-color);
+  margin: 2.5em 0;
+}
+
+.news-article table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.8em 0;
+  font-size: 0.95em;
+}
+
+.news-article th,
+.news-article td {
+  border-bottom: var(--rule-hairline) solid var(--rule-color);
+  padding: 0.5em 0.65em 0.5em 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.news-article th {
+  font-family: var(--font-mono);
+  font-size: calc(var(--text-eyebrow) * 1.3);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+/* --- Locked CTA ---------------------------------------------------------- */
+
+.news-locked-cta {
+  max-width: 34em;
+  margin-top: clamp(2rem, 5vw, 3rem);
+  padding-top: clamp(1.5rem, 3.5vw, 2rem);
+  border-top: var(--rule-hairline) solid var(--rule-color);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  color: var(--ink-quiet);
+}
+
+@media (max-width: 640px) {
+  /* The card's own clamp already tightens; only the bleed of the hover tint
+     needs pulling in so it does not sit under the plate edge. */
+  .news-card {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+}
+
 /* Force reload 1765564342 */
 
 /* ==========================================================================

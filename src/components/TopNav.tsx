@@ -59,6 +59,7 @@ export default function TopNav({ currentView }: TopNavProps) {
     const links: Array<{ label: string; href: string; testid: string; overlayTestid: string }> = [
       { label: 'listen', href: '/listen', testid: 'top-nav-link-listen', overlayTestid: 'top-nav-overlay-link-listen' },
       { label: 'watch', href: '/watch', testid: 'top-nav-link-watch', overlayTestid: 'top-nav-overlay-link-watch' },
+      { label: 'news', href: '/news', testid: 'top-nav-link-news', overlayTestid: 'top-nav-overlay-link-news' },
     ]
 
     if (isPaid) {
