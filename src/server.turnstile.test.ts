@@ -406,3 +406,128 @@ describe('Turnstile gate: TURNSTILE_SECRET_KEY set (fail closed)', () => {
     expect(res.status).toBe(502)
   }, 15_000)
 })
+
+// ---------------------------------------------------------------------------------------------
+// Config C: rejections are reported to PostHog so they can be alerted on
+// ---------------------------------------------------------------------------------------------
+interface PostHogCall {
+  event: string
+  distinct_id: string
+  properties: Record<string, unknown>
+  api_key: string
+}
+
+function createMockPostHogServer() {
+  const calls: PostHogCall[] = []
+  const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+    let raw = ''
+    req.setEncoding('utf8')
+    req.on('data', (chunk) => { raw += chunk })
+    req.on('end', () => {
+      try {
+        calls.push(JSON.parse(raw) as PostHogCall)
+      } catch {
+        // ignore unparseable bodies; the assertions below will surface the absence
+      }
+      res.statusCode = 200
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ status: 1 }))
+    })
+  })
+  return { server, calls }
+}
+
+describe('Turnstile rejections are reported to PostHog', () => {
+  const appPort = 3063
+  const ghostPort = 4564
+  const siteverifyPort = 4565
+  const posthogPort = 4566
+  const appBaseUrl = `http://127.0.0.1:${appPort}`
+
+  let mockGhost: MockGhost
+  let mockSiteverify: MockSiteverify
+  let mockPostHog: ReturnType<typeof createMockPostHogServer>
+  let appProcess: ChildProcessWithoutNullStreams
+
+  beforeAll(async () => {
+    mockGhost = createMockGhostServer()
+    mockSiteverify = createMockSiteverifyServer()
+    mockPostHog = createMockPostHogServer()
+
+    await Promise.all([
+      new Promise<void>((resolve) => mockGhost.server.listen(ghostPort, '127.0.0.1', () => resolve())),
+      new Promise<void>((resolve) => mockSiteverify.server.listen(siteverifyPort, '127.0.0.1', () => resolve())),
+      new Promise<void>((resolve) => mockPostHog.server.listen(posthogPort, '127.0.0.1', () => resolve())),
+    ])
+
+    appProcess = await spawnApp({
+      GHOST_INTERNAL_URL: `http://127.0.0.1:${ghostPort}`,
+      GHOST_URL: `http://127.0.0.1:${ghostPort}`,
+      GHOST_ADMIN_API_KEY: '1234567890abcdef:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      TURNSTILE_SECRET_KEY: 'test-secret-key',
+      TURNSTILE_VERIFY_URL: `http://127.0.0.1:${siteverifyPort}/siteverify`,
+      VITE_PUBLIC_POSTHOG_TOKEN: 'phc_test_token',
+      VITE_PUBLIC_POSTHOG_HOST: `http://127.0.0.1:${posthogPort}`,
+    }, appPort)
+  }, 30_000)
+
+  afterAll(async () => {
+    if (appProcess && !appProcess.killed) appProcess.kill('SIGTERM')
+    await Promise.all([
+      new Promise<void>((resolve) => mockGhost.server.close(() => resolve())),
+      new Promise<void>((resolve) => mockSiteverify.server.close(() => resolve())),
+      new Promise<void>((resolve) => mockPostHog.server.close(() => resolve())),
+    ])
+  })
+
+  test('a blocked name-step submission emits turnstile_rejected with context member-profile', async () => {
+    const res = await fetch(`${appBaseUrl}/api/member-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firstName: 'Ada', email: 'ada@example.com', turnstileToken: 'bad-token' }),
+    })
+    expect(res.status).toBe(403)
+
+    await expect.poll(() => mockPostHog.calls.length, { timeout: 10_000 }).toBeGreaterThan(0)
+
+    const call = mockPostHog.calls.find((c) => c.properties?.context === 'member-profile')
+    expect(call).toBeDefined()
+    expect(call?.event).toBe('turnstile_rejected')
+    expect(call?.api_key).toBe('phc_test_token')
+    expect(call?.properties.source).toBe('server')
+  }, 20_000)
+
+  test('the reported payload carries no email, name, or raw IP', async () => {
+    mockPostHog.calls.length = 0
+
+    const res = await fetch(`${appBaseUrl}/api/member-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firstName: 'Grace', email: 'grace@example.com', turnstileToken: 'bad-token' }),
+    })
+    expect(res.status).toBe(403)
+
+    await expect.poll(() => mockPostHog.calls.length, { timeout: 10_000 }).toBeGreaterThan(0)
+
+    const serialized = JSON.stringify(mockPostHog.calls)
+    expect(serialized).not.toContain('grace@example.com')
+    expect(serialized).not.toContain('Grace')
+    expect(serialized).not.toContain('127.0.0.1')
+    // The actor id must be a pseudonymous hash, not anything resembling an address.
+    expect(mockPostHog.calls[0].distinct_id).toMatch(/^[a-f0-9]{16}$|^anonymous$/)
+  }, 20_000)
+
+  test('a successful verification reports nothing', async () => {
+    mockPostHog.calls.length = 0
+
+    const res = await fetch(`${appBaseUrl}/api/member-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firstName: 'Ada', turnstileToken: 'good-token' }),
+    })
+    expect(res.status).toBe(202)
+
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    expect(mockPostHog.calls.filter((c) => c.event === 'turnstile_rejected')).toHaveLength(0)
+  }, 20_000)
+})

@@ -194,6 +194,14 @@ Semantics (identical for both):
 - `turnstileToken` is stripped from the request body before it is proxied/forwarded to Ghost.
 - `TURNSTILE_VERIFY_URL` is overridable via env so tests can point siteverify at a local mock. It must never be set in production.
 
+Rejections are also reported to PostHog as a `turnstile_rejected` event with a `context` of
+`magic-link` or `member-profile`, captured **server-side** in `server.js`. Server-side is
+deliberate: the ad blockers that stop Turnstile from loading also stop `posthog-js`, so
+browser-side capture would be blind exactly where it matters. The payload carries only
+`context`, `reason`, and `source`; the `distinct_id` is a salted SHA-256 prefix of the IP, so
+raw addresses, emails, and names never reach analytics. A spike in `context=member-profile` is
+the signal that real people are being blocked at the name step and cannot finish signing up.
+
 `/subscribe` and `/welcome` use the shared `src/components/TurnstileWidget.tsx`; `Connect.tsx` and `SubscribeDialog.tsx` keep their own inline loaders. All of them read the site key from `src/utils/magicLink.ts` and render nothing when `VITE_TURNSTILE_SITE_KEY` is unset — the server-side gate above is what actually enforces verification, so an unset site key degrades the UX (no visible challenge) rather than the protection.
 
 ### 3.5 Engagement-triggered email capture

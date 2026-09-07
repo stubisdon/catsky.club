@@ -59,6 +59,16 @@ const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || ''
 // Overridable so tests can point siteverify at a local mock; never set this in production.
 const TURNSTILE_VERIFY_URL = process.env.TURNSTILE_VERIFY_URL || 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
+// PostHog server-side capture. Deliberately server-side rather than from the browser: the
+// ad blockers that stop Turnstile from loading also stop posthog-js, so client-side capture
+// would be blind exactly where we most need to see.
+const POSTHOG_TOKEN = process.env.VITE_PUBLIC_POSTHOG_TOKEN || ''
+const POSTHOG_HOST = (process.env.VITE_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com').replace(/\/+$/, '')
+// Fixed salt: enough to keep raw IPs out of analytics while still letting one noisy client be
+// told apart from many distinct blocked visitors.
+const ANALYTICS_ID_SALT = 'catsky-server-events'
+
+
 // Social feed credentials. All optional: an unset platform reports an error for itself and the
 // rest of the feed still renders. YouTube additionally falls back to its public Atom feed when
 // YOUTUBE_API_KEY is absent, so that column works with no credentials at all.
@@ -724,6 +734,39 @@ app.post('/api/member-profile', memberProfileTextBodyParser, async (req, res) =>
 })
 
 
+/** Pseudonymous, stable per-IP id. Raw IPs never reach analytics. */
+function anonymousActorId(remoteIp) {
+  if (!remoteIp) return 'anonymous'
+  return crypto.createHash('sha256').update(`${ANALYTICS_ID_SALT}:${remoteIp}`).digest('hex').slice(0, 16)
+}
+
+/**
+ * Fire-and-forget PostHog event from the server.
+ *
+ * Never throws, never blocks the response, and no-ops when no token is configured. Only
+ * carries the properties passed in — no emails, names, raw form values, or IPs.
+ */
+function captureServerEvent(event, distinctId, properties) {
+  if (!POSTHOG_TOKEN) return
+  try {
+    void fetch(`${POSTHOG_HOST}/capture/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: POSTHOG_TOKEN,
+        event,
+        distinct_id: distinctId,
+        properties: { ...properties, source: 'server' },
+        timestamp: new Date().toISOString(),
+      }),
+    }).catch((error) => {
+      console.error('[PostHog capture failed]', String(error?.message || error))
+    })
+  } catch (error) {
+    console.error('[PostHog capture failed]', String(error?.message || error))
+  }
+}
+
 async function verifyTurnstileToken(token, remoteIp) {
   if (!token) return { ok: false, reason: 'missing-token' }
   const form = new URLSearchParams()
@@ -766,6 +809,12 @@ async function enforceTurnstile(req, res, token, context) {
 
   if (!verdict.ok) {
     console.warn('[Turnstile rejected request]', { context, reason: verdict.reason, ip: remoteIp })
+    // Surfaced in PostHog so a spike in real people being blocked at the name step is
+    // alertable, rather than something only visible by grepping pm2 logs.
+    captureServerEvent('turnstile_rejected', anonymousActorId(remoteIp), {
+      context,
+      reason: verdict.reason || 'unknown',
+    })
     res.status(403).json({ errors: [{ message: 'Verification failed. Please try again.' }] })
     return false
   }
