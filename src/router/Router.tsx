@@ -6,9 +6,11 @@ import Mission from '../Mission'
 import Listen from '../Listen'
 import Welcome from '../Welcome'
 import Video from '../Video'
+import Subscribe from '../Subscribe'
 import News from '../News'
 import NewsPost from '../NewsPost'
 import { TopNav } from '../components'
+import EngagementSubscribePrompt from '../components/EngagementSubscribePrompt'
 import { trackPageView } from '../utils/analytics'
 import { clearAuthCallback, readAuthCallback, type AuthCallback } from '../utils/authCallback'
 import { resolveView, type View } from './resolveView'
@@ -136,6 +138,9 @@ export default function Router() {
       case 'welcome':
         page = <Welcome />
         break
+      case 'subscribe':
+        page = <Subscribe />
+        break
       case 'news':
         page = <News />
         break
@@ -151,11 +156,16 @@ export default function Router() {
     <>
       <TopNav currentView={view} />
       {page}
+      {/* Engagement-triggered subscribe prompt. Skipped on the routes that already ask for an
+          email or are mid-signup, so we never stack two prompts on one screen. */}
+      {view !== null && !VIEWS_WITHOUT_ENGAGEMENT_PROMPT.has(view) && <EngagementSubscribePrompt />}
       {/* Grain and plate edge, printed over every route. Purely decorative and click-through. */}
       <div className="paper-surface" aria-hidden="true" />
     </>
   )
 }
+
+const VIEWS_WITHOUT_ENGAGEMENT_PROMPT = new Set<View>(['subscribe', 'welcome', 'connect'])
 
 function awaitMemberNameForSignup(): Promise<string | null | undefined> {
   let timeoutId: number | undefined

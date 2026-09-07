@@ -6,7 +6,7 @@ This document reflects the **current** codebase architecture for `catsky.club` a
 
 Catsky Club is a Vite + React single-page app with a lightweight Express server.
 
-- Frontend: route-based experience pages (`/`, `/listen`, `/watch`, `/connect`, `/welcome`, `/mission`).
+- Frontend: route-based experience pages (`/`, `/listen`, `/watch`, `/connect`, `/welcome`, `/mission`, `/subscribe`).
 - Membership/auth: Ghost Members API + Ghost Portal.
 - Runtime API server: Express serves static assets and a small Ghost Admin API bridge.
 - Deployment target: production host running PM2 + nginx in front.
@@ -29,8 +29,9 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 - `/news` → `src/News.tsx` (blog feed, Ghost Content API posts, gated per-post via the post's own `access` field)
 - `/news/<slug>` → `src/NewsPost.tsx` (single article; locked posts show a free preview + CTA to `/connect`)
 - `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + Ghost-tier-name/perk upgrade messaging + account/logout actions)
-- `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name)
+- `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name, Turnstile-gated)
 - `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
+- `/subscribe` → `src/Subscribe.tsx` (standalone public email-capture landing page, Turnstile-gated; this is the link the artist shares)
 - unknown paths → normalized to `/` in router
 
 ### Styling model
@@ -162,7 +163,59 @@ Current behavior in `src/Connect.tsx`:
 
 Important: script order is intentional; this patch script runs before Portal load.
 
-### 3.4 News section and the Content API
+### 3.4 Two-step signup and email capture
+
+Two-step signup is the standard signup path (used by `/subscribe`, `Connect.tsx`, and the email-capture popup alike):
+
+- **Step 1 — email.** The visitor submits an email (+ Turnstile token) to `POST /members/api/send-magic-link/`. Ghost creates the member and emails a magic link; no name is collected yet and the member is not fully "signed up" until step 2 completes.
+- **Step 2 — name + verification.** The magic link lands on `/welcome` (`src/Welcome.tsx`), which collects first name (required) + last name (optional) + a fresh Turnstile token, then `await`s `POST /api/member-profile`. Navigation to `/listen` only happens on a successful (2xx) response; a `403` (failed verification) shows an inline error and keeps the visitor on `/welcome`. There is no fire-and-forget or `sendBeacon` fallback here — a beacon cannot surface a verification verdict, so the request must be awaited.
+
+Four entry points feed step 1, all through the shared `src/utils/magicLink.ts` helpers (`requestMagicLink` / `isValidEmail` / `TURNSTILE_SITE_KEY`), so no caller can drift away from the bot protection the others rely on:
+
+- `/subscribe` (`src/Subscribe.tsx`) — the standalone landing page meant for sharing directly.
+- `Connect.tsx` — the inline email form described in 3.2, now using the shared widget instead of its own inline Turnstile implementation.
+- `SubscribeDialog.tsx`, opened from the album shelf on the landing page.
+- The engagement-triggered prompt (`src/components/EngagementSubscribePrompt.tsx`), which reuses that same `SubscribeDialog` rather than adding a second email-capture UI. See below.
+
+Each of these three passes a distinct `source` (`subscribe_page` | `popup` | `connect`) into `requestMagicLink`, which is attached to the `magic_link_requested` / `_succeeded` / `_failed` analytics events so the funnels can be told apart. As with the rest of the analytics surface, no email, name, or raw form value is ever sent.
+
+#### Turnstile enforcement
+
+Cloudflare Turnstile is enforced server-side on both endpoints a bot could hit directly, via a shared `enforceTurnstile(req, res, token, context)` helper in `server.js`:
+
+- `POST /members/api/send-magic-link/`
+- `POST /api/member-profile`
+
+Semantics (identical for both):
+
+- Fails **open** (request proceeds without verification) when `TURNSTILE_SECRET_KEY` is unset, so deploying this code before the secret is configured does not break signups.
+- Fails **closed** (`403`) once `TURNSTILE_SECRET_KEY` is set and the token is missing or Cloudflare rejects it.
+- Returns `502` only when the siteverify call itself throws (network failure), not on a rejected verdict.
+- `turnstileToken` is stripped from the request body before it is proxied/forwarded to Ghost.
+- `TURNSTILE_VERIFY_URL` is overridable via env so tests can point siteverify at a local mock. It must never be set in production.
+
+Rejections are also reported to PostHog as a `turnstile_rejected` event with a `context` of
+`magic-link` or `member-profile`, captured **server-side** in `server.js`. Server-side is
+deliberate: the ad blockers that stop Turnstile from loading also stop `posthog-js`, so
+browser-side capture would be blind exactly where it matters. The payload carries only
+`context`, `reason`, and `source`; the `distinct_id` is a salted SHA-256 prefix of the IP, so
+raw addresses, emails, and names never reach analytics. A spike in `context=member-profile` is
+the signal that real people are being blocked at the name step and cannot finish signing up.
+
+`/subscribe` and `/welcome` use the shared `src/components/TurnstileWidget.tsx`; `Connect.tsx` and `SubscribeDialog.tsx` keep their own inline loaders. All of them read the site key from `src/utils/magicLink.ts` and render nothing when `VITE_TURNSTILE_SITE_KEY` is unset — the server-side gate above is what actually enforces verification, so an unset site key degrades the UX (no visible challenge) rather than the protection.
+
+### 3.5 Engagement-triggered email capture
+
+`src/components/EngagementSubscribePrompt.tsx` is mounted in `src/router/Router.tsx` on every view except `/subscribe`, `/welcome`, and `/connect` (those either already ask for an email or are mid-signup). It opens the existing `SubscribeDialog` and is driven by the headless module `src/utils/engagement.ts`, which fires exactly one of three triggers for logged-out visitors:
+
+- a video watched to `VIDEO_PROGRESS_THRESHOLD` (>= 90%),
+- `ACTIVE_TIME_THRESHOLD_MS` (>= 3 minutes) of *active* time — visible **and** focused tab, not wall-clock time,
+- `SONGS_REQUIRED` (3) distinct songs each played to `SONG_PROGRESS_THRESHOLD` (>= 50%).
+
+These thresholds are exported constants from `src/utils/engagement.ts`. Engagement state (accumulated active time, songs/videos seen, triggers already fired) persists in `localStorage` under `catsky_engagement`. Once shown, the modal suppresses itself via two more `localStorage` keys: `catsky_email_capture_dismissed_at` (7-day snooze after a dismiss) and `catsky_email_capture_done` (permanent, set after a successful submit or if the visitor turns out to already be a member). Firing a trigger emits an `engagement_trigger_fired` analytics event; showing/dismissing the modal emits `email_capture_shown` / `email_capture_dismissed`.
+
+Playback instrumentation makes triggers (a) and (c) possible. `src/utils/playerApis.ts` loads the YouTube IFrame API and the SoundCloud Widget API; both loaders are fail-safe (resolve `null` instead of rejecting, 10s timeout, no-op teardown) so a blocked or slow third-party script never breaks playback itself. `src/Video.tsx` and `src/Watch.tsx` YouTube iframes now carry `enablejsapi=1`, an `origin` param, and a stable element id so `observeYouTubeProgress` can attach; `src/Listen.tsx` binds the SoundCloud widget's `PLAY_PROGRESS`/`FINISH` events. Before this, the site emitted no playback progress events at all.
+### 3.6 News section and the Content API
 
 `src/News.tsx` (feed) and `src/NewsPost.tsx` (article) are the only frontend
 consumers of Ghost's **Content API** (as opposed to the Members API used
@@ -257,6 +310,7 @@ Browser analytics are isolated in `src/utils/analytics.ts` and use `posthog-js`.
 - A document-level capture listener records normalized `button_clicked` events for first-party buttons/links without input values.
 - Ghost Portal trigger clicks and parent-page hash open/close transitions are tracked from the global analytics init path, including Portal entry points outside `/connect`. Clicks inside a cross-origin Portal iframe are not observable from the Catsky parent page.
 - Member identify calls use only stable Ghost `uuid`/`id` values plus `membership_tier`; email, names, feedback text, and raw form values must not be sent.
+- Engagement and email-capture events — `engagement_trigger_fired`, `email_capture_shown`, `email_capture_dismissed`, and `magic_link_requested`/`_succeeded`/`_failed` (the last three carry `source`: `subscribe_page` | `popup` | `connect`) — follow the same privacy boundary: no emails, names, or raw form values.
 
 ## 5) Express server architecture (`server.js`)
 
@@ -324,6 +378,11 @@ The practical result is that Ghost Admin branding, Ghost email logos/assets, ema
 - `/ghost` and `/members` → `VITE_GHOST_API_PROXY` (default `https://catsky.club`)
 
 Proxy response handling strips `Secure`/`Domain` from cookies and rewrites redirects for localhost flow compatibility.
+
+**Warning — dev signups hit real production Ghost.** `.env.development` sets `VITE_GHOST_API_PROXY=https://catsky.club`, so `/members` (and `/ghost`) proxy straight to *production* Ghost in local dev; only `/api` goes to the local Express server. Two consequences:
+
+- Submitting `/subscribe`, the email-capture popup, or the `Connect.tsx` email form on a local dev server creates a real member in production Ghost and sends that address a real magic-link email. Use a throwaway address when testing locally, or point `VITE_GHOST_API_PROXY` at a local/staging Ghost instance.
+- Because `/members/...` bypasses Express in dev, the Turnstile gate on `POST /members/api/send-magic-link/` is **not** exercised locally at all — in production it is nginx (an exact-match `location` block in `nginx.conf.example` / `catsky.club-ssl.conf`), not Vite, that routes that one path to Express. The `/api/member-profile` gate **is** exercised locally, since `/api` does proxy to Express. Do not conclude "Turnstile isn't working" from a local run of the magic-link step; it only proves out on `/api/member-profile` or on a full server-backed run.
 
 ## 7) Delivery and operations
 

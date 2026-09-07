@@ -1,6 +1,6 @@
 import { getAuthCallback, stripAuthCallbackParams, type AuthCallback } from '../utils/authCallback'
 
-export type View = 'home' | 'listen' | 'watch' | 'video' | 'connect' | 'welcome' | 'mission' | 'news' | 'newsPost'
+export type View = 'home' | 'listen' | 'watch' | 'video' | 'connect' | 'welcome' | 'mission' | 'subscribe' | 'news' | 'newsPost'
 
 export interface ResolvedView {
   view: View
@@ -55,6 +55,8 @@ export function resolveView(
   if (pathname === '/listen') return { view: 'listen', normalizedPath }
   if (pathname === '/mission') return { view: 'mission', normalizedPath }
   if (pathname === '/welcome') return { view: 'welcome', normalizedPath }
+  if (pathname === '/subscribe') return { view: 'subscribe', normalizedPath }
+
   if (pathname === '/news') return { view: 'news', normalizedPath }
 
   if (pathname.startsWith(NEWS_PREFIX)) {

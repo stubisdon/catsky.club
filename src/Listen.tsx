@@ -11,6 +11,8 @@ import {
 import { TRACKS, type Track } from './config/tracks'
 import { getLockedTrackLabel, hasTrackAccess } from './utils/trackAccess'
 import { trackEvent } from './utils/analytics'
+import { observeSoundCloudProgress } from './utils/playerApis'
+import { recordSongProgress } from './utils/engagement'
 
 export default function Listen() {
   const [membershipTier, setMembershipTier] = useState<MembershipTier>('none')
@@ -82,6 +84,21 @@ export default function Listen() {
     }
   }, [trackVotes])
 
+  // Engagement instrumentation only: reports the played fraction of the selected SoundCloud
+  // track. The listened-threshold lives in engagement.ts, not here.
+  useEffect(() => {
+    if (!currentTrackId) return
+    const track = TRACKS.find(t => t.id === currentTrackId)
+    if (!track || track.audioSource.type !== 'soundcloud') return
+    const iframe = soundcloudIframeRef.current
+    if (!iframe) return
+
+    return observeSoundCloudProgress({
+      iframe,
+      onProgress: (fraction) => recordSongProgress(currentTrackId, fraction),
+    })
+  }, [currentTrackId])
+
   const handleTrackSelect = useCallback((trackId: string) => {
     const track = TRACKS.find(t => t.id === trackId)
     if (!track) {
@@ -136,11 +153,20 @@ export default function Listen() {
   }, [isPlaying])
 
   const handleTimeUpdate = useCallback(() => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime)
-      setDuration(audioRef.current.duration || 0)
+    if (!audioRef.current) return
+    const time = audioRef.current.currentTime
+    const total = audioRef.current.duration || 0
+    setCurrentTime(time)
+    setDuration(total)
+    if (currentTrackId && Number.isFinite(total) && total > 0 && Number.isFinite(time)) {
+      recordSongProgress(currentTrackId, time / total)
     }
-  }, [])
+  }, [currentTrackId])
+
+  const handleAudioEnded = useCallback(() => {
+    setIsPlaying(false)
+    if (currentTrackId) recordSongProgress(currentTrackId, 1)
+  }, [currentTrackId])
 
   const handleVote = useCallback((trackId: string, vote: 'up' | 'down') => {
     if (!isPaid) return
@@ -270,7 +296,7 @@ export default function Listen() {
                   ref={audioRef}
                   onTimeUpdate={handleTimeUpdate}
                   onLoadedMetadata={handleTimeUpdate}
-                  onEnded={() => setIsPlaying(false)}
+                  onEnded={handleAudioEnded}
                   style={{ display: 'none' }}
                 />
               </>

@@ -28,6 +28,19 @@ function mockMember(page: Page, amount?: number) {
 }
 
 test.describe('Membership gating on watch page', () => {
+  // Completion tracking (engagement -> email capture) only works if the IFrame API is enabled
+  // on the embed. If this attribute disappears, video_completed silently stops firing.
+  test('the teaser embed keeps the YouTube IFrame API enabled', async ({ page }) => {
+    await mockMember(page)
+    await page.goto('/watch')
+
+    const iframe = page.locator('iframe[src*="youtube.com/embed/1mEIXt3jYmA"]')
+    await expect(iframe).toBeVisible()
+    await expect(iframe).toHaveAttribute('src', /enablejsapi=1/)
+    await expect(iframe).toHaveAttribute('src', /[?&]origin=/)
+    await expect(iframe).toHaveAttribute('id', 'catsky-watch-player')
+  })
+
   test('free members see upgrade CTA', async ({ page }) => {
     await mockMember(page, 0)
     await page.goto('/watch')

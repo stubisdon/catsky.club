@@ -60,6 +60,9 @@ withheld. See `docs/NEWS_SECTION.md` for the full gating matrix.
 - `/connect` may also show non-clickable paid-tier names/perks hydrated from Ghost backend tiers so free members can understand plan context without seeing duplicate upgrade buttons.
 - `/connect` plan upgrade clicks open Ghost Portal account plans via the dedicated `account/plans` portal trigger.
 - Successful magic-link signups from any Catsky route open `/welcome` for first/last-name capture only when no name is already saved, then continue to `/listen`; successful signins continue to `/listen`, and expired/used links open Catsky’s in-brand retry form instead of a Ghost Portal notification.
+- `/welcome` requires a passed bot-verification challenge alongside the first name before signup completes; a failed challenge shows an inline error and does not advance the visitor.
+- `/subscribe` is a standalone, shareable landing page for email signup (the same two-step email → `/welcome` flow as above), independent of `/connect`.
+- Logged-out visitors who watch a video to completion, listen actively for a few minutes, or play several songs may see the subscribe prompt once; it does not appear on `/subscribe`, `/welcome`, or `/connect`, and it will not reappear for a while after being dismissed, or ever again once the visitor signs up or is already a member.
 - `/watch` remains the public trailer surface and paid-entry prompt.
 - `/video` is the paid-gated embedded unreleased video route (`paid_5` + `paid_20` unlock; guests/free see lock messaging + `/connect` path).
 - `/listen` lets registered free users play songs with announced release dates while keeping in-progress/no-date demos locked to paid tiers.

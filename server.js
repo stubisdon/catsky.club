@@ -56,7 +56,18 @@ const GHOST_ADMIN_API_KEY = process.env.GHOST_ADMIN_API_KEY || ''
 const GHOST_ADMIN_API_VERSION = process.env.GHOST_ADMIN_API_VERSION || 'v5.0'
 const SIGNUPS_API_TOKEN = process.env.SIGNUPS_API_TOKEN || ''
 const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY || ''
-const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+// Overridable so tests can point siteverify at a local mock; never set this in production.
+const TURNSTILE_VERIFY_URL = process.env.TURNSTILE_VERIFY_URL || 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+
+// PostHog server-side capture. Deliberately server-side rather than from the browser: the
+// ad blockers that stop Turnstile from loading also stop posthog-js, so client-side capture
+// would be blind exactly where we most need to see.
+const POSTHOG_TOKEN = process.env.VITE_PUBLIC_POSTHOG_TOKEN || ''
+const POSTHOG_HOST = (process.env.VITE_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com').replace(/\/+$/, '')
+// Fixed salt: enough to keep raw IPs out of analytics while still letting one noisy client be
+// told apart from many distinct blocked visitors.
+const ANALYTICS_ID_SALT = 'catsky-server-events'
+
 
 // Social feed credentials. All optional: an unset platform reports an error for itself and the
 // rest of the feed still renders. YouTube additionally falls back to its public Atom feed when
@@ -684,10 +695,16 @@ app.post('/api/member-profile', memberProfileTextBodyParser, async (req, res) =>
   const email = typeof parsedBody?.email === 'string' ? parsedBody.email.trim().toLowerCase() : ''
   const firstName = typeof parsedBody?.firstName === 'string' ? parsedBody.firstName.trim() : ''
   const lastName = typeof parsedBody?.lastName === 'string' ? parsedBody.lastName.trim() : ''
+  const turnstileToken = typeof parsedBody?.turnstileToken === 'string' ? parsedBody.turnstileToken : ''
 
   if (!firstName) {
     return res.status(400).json({ error: 'firstName is required.' })
   }
+
+  // Signup is only completed once the name form is submitted, so this endpoint is the second
+  // bot gate: without a valid Turnstile token the member keeps whatever name Ghost gave them
+  // and no profile is written.
+  if (!(await enforceTurnstile(req, res, turnstileToken, 'member-profile'))) return
 
   if (!GHOST_ADMIN_API_KEY) {
     return res.status(500).json({ error: 'Ghost Admin API is not configured (missing GHOST_ADMIN_API_KEY)' })
@@ -717,6 +734,39 @@ app.post('/api/member-profile', memberProfileTextBodyParser, async (req, res) =>
 })
 
 
+/** Pseudonymous, stable per-IP id. Raw IPs never reach analytics. */
+function anonymousActorId(remoteIp) {
+  if (!remoteIp) return 'anonymous'
+  return crypto.createHash('sha256').update(`${ANALYTICS_ID_SALT}:${remoteIp}`).digest('hex').slice(0, 16)
+}
+
+/**
+ * Fire-and-forget PostHog event from the server.
+ *
+ * Never throws, never blocks the response, and no-ops when no token is configured. Only
+ * carries the properties passed in — no emails, names, raw form values, or IPs.
+ */
+function captureServerEvent(event, distinctId, properties) {
+  if (!POSTHOG_TOKEN) return
+  try {
+    void fetch(`${POSTHOG_HOST}/capture/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: POSTHOG_TOKEN,
+        event,
+        distinct_id: distinctId,
+        properties: { ...properties, source: 'server' },
+        timestamp: new Date().toISOString(),
+      }),
+    }).catch((error) => {
+      console.error('[PostHog capture failed]', String(error?.message || error))
+    })
+  } catch (error) {
+    console.error('[PostHog capture failed]', String(error?.message || error))
+  }
+}
+
 async function verifyTurnstileToken(token, remoteIp) {
   if (!token) return { ok: false, reason: 'missing-token' }
   const form = new URLSearchParams()
@@ -736,6 +786,42 @@ async function verifyTurnstileToken(token, remoteIp) {
   }
 }
 
+// Shared Turnstile gate for the two endpoints a bot can hit directly (magic-link send and
+// profile completion). Returns true when the request may proceed; when it may not, this has
+// already written the error response and the caller must return immediately.
+// Fails OPEN when TURNSTILE_SECRET_KEY is unset so deploying before the keys are configured
+// does not break signups; fails CLOSED once the secret is set.
+async function enforceTurnstile(req, res, token, context) {
+  if (!TURNSTILE_SECRET_KEY) {
+    console.warn(`[Turnstile not configured] Allowing ${context} request without bot verification. Set TURNSTILE_SECRET_KEY to enforce.`)
+    return true
+  }
+
+  const remoteIp = getForwardedHeaderValue(req.headers['x-forwarded-for']) || req.socket.remoteAddress || ''
+  let verdict = { ok: false, reason: 'unverified' }
+  try {
+    verdict = await verifyTurnstileToken(token, remoteIp)
+  } catch (error) {
+    console.error('[Turnstile verify error]', String(error?.message || error))
+    res.status(502).json({ errors: [{ message: 'Verification is temporarily unavailable. Please try again.' }] })
+    return false
+  }
+
+  if (!verdict.ok) {
+    console.warn('[Turnstile rejected request]', { context, reason: verdict.reason, ip: remoteIp })
+    // Surfaced in PostHog so a spike in real people being blocked at the name step is
+    // alertable, rather than something only visible by grepping pm2 logs.
+    captureServerEvent('turnstile_rejected', anonymousActorId(remoteIp), {
+      context,
+      reason: verdict.reason || 'unknown',
+    })
+    res.status(403).json({ errors: [{ message: 'Verification failed. Please try again.' }] })
+    return false
+  }
+
+  return true
+}
+
 // Bot-protected magic-link signup/login.
 // nginx routes POST /members/api/send-magic-link/ here (instead of straight to Ghost) so we can
 // verify a Cloudflare Turnstile token before Ghost creates the member and sends the email — this
@@ -745,23 +831,8 @@ async function verifyTurnstileToken(token, remoteIp) {
 app.post('/members/api/send-magic-link/', async (req, res) => {
   const body = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? { ...req.body } : {}
 
-  if (TURNSTILE_SECRET_KEY) {
-    const token = typeof body.turnstileToken === 'string' ? body.turnstileToken : ''
-    const remoteIp = getForwardedHeaderValue(req.headers['x-forwarded-for']) || req.socket.remoteAddress || ''
-    let verdict = { ok: false, reason: 'unverified' }
-    try {
-      verdict = await verifyTurnstileToken(token, remoteIp)
-    } catch (error) {
-      console.error('[Turnstile verify error]', String(error?.message || error))
-      return res.status(502).json({ errors: [{ message: 'Verification is temporarily unavailable. Please try again.' }] })
-    }
-    if (!verdict.ok) {
-      console.warn('[Turnstile rejected signup]', { reason: verdict.reason, ip: remoteIp })
-      return res.status(403).json({ errors: [{ message: 'Verification failed. Please try again.' }] })
-    }
-  } else {
-    console.warn('[Turnstile not configured] Forwarding magic-link request without bot verification. Set TURNSTILE_SECRET_KEY to enforce.')
-  }
+  const token = typeof body.turnstileToken === 'string' ? body.turnstileToken : ''
+  if (!(await enforceTurnstile(req, res, token, 'magic-link'))) return
 
   delete body.turnstileToken
 

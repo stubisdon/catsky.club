@@ -1,5 +1,12 @@
 const { defineConfig, devices } = require('@playwright/test')
 
+// Port is overridable so parallel git worktrees (Conductor workspaces) can run e2e at the same
+// time. Without this, `reuseExistingServer` silently latches onto another workspace's dev server
+// on :3000 and the whole suite tests the wrong branch.
+const WEB_HOST = process.env.PLAYWRIGHT_WEB_HOST || '127.0.0.1'
+const WEB_PORT = Number(process.env.PLAYWRIGHT_WEB_PORT || 3000)
+const WEB_URL = `http://${WEB_HOST}:${WEB_PORT}`
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -18,7 +25,7 @@ module.exports = defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.TEST_URL || 'http://127.0.0.1:3000',
+    baseURL: process.env.TEST_URL || WEB_URL,
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
@@ -55,7 +62,7 @@ module.exports = defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: 'node scripts/playwright-webserver.mjs',
-    url: 'http://127.0.0.1:3000',
+    url: WEB_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 180 * 1000,
   },

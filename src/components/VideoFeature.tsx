@@ -1,6 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FEATURED_MUSIC_VIDEO } from '../config/media'
 import { trackEvent } from '../utils/analytics'
+import { observeYouTubeProgress, youTubeJsApiParams } from '../utils/playerApis'
+import { recordVideoProgress, setVideoPlaying } from '../utils/engagement'
+
+const PLAYER_ELEMENT_ID = 'catsky-featured-video'
 
 /**
  * The released music video.
@@ -13,13 +17,25 @@ export default function VideoFeature() {
   const [playing, setPlaying] = useState(false)
   const video = FEATURED_MUSIC_VIDEO
 
+  // Engagement instrumentation only. Attaches once the facade has swapped in the iframe;
+  // reports the watched fraction, the threshold itself lives in engagement.ts.
+  useEffect(() => {
+    if (!playing) return
+    return observeYouTubeProgress({
+      elementId: PLAYER_ELEMENT_ID,
+      onProgress: (fraction) => recordVideoProgress(video.youtubeId, fraction),
+      onPlayingChange: setVideoPlaying,
+    })
+  }, [playing, video.youtubeId])
+
   return (
     <figure className="video-feature" data-testid="video-feature">
       <div className="video-frame">
         {playing ? (
           <iframe
+            id={PLAYER_ELEMENT_ID}
             className="video-embed"
-            src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?autoplay=1&rel=0`}
+            src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?autoplay=1&rel=0${youTubeJsApiParams()}`}
             title={`${video.title} — official music video`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen

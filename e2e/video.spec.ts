@@ -53,6 +53,19 @@ test.describe('Membership gating on video page', () => {
     await expect(page.locator('iframe[src*="youtube.com/embed/xRxUcF_wFSQ"]')).toBeVisible()
   })
 
+  // Completion tracking (engagement -> email capture) only works if the IFrame API is enabled
+  // on the embed. If this attribute disappears, video_completed silently stops firing.
+  test('the unreleased video embed keeps the YouTube IFrame API enabled', async ({ page }) => {
+    await mockMember(page, 500)
+    await page.goto('/video')
+
+    const iframe = page.locator('iframe[src*="youtube.com/embed/xRxUcF_wFSQ"]')
+    await expect(iframe).toBeVisible()
+    await expect(iframe).toHaveAttribute('src', /enablejsapi=1/)
+    await expect(iframe).toHaveAttribute('src', /[?&]origin=/)
+    await expect(iframe).toHaveAttribute('id', 'catsky-secrets-player')
+  })
+
   test('paid $20 members can see embedded unreleased video', async ({ page }) => {
     await mockMember(page, 2000)
     await page.goto('/video')

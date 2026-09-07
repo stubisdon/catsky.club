@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PageContainer, PageTitle, Link } from './components'
 import { getMembershipTier, type MembershipTier } from './utils'
+import { buildYouTubeEmbedSrc, observeYouTubeProgress } from './utils/playerApis'
+import { recordVideoProgress, setVideoPlaying } from './utils/engagement'
+
+const VIDEO_ID = 'xRxUcF_wFSQ'
+const PLAYER_ELEMENT_ID = 'catsky-secrets-player'
 
 export default function Video() {
   const [tier, setTier] = useState<MembershipTier | null>(null)
@@ -23,6 +28,16 @@ export default function Video() {
 
   const isPaid = useMemo(() => tier === 'paid_5' || tier === 'paid_20', [tier])
 
+  // Engagement instrumentation only: reports watched fraction, thresholds live in engagement.ts.
+  useEffect(() => {
+    if (!isPaid) return
+    return observeYouTubeProgress({
+      elementId: PLAYER_ELEMENT_ID,
+      onProgress: (fraction) => recordVideoProgress(VIDEO_ID, fraction),
+      onPlayingChange: setVideoPlaying,
+    })
+  }, [isPaid])
+
   return (
     <PageContainer maxWidth="900px">
       <div style={{ marginBottom: '2rem' }}>
@@ -44,7 +59,8 @@ export default function Video() {
       >
         {isPaid ? (
           <iframe
-            src="https://www.youtube.com/embed/xRxUcF_wFSQ"
+            id={PLAYER_ELEMENT_ID}
+            src={buildYouTubeEmbedSrc(VIDEO_ID)}
             title="Catsky unreleased music video"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
