@@ -139,6 +139,11 @@ export interface YouTubeProgressOptions {
   elementId: string
   /** Called with the true 0..1 fraction watched. Thresholds live in engagement.ts. */
   onProgress: (fraction: number) => void
+  /**
+   * Called whenever playback starts or stops. Lets callers hold back anything that would
+   * cover the video (a prompt, an overlay) until the visitor is no longer watching.
+   */
+  onPlayingChange?: (playing: boolean) => void
   pollIntervalMs?: number
 }
 
@@ -150,7 +155,15 @@ export interface YouTubeProgressOptions {
  * double-invoked effects from creating two players on one iframe.
  */
 export function observeYouTubeProgress(options: YouTubeProgressOptions): () => void {
-  const { elementId, onProgress, pollIntervalMs = DEFAULT_POLL_INTERVAL_MS } = options
+  const { elementId, onProgress, onPlayingChange, pollIntervalMs = DEFAULT_POLL_INTERVAL_MS } = options
+
+  const reportPlaying = (playing: boolean) => {
+    try {
+      onPlayingChange?.(playing)
+    } catch {
+      // a caller's bookkeeping must never break playback observation
+    }
+  }
 
   let cancelled = false
   let player: YouTubePlayer | null = null
@@ -188,12 +201,17 @@ export function observeYouTubeProgress(options: YouTubeProgressOptions): () => v
             onStateChange: (event) => {
               stopPolling()
               if (event.data === api.PlayerState.PLAYING) {
+                reportPlaying(true)
                 report()
                 pollId = setInterval(report, pollIntervalMs)
               } else if (event.data === api.PlayerState.ENDED) {
+                // Report progress before clearing the playing flag, so the completion this
+                // records is delivered immediately rather than held back.
                 onProgress(1)
+                reportPlaying(false)
               } else {
                 report()
+                reportPlaying(false)
               }
             },
           },
@@ -209,6 +227,7 @@ export function observeYouTubeProgress(options: YouTubeProgressOptions): () => v
   return () => {
     cancelled = true
     stopPolling()
+    reportPlaying(false)
     if (player) {
       try {
         player.destroy()

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { FEATURED_MUSIC_VIDEO } from '../config/media'
 import { trackEvent } from '../utils/analytics'
 import { observeYouTubeProgress, youTubeJsApiParams } from '../utils/playerApis'
-import { recordVideoProgress } from '../utils/engagement'
+import { recordVideoProgress, setVideoPlaying } from '../utils/engagement'
 
 const PLAYER_ELEMENT_ID = 'catsky-featured-video'
 
@@ -24,6 +24,7 @@ export default function VideoFeature() {
     return observeYouTubeProgress({
       elementId: PLAYER_ELEMENT_ID,
       onProgress: (fraction) => recordVideoProgress(video.youtubeId, fraction),
+      onPlayingChange: setVideoPlaying,
     })
   }, [playing, video.youtubeId])
 

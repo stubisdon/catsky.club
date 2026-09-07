@@ -37,6 +37,10 @@ let focusHandler: (() => void) | null = null
 let blurHandler: (() => void) | null = null
 let isVisible = true
 let isFocused = true
+// Set while a video is actually playing. Triggers that fire during playback are held back
+// rather than dropped, so the subscribe prompt never covers a video mid-watch.
+let videoPlaying = false
+let deferredTrigger: EngagementTrigger | null = null
 
 function isValidTrigger(value: unknown): value is EngagementTrigger {
   return value === 'video_completed' || value === 'active_time' || value === 'songs_listened'
@@ -84,6 +88,17 @@ function emit(trigger: EngagementTrigger): void {
   s.fired.add(trigger)
   persist()
 
+  // Interrupting playback with a prompt is the one thing this must never do. Hold the first
+  // trigger that lands mid-video and deliver it once the video stops.
+  if (videoPlaying) {
+    if (deferredTrigger === null) deferredTrigger = trigger
+    return
+  }
+
+  deliver(trigger)
+}
+
+function deliver(trigger: EngagementTrigger): void {
   subscribers.forEach((cb) => {
     try {
       cb(trigger)
@@ -194,6 +209,23 @@ export function initEngagementTracking(): () => void {
   }
 }
 
+/**
+ * Reports whether a video is currently playing.
+ *
+ * While true, engagement triggers are held rather than delivered; the first one held is
+ * released as soon as playback stops (ended, paused, or the player went away). This is what
+ * keeps the subscribe prompt from appearing over a video someone is still watching.
+ */
+export function setVideoPlaying(playing: boolean): void {
+  if (videoPlaying === playing) return
+  videoPlaying = playing
+  if (playing) return
+
+  const pending = deferredTrigger
+  deferredTrigger = null
+  if (pending) deliver(pending)
+}
+
 export function recordSongProgress(trackId: string, fraction: number): void {
   if (fraction < SONG_PROGRESS_THRESHOLD) return
   const s = loadState()
@@ -262,4 +294,6 @@ export function resetEngagementForTests(): void {
   blurHandler = null
   isVisible = true
   isFocused = true
+  videoPlaying = false
+  deferredTrigger = null
 }

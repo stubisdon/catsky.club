@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageContainer, PageTitle, Link } from './components'
 import { getMembershipTier, type MembershipTier } from './utils'
 import { buildYouTubeEmbedSrc, observeYouTubeProgress } from './utils/playerApis'
-import { recordVideoProgress } from './utils/engagement'
+import { recordVideoProgress, setVideoPlaying } from './utils/engagement'
 
 const VIDEO_ID = 'xRxUcF_wFSQ'
 const PLAYER_ELEMENT_ID = 'catsky-secrets-player'
@@ -34,6 +34,7 @@ export default function Video() {
     return observeYouTubeProgress({
       elementId: PLAYER_ELEMENT_ID,
       onProgress: (fraction) => recordVideoProgress(VIDEO_ID, fraction),
+      onPlayingChange: setVideoPlaying,
     })
   }, [isPaid])
 

@@ -258,3 +258,71 @@ describe('engagement', () => {
 function ACTIVE_TIME_THRESHOLD(engagement: { ACTIVE_TIME_THRESHOLD_MS: number }) {
   return engagement.ACTIVE_TIME_THRESHOLD_MS
 }
+
+describe('never interrupting a video', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  it('holds a trigger that fires while a video is playing, and releases it when playback stops', async () => {
+    const engagement = await loadEngagement()
+    const fired = vi.fn()
+    engagement.onEngagementTrigger(fired)
+
+    engagement.setVideoPlaying(true)
+    engagement.recordSongProgress('a', 1)
+    engagement.recordSongProgress('b', 1)
+    engagement.recordSongProgress('c', 1)
+
+    // Threshold crossed, but the visitor is mid-video: nothing may be delivered yet.
+    expect(fired).not.toHaveBeenCalled()
+
+    engagement.setVideoPlaying(false)
+    expect(fired).toHaveBeenCalledWith('songs_listened')
+  })
+
+  it('delivers a video completion immediately rather than holding it', async () => {
+    const engagement = await loadEngagement()
+    const fired = vi.fn()
+    engagement.onEngagementTrigger(fired)
+
+    engagement.setVideoPlaying(true)
+    // A player reports the final progress before clearing the playing flag, mirroring
+    // observeYouTubeProgress's ENDED branch.
+    engagement.recordVideoProgress('v1', 1)
+    engagement.setVideoPlaying(false)
+
+    expect(fired).toHaveBeenCalledWith('video_completed')
+    expect(fired).toHaveBeenCalledTimes(1)
+  })
+
+  it('holds only the first trigger and never replays it twice', async () => {
+    const engagement = await loadEngagement()
+    const fired = vi.fn()
+    engagement.onEngagementTrigger(fired)
+
+    engagement.setVideoPlaying(true)
+    engagement.recordSongProgress('a', 1)
+    engagement.recordSongProgress('b', 1)
+    engagement.recordSongProgress('c', 1)
+    engagement.recordVideoProgress('v1', 1)
+
+    engagement.setVideoPlaying(false)
+    expect(fired).toHaveBeenCalledTimes(1)
+
+    engagement.setVideoPlaying(true)
+    engagement.setVideoPlaying(false)
+    expect(fired).toHaveBeenCalledTimes(1)
+  })
+
+  it('is unaffected when no video is playing', async () => {
+    const engagement = await loadEngagement()
+    const fired = vi.fn()
+    engagement.onEngagementTrigger(fired)
+
+    engagement.recordVideoProgress('v1', 1)
+    expect(fired).toHaveBeenCalledWith('video_completed')
+  })
+})

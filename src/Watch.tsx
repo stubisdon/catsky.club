@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { PageContainer, PageTitle, Link } from './components'
 import { getMembershipTier, getPaidPlanOptions, type MembershipTier, type PaidPlanOption } from './utils'
 import { buildYouTubeEmbedSrc, observeYouTubeProgress } from './utils/playerApis'
-import { recordVideoProgress } from './utils/engagement'
+import { recordVideoProgress, setVideoPlaying } from './utils/engagement'
 
 const UNRELEASED_VIDEO_POST = '/members/unreleased-video/'
 const VIDEO_ID = '1mEIXt3jYmA'
@@ -37,6 +37,7 @@ export default function Watch() {
     return observeYouTubeProgress({
       elementId: PLAYER_ELEMENT_ID,
       onProgress: (fraction) => recordVideoProgress(VIDEO_ID, fraction),
+      onPlayingChange: setVideoPlaying,
     })
   }, [])
 
