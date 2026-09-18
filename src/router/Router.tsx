@@ -8,6 +8,7 @@ import Welcome from '../Welcome'
 import Video from '../Video'
 import News from '../News'
 import NewsPost from '../NewsPost'
+import SugarDaddy from '../SugarDaddy'
 import { TopNav } from '../components'
 import { trackPageView } from '../utils/analytics'
 import { clearAuthCallback, readAuthCallback, type AuthCallback } from '../utils/authCallback'
@@ -141,6 +142,9 @@ export default function Router() {
         break
       case 'newsPost':
         page = slug ? <NewsPost slug={slug} /> : <News />
+        break
+      case 'sugar-daddy':
+        page = <SugarDaddy />
         break
       default:
         page = <App />

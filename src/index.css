@@ -2240,3 +2240,55 @@ textarea.form-input {
   padding-top: 1.5rem;
   border-top: var(--rule-hairline) solid var(--rule-color);
 }
+
+/* ==========================================================================
+   /sugar-daddy — smart-link landing page
+   ========================================================================== */
+
+/* Smaller than .home-masthead's wordmark treatment: this is a track title, not the site name. */
+.sugar-daddy-masthead > .t-eyebrow {
+  margin-bottom: 1rem;
+}
+
+.sugar-daddy-cover {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  margin: 0 auto 1.5rem;
+  border: var(--rule-hairline) solid var(--rule-color);
+}
+
+.sugar-daddy-title {
+  font-size: clamp(2.1rem, 7vw, 3.6rem);
+  margin: 0;
+  text-transform: lowercase;
+}
+
+.sugar-daddy-body {
+  margin: 1.25rem 0 0;
+  color: var(--ink-quiet);
+  max-width: 34rem;
+}
+
+.sugar-daddy-explore-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+  margin-top: 1.5rem;
+}
+
+.sugar-daddy-email-heading {
+  font-size: clamp(1.75rem, 4.5vw, 2.5rem);
+  margin: 0.75rem 0 1.25rem;
+  text-transform: lowercase;
+}
+
+.sugar-daddy-signup {
+  max-width: 32rem;
+}
+
+.sugar-daddy-member-line {
+  color: var(--ink-quiet);
+}

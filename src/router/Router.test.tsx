@@ -27,6 +27,7 @@ vi.mock('../News', () => ({ default: () => <div>news view</div> }))
 vi.mock('../NewsPost', () => ({
   default: ({ slug }: { slug: string }) => <div>news post view: {slug}</div>,
 }))
+vi.mock('../SugarDaddy', () => ({ default: () => <div>sugar daddy view</div> }))
 vi.mock('../utils/analytics', () => ({
   trackPageView: analytics.trackPageView,
 }))
@@ -275,6 +276,21 @@ describe('Router signup callback normalization', () => {
     render(<Router />)
 
     expect(screen.getByText('video view')).toBeInTheDocument()
+  })
+
+  it('renders the sugar daddy view for /sugar-daddy', () => {
+    window.history.replaceState({}, '', '/sugar-daddy')
+
+    render(<Router />)
+
+    expect(screen.getByText('sugar daddy view')).toBeInTheDocument()
+  })
+})
+
+describe('resolveView sugar-daddy route', () => {
+  it('resolves /sugar-daddy, with and without a trailing slash', () => {
+    expect(resolveView('/sugar-daddy')).toEqual({ view: 'sugar-daddy', normalizedPath: undefined })
+    expect(resolveView('/sugar-daddy/')).toEqual({ view: 'sugar-daddy', normalizedPath: undefined })
   })
 })
 

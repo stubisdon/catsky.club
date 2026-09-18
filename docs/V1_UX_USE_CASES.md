@@ -54,6 +54,16 @@ withheld. See `docs/NEWS_SECTION.md` for the full gating matrix.
 - In V1.0, $20 includes all $5 capabilities.
 - Differentiation beyond $5 is intentionally deferred unless explicitly documented in business docs.
 
+### E. Ad traffic landing on `/sugar-daddy`
+13. As a visitor who clicked a Meta ad for the "Sugar Daddy" single, I can reach the track on
+    Spotify, Apple Music, or YouTube in one tap without creating an account.
+14. As that same visitor, I can see enough of the rest of catsky.club (the poem, links to the
+    full catalogue/unreleased demos, news, and the mission page) to want to look around, without
+    the page turning into a second homepage.
+15. As that same visitor, I can leave my email to hear future releases first, via the same Ghost
+    magic-link flow every other signup entry point uses (no separate/weaker signup form).
+16. As a visitor who is already a registered member, I see a short acknowledgement instead of a
+    signup form I've already completed elsewhere.
 
 ## Current implementation notes (March 24, 2026)
 - `/connect` shows a single contextual paid-upgrade CTA for free members, `upgrade to $5/month to unlock the music video`, which opens Ghost-managed account plans.
@@ -66,6 +76,7 @@ withheld. See `docs/NEWS_SECTION.md` for the full gating matrix.
 - `$5` and `$20` both unlock current V1 paid listen demos and the unreleased video entry point; higher-tier differentiation remains deferred.
 - V1 analytics tracks page visits, first-party CTA/button clicks, locked-content attempts, track selection/votes/feedback submission metadata, and Ghost Portal entry/open/close transitions without sending emails, names, raw form inputs, or feedback text.
 - `/news` lists all posts (locked and unlocked) newest first; `/news/<slug>` renders the article, or a free preview + `/connect` CTA when the post's own `access` field says the current visitor isn't entitled to the full body. No pagination, tag filtering, comments, search, or RSS in v1.
+- `/sugar-daddy` is a standalone smart-link landing page for Meta ad traffic (see `ARCHITECTURE.md` §2.3): streaming links, a short explore-the-site section, and the shared `SubscribeForm` email signup (hidden for existing members). It is the only route that loads the Meta Pixel (`src/utils/metaPixel.ts`), scoped to that one page.
 
 ## Priority Rules
 - **P0 (must ship):** all use cases 1–8, 10–12.
