@@ -1,9 +1,8 @@
 import { AlbumShelf, Link, SectionRule, SocialFeed, VideoFeature } from './components'
 import { LISTEN_PROFILES } from './config/socials'
+import { POEM } from './config/poem'
 import { PlatformGlyph } from './components/graphics'
 import { trackEvent } from './utils/analytics'
-
-const POEM = ['in the world of data', 'scattered everywhere', 'here to find a meaning', 'for the ones who care']
 
 /**
  * Landing page.

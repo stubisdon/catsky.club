@@ -28,6 +28,7 @@ Catsky Club is a Vite + React single-page app with a lightweight Express server.
 - `/video` → `src/Video.tsx` (embedded unreleased music video gated to `paid_5` / `paid_20`; locked guests/free users route to `/connect`)
 - `/news` → `src/News.tsx` (blog feed, Ghost Content API posts, gated per-post via the post's own `access` field)
 - `/news/<slug>` → `src/NewsPost.tsx` (single article; locked posts show a free preview + CTA to `/connect`)
+- `/sugar-daddy` → `src/SugarDaddy.tsx` (smart-link landing page for the "Sugar Daddy" single, built for Meta ad traffic — see §2.3)
 - `/connect` → `src/Connect.tsx` (magic-link auth UI + free/$5/$20 membership state + Ghost-tier-name/perk upgrade messaging + account/logout actions)
 - `/welcome` → `src/Welcome.tsx` (post-signup profile capture: first/last name)
 - `/mission` → `src/Mission.tsx` (hidden poetry/mission page)
@@ -107,6 +108,37 @@ Notes that matter when editing this:
 - While the mode is `system` the toggle follows the world: a solar timer clamped to ≤ 6h per tick, plus `matchMedia` `change`, `visibilitychange`, and `focus`. All of it is torn down on unmount and whenever the mode leaves `system`.
 - Automatic results are cached under the separate key `catsky_theme_auto` (`{ theme, validUntil }`, max age 6h) so the pre-paint script can reuse them without running solar math. Only `system` and `solar` sources are cached; a preference never is.
 - The pre-paint inline script in `index.html` mirrors this order — preference, `matchMedia` dark, `matchMedia` light, valid `catsky_theme_auto`, then `light` — so there is no flash before React mounts.
+
+### 2.3 `/sugar-daddy` smart-link landing page and the shared subscribe form
+
+`src/SugarDaddy.tsx` is a single-track smart link for Meta ad traffic: cover art + title, the
+three streaming links an ad click is meant to reach, a short invitation to explore the rest of
+the site (reusing the landing page's `POEM`, now lifted to `src/config/poem.ts` so `src/App.tsx`
+and this page import the same lines instead of each keeping their own copy), an inline email
+signup, and small follow links. It renders inside the same `home-shell`/`home-scroll`/
+`home-page` layout as `/`, with page-specific classes (`sugar-daddy-*`) appended to
+`src/index.css` for the cover art, title, and email section sizing.
+
+- **The email form is shared, not duplicated.** `src/components/SubscribeForm.tsx` holds the
+  Ghost magic-link form (input, Turnstile mount/reset, submit/error/confirmation states,
+  `subscribe-*` test ids) that used to live inside `SubscribeDialog`. `SubscribeDialog` now
+  renders `SubscribeForm` inside its own dialog chrome (eyebrow/heading), passing `active={open}`
+  so Turnstile mounting and the "reset when closed" behavior are unchanged. `/sugar-daddy` uses
+  the same component inline (no dialog), with `source="sugar_daddy"` and
+  `labels={['sugar-daddy']}` so Ghost signups from this page carry that attribution label through
+  `requestMagicLink` (`src/utils/magicLink.ts`). An `onSuccess` callback lets a caller react to a
+  successful signup without SubscribeForm knowing anything about pixels or dialogs; `/sugar-daddy`
+  uses it to fire the `Lead` pixel event.
+- **The Meta Pixel is page-scoped.** `src/utils/metaPixel.ts` installs the standard `fbq` snippet
+  with `disablePushState`/`allowDuplicatePageViews` set before init (so the pixel does not
+  auto-fire PageViews on SPA route changes) and is imported **only** by `SugarDaddy.tsx`. On
+  mount it fires `PageView` once (ref-guarded against StrictMode's double-invoked effect); on a
+  platform link click it fires `ViewContent` with `content_type` set to `spotify` / `apple_music`
+  / `youtube`; on a successful signup it fires `Lead`. No email or other form value is ever
+  passed to `trackPixel` — same privacy boundary as `src/utils/analytics.ts`.
+- Membership state (`getMembershipTier()`) hides the form entirely for existing members ≠
+  `none`, replacing it with a short "you're in" line linking to `/listen`, mirroring the gating
+  pattern already used by `TopNav` and `/connect`.
 
 ## 3) Ghost integration
 
