@@ -117,6 +117,7 @@ sudo nano /etc/nginx/sites-available/catsky.club
 - Keep all Ghost routes (`/ghost/`, `/ghost/api/`, `/members/`, `/webhooks/`, `/content/images/`, `/r/`, `/unsubscribe`, `/unsubscribe/`) as they are
 - `/ghost/`, `/ghost/api/`, `/content/images/`, and `/r/` must preserve Ghost’s public request context with `X-Forwarded-Host`, `X-Forwarded-Proto`, `X-Forwarded-Port`, plus localhost/internal `proxy_redirect` rewrites
 - Add `/api/` location for your frontend API endpoints
+- Do **not** add `http2` to the `listen 443` lines. Prod runs Ubuntu 20.04's nginx 1.18, which is vulnerable to CVE-2026-123007 (HTTP/2 RCE, disclosed 2026-11-18) with no apt fix. HTTP/2 was disabled on prod on 2026-11-20; re-enable only after nginx is ≥ 1.30.7 / 1.31.9 or a distro build that lists the CVE as fixed (`apt changelog nginx | grep CVE-2026-123007`). Deploys don't touch nginx config; edit `/etc/nginx/sites-available/catsky.club-ssl.conf` on the server directly.
 
 **Test and reload:**
 ```bash
