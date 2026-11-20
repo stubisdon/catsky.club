@@ -171,8 +171,9 @@ server {
 
 # HTTPS Configuration (uncomment and configure after SSL setup with certbot)
 # server {
-#     listen 443 ssl http2;
-#     listen [::]:443 ssl http2;
+#     # No http2 until nginx is patched for CVE-2026-123007 (see catsky.club-ssl.conf).
+#     listen 443 ssl;
+#     listen [::]:443 ssl;
 #     server_name catsky.club www.catsky.club;
 #     
 #     ssl_certificate /etc/letsencrypt/live/catsky.club/fullchain.pem;
